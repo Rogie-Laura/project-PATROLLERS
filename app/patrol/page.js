@@ -218,7 +218,11 @@ export default function PatrolPage() {
     "w-full rounded-xl border border-border/80 bg-background/80 px-4 py-3.5 text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20";
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 py-6 sm:py-10">
+    <main
+      className={`relative flex min-h-screen flex-col overflow-hidden px-4 ${
+        user ? "py-6 sm:py-10" : "justify-center py-4"
+      }`}
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.12)_0%,_transparent_55%)]"
@@ -231,7 +235,7 @@ export default function PatrolPage() {
       <div className="relative mx-auto w-full max-w-md">
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-1 text-sm text-muted transition hover:text-foreground"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-muted transition hover:text-foreground"
         >
           ← Back to home
         </Link>
