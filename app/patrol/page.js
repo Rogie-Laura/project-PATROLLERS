@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import Pro4aLogo from "@/components/Pro4aLogo";
+import PatrollersBranding from "@/components/PatrollersBranding";
+import PatrolLoginCard from "@/components/PatrolLoginCard";
 
 export default function PatrolPage() {
   const supabase = createClient();
@@ -204,77 +205,104 @@ export default function PatrolPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-muted">Loading...</p>
+      <main className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="text-sm text-muted">Loading...</p>
+        </div>
       </main>
     );
   }
 
+  const inputClassName =
+    "w-full rounded-xl border border-border/80 bg-background/80 px-4 py-3.5 text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20";
+
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="mx-auto w-full max-w-md">
-        <Link href="/" className="mb-6 inline-block text-sm text-muted hover:text-foreground">
+    <main className="relative min-h-screen overflow-hidden px-4 py-6 sm:py-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.12)_0%,_transparent_55%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-accent/5 blur-3xl"
+      />
+
+      <div className="relative mx-auto w-full max-w-md">
+        <Link
+          href="/"
+          className="mb-6 inline-flex items-center gap-1 text-sm text-muted transition hover:text-foreground"
+        >
           ← Back to home
         </Link>
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
-          <div className="mb-6 text-center">
-            <Pro4aLogo />
-            <h1 className="mt-4 text-2xl font-bold">Patrol Login</h1>
-            <p className="mt-1 text-sm text-muted">
-              Log in and share your GPS location from your phone browser.
-            </p>
-          </div>
+        <PatrollersBranding compact={!!user} />
 
+        <PatrolLoginCard
+          title={user ? "Patrol Console" : "Patrol Login"}
+          subtitle={
+            user
+              ? "Share your live GPS location to the command center."
+              : "Sign in from your mobile browser to begin location reporting."
+          }
+        >
           {!user ? (
-            <form onSubmit={handleLogin} className="mt-6 space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium">Email</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground/90">
+                  Email
+                </label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:border-accent"
+                  className={inputClassName}
                   placeholder="patrol@example.com"
+                  autoComplete="email"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">Password</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground/90">
+                  Password
+                </label>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:border-accent"
+                  className={inputClassName}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                 />
               </div>
               {error && (
-                <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                <p className="rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-400 ring-1 ring-red-500/20">
                   {error}
                 </p>
               )}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-accent py-3 font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+                className="w-full rounded-xl bg-accent py-3.5 font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50"
               >
                 {submitting ? "Signing in..." : "Sign In"}
               </button>
             </form>
           ) : (
-            <div className="mt-6 space-y-4">
-              <div className="rounded-lg border border-border bg-background px-4 py-3">
-                <p className="text-sm text-muted">Signed in as</p>
-                <p className="font-medium">{user.email}</p>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border/80 bg-background/60 px-4 py-3.5">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted">
+                  Signed in as
+                </p>
+                <p className="mt-1 font-medium text-foreground">{user.email}</p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
                 <button
                   onClick={sendOnce}
                   disabled={submitting || tracking}
-                  className="rounded-lg border border-border bg-background py-3 font-medium transition hover:border-accent disabled:opacity-50"
+                  className="rounded-xl border border-border/80 bg-background/60 py-3 font-medium transition hover:border-accent hover:bg-accent/5 disabled:opacity-50"
                 >
                   {submitting ? "Sending..." : "Send Location Once"}
                 </button>
@@ -282,14 +310,14 @@ export default function PatrolPage() {
                 {!tracking ? (
                   <button
                     onClick={startTracking}
-                    className="rounded-lg bg-accent py-3 font-semibold text-background transition hover:bg-accent-dark"
+                    className="rounded-xl bg-accent py-3 font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark"
                   >
                     Start Live Tracking
                   </button>
                 ) : (
                   <button
                     onClick={stopTracking}
-                    className="rounded-lg bg-red-600 py-3 font-semibold text-white transition hover:bg-red-700"
+                    className="rounded-xl bg-red-600 py-3 font-semibold text-white shadow-lg shadow-red-900/20 transition hover:bg-red-700"
                   >
                     Stop Live Tracking
                   </button>
@@ -297,42 +325,49 @@ export default function PatrolPage() {
               </div>
 
               {error && (
-                <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                <p className="rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-400 ring-1 ring-red-500/20">
                   {error}
                 </p>
               )}
 
-              <div className="rounded-lg border border-dashed border-border bg-background/50 p-4">
+              <div className="rounded-xl border border-dashed border-border/80 bg-background/40 p-4">
                 <button
                   type="button"
                   onClick={() => setShowManual((v) => !v)}
-                  className="text-sm font-medium text-accent"
+                  className="text-sm font-medium text-accent transition hover:text-accent-dark"
                 >
-                  {showManual ? "Hide manual coordinates" : "GPS not working? Enter coordinates manually"}
+                  {showManual
+                    ? "Hide manual coordinates"
+                    : "GPS not working? Enter coordinates manually"}
                 </button>
 
                 {showManual && (
                   <div className="mt-3 space-y-3">
-                    <p className="text-xs text-muted">
-                      Useful for desktop testing. Default is Manila area. On real patrol, use phone GPS.
+                    <p className="text-xs leading-relaxed text-muted">
+                      Useful for desktop testing. Default is Manila area. On real
+                      patrol, use phone GPS.
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="mb-1 block text-xs text-muted">Latitude</label>
+                        <label className="mb-1 block text-xs text-muted">
+                          Latitude
+                        </label>
                         <input
                           type="text"
                           value={manualLat}
                           onChange={(e) => setManualLat(e.target.value)}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-muted">Longitude</label>
+                        <label className="mb-1 block text-xs text-muted">
+                          Longitude
+                        </label>
                         <input
                           type="text"
                           value={manualLng}
                           onChange={(e) => setManualLng(e.target.value)}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent"
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
                         />
                       </div>
                     </div>
@@ -348,13 +383,13 @@ export default function PatrolPage() {
               </div>
 
               {status && (
-                <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent">
+                <p className="rounded-xl bg-accent/10 px-3 py-2.5 text-sm text-accent ring-1 ring-accent/20">
                   {status}
                 </p>
               )}
 
               {lastLocation && (
-                <div className="rounded-lg border border-border bg-background px-4 py-3 text-sm">
+                <div className="rounded-xl border border-border/80 bg-background/60 px-4 py-3 text-sm">
                   <p className="font-medium">Last sent location</p>
                   <p className="mt-1 font-mono text-muted">
                     Lat: {lastLocation.latitude.toFixed(6)}
@@ -370,13 +405,18 @@ export default function PatrolPage() {
 
               <button
                 onClick={handleLogout}
-                className="w-full rounded-lg border border-border py-3 text-sm text-muted transition hover:text-foreground"
+                className="w-full rounded-xl border border-border/80 py-3 text-sm text-muted transition hover:border-foreground/20 hover:text-foreground"
               >
                 Sign Out
               </button>
             </div>
           )}
-        </div>
+        </PatrolLoginCard>
+
+        <p className="mt-6 text-center text-[11px] leading-relaxed text-muted/80">
+          Authorized personnel only. Location data is transmitted for operational
+          monitoring.
+        </p>
       </div>
     </main>
   );
