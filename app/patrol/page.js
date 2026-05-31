@@ -2,13 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import PatrollersBranding from "@/components/PatrollersBranding";
 import PatrolLoginCard from "@/components/PatrolLoginCard";
 
 export default function PatrolPage() {
-  const supabase = createClient();
-  const [email, setEmail] = useState("");
+  const [badgeNumber, setBadgeNumber] = useState("");
   const [password, setPassword] = useState("");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,65 +21,93 @@ export default function PatrolPage() {
   const watchIdRef = useRef(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-    });
+    let active = true;
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (active) setUser(data.user ?? null);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+    return () => {
+      active = false;
+      if (watchIdRef.current != null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
 
   async function handleLogin(e) {
     e.preventDefault();
     setSubmitting(true);
     setError("");
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ badge_number: badgeNumber, password }),
+      });
+      const data = await res.json();
 
-    if (signInError) {
-      setError(signInError.message);
+      if (!res.ok) {
+        setError(data.error || "Login failed.");
+      } else {
+        setUser(data.user);
+        setPassword("");
+        setStatus("");
+      }
+    } catch {
+      setError("Network error. Please try again.");
     }
+
     setSubmitting(false);
   }
 
   async function handleLogout() {
     stopTracking();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     setUser(null);
+    setLastLocation(null);
+    setStatus("");
+  }
+
+  function handleSessionLost() {
+    stopTracking();
+    setUser(null);
+    setError("You were signed in on another device. Please log in again.");
   }
 
   async function sendCoords(latitude, longitude, accuracy = null) {
-    if (!user) return false;
+    try {
+      const res = await fetch("/api/location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude, longitude, accuracy }),
+      });
 
-    const displayName =
-      user.user_metadata?.full_name || user.email?.split("@")[0] || "Patrol";
+      if (res.status === 401) {
+        handleSessionLost();
+        return false;
+      }
 
-    const { error: insertError } = await supabase.from("location_updates").insert({
-      user_id: user.id,
-      latitude,
-      longitude,
-      accuracy,
-      patrol_name: displayName,
-    });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Could not send location.");
+        return false;
+      }
 
-    if (insertError) {
-      setError(insertError.message);
+      setLastLocation({ latitude, longitude, accuracy, at: new Date() });
+      setStatus("Location sent successfully");
+      setError("");
+      return true;
+    } catch {
+      setError("Network error while sending location.");
       return false;
     }
-
-    setLastLocation({ latitude, longitude, accuracy, at: new Date() });
-    setStatus("Location sent successfully");
-    setError("");
-    return true;
   }
 
   async function sendLocation(position) {
@@ -119,7 +145,7 @@ export default function PatrolPage() {
         timeout: 15000,
         maximumAge: 0,
       });
-    } catch (highAccuracyError) {
+    } catch {
       return getCurrentPosition({
         enableHighAccuracy: false,
         timeout: 20000,
@@ -247,23 +273,24 @@ export default function PatrolPage() {
           subtitle={
             user
               ? "Share your live GPS location to the command center."
-              : "Sign in from your mobile browser to begin location reporting."
+              : "Sign in with your badge number to begin location reporting."
           }
         >
           {!user ? (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground/90">
-                  Email
+                  Badge Number
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={badgeNumber}
+                  onChange={(e) => setBadgeNumber(e.target.value)}
                   className={inputClassName}
-                  placeholder="patrol@example.com"
-                  autoComplete="email"
+                  placeholder="Enter Badge Number"
+                  autoComplete="username"
+                  inputMode="numeric"
                 />
               </div>
               <div>
@@ -276,7 +303,7 @@ export default function PatrolPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={inputClassName}
-                  placeholder="••••••••"
+                  placeholder="Enter Password"
                   autoComplete="current-password"
                 />
               </div>
@@ -299,7 +326,14 @@ export default function PatrolPage() {
                 <p className="text-xs font-medium uppercase tracking-wider text-muted">
                   Signed in as
                 </p>
-                <p className="mt-1 font-medium text-foreground">{user.email}</p>
+                <p className="mt-1 font-medium text-foreground">
+                  {user.rank_fullname || user.full_name}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  Badge {user.badge_number}
+                  {user.unit ? ` · ${user.unit}` : ""}
+                  {user.role ? ` · ${user.role}` : ""}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">

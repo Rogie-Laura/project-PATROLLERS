@@ -135,6 +135,11 @@ export default function MonitorPage() {
                     <p className="font-medium">
                       {loc.patrol_name || "Unknown Patrol"}
                     </p>
+                    {loc.badge_number && (
+                      <p className="text-xs text-muted">
+                        Badge {loc.badge_number}
+                      </p>
+                    )}
                     <p className="mt-1 font-mono text-xs text-muted">
                       {Number(loc.latitude).toFixed(5)}, {Number(loc.longitude).toFixed(5)}
                     </p>
