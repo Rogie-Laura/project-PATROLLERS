@@ -6,9 +6,6 @@ export default function PatrollersBranding({ compact = false }) {
       <Pro4aLogo size={compact ? "sm" : "md"} />
 
       <div className="mt-5 space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-accent">
-          PRO4A
-        </p>
         <h1
           className={`font-bold tracking-[0.2em] text-foreground ${
             compact ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl"
