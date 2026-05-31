@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import Pro4aLogo from "@/components/Pro4aLogo";
 
 export default function PatrolPage() {
   const supabase = createClient();
@@ -217,10 +218,13 @@ export default function PatrolPage() {
         </Link>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
-          <h1 className="text-2xl font-bold">Patrol Login</h1>
-          <p className="mt-1 text-sm text-muted">
-            Log in and share your GPS location from your phone browser.
-          </p>
+          <div className="mb-6 text-center">
+            <Pro4aLogo />
+            <h1 className="mt-4 text-2xl font-bold">Patrol Login</h1>
+            <p className="mt-1 text-sm text-muted">
+              Log in and share your GPS location from your phone browser.
+            </p>
+          </div>
 
           {!user ? (
             <form onSubmit={handleLogin} className="mt-6 space-y-4">
