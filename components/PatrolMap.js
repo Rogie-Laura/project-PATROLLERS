@@ -4,7 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 
-const defaultCenter = [14.5995, 120.9842];
+const CALABARZON_CENTER = [14.2, 121.1];
+const CALABARZON_ZOOM = 9;
+const CALABARZON_BOUNDS = L.latLngBounds(
+  [13.62, 120.7],
+  [15.08, 122.4]
+);
 
 const BASEMAPS = [
   {
@@ -55,27 +60,16 @@ function toNumber(value) {
   return typeof value === "number" ? value : parseFloat(value);
 }
 
-function getPatrolFitKey(locations) {
-  return locations
-    .map((loc) => loc.user_id)
-    .sort()
-    .join(",");
-}
-
-function FitBoundsOnce({ locations, fitKey }) {
+function CalabarzonInitialView() {
   const map = useMap();
-  const lastFitKeyRef = useRef(null);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (locations.length === 0) return;
-    if (lastFitKeyRef.current === fitKey) return;
+    if (initializedRef.current) return;
 
-    const bounds = L.latLngBounds(
-      locations.map((loc) => [toNumber(loc.latitude), toNumber(loc.longitude)])
-    );
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
-    lastFitKeyRef.current = fitKey;
-  }, [locations, map, fitKey]);
+    map.fitBounds(CALABARZON_BOUNDS, { padding: [24, 24] });
+    initializedRef.current = true;
+  }, [map]);
 
   return null;
 }
@@ -150,18 +144,11 @@ export default function PatrolMap({ locations }) {
     [locations]
   );
 
-  const fitKey = useMemo(() => getPatrolFitKey(parsedLocations), [parsedLocations]);
-
-  const center =
-    parsedLocations.length > 0
-      ? [parsedLocations[0].latitude, parsedLocations[0].longitude]
-      : defaultCenter;
-
   return (
     <div className="relative h-full min-h-[400px] w-full">
       <MapContainer
-        center={center}
-        zoom={13}
+        center={CALABARZON_CENTER}
+        zoom={CALABARZON_ZOOM}
         className="h-full w-full"
         scrollWheelZoom
       >
@@ -171,9 +158,7 @@ export default function PatrolMap({ locations }) {
           url={basemap.url}
         />
 
-        {parsedLocations.length > 0 && (
-          <FitBoundsOnce locations={parsedLocations} fitKey={fitKey} />
-        )}
+        <CalabarzonInitialView />
 
         {parsedLocations.map((loc) => (
           <PatrolMarker key={loc.user_id} location={loc} />

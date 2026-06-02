@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import AccountCard from "@/components/AccountCard";
+import MapToolbar from "@/components/MapToolbar";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
   ssr: false,
@@ -111,6 +112,8 @@ export default function MonitorDashboard({ user, onLogout }) {
           signingOut={signingOut}
         />
       </header>
+
+      <MapToolbar />
 
       <section className="relative min-h-0 flex-1">
         <PatrolMap locations={latestLocations} />
