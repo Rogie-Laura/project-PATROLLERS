@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
 import MonitorHeader from "@/components/MonitorHeader";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
+import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
@@ -115,7 +116,10 @@ export default function MonitorDashboard({ user, onLogout }) {
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
         showPatrolStatus={showPatrolStatus}
-        onShowPatrolStatusChange={setShowPatrolStatus}
+        onShowPatrolStatusChange={(value) => {
+          setShowPatrolStatus(value);
+          if (!value) setSelectedPatrol(null);
+        }}
       />
 
       <section className="flex min-h-0 flex-1">
@@ -135,12 +139,24 @@ export default function MonitorDashboard({ user, onLogout }) {
           )}
         </div>
 
+        {showPatrolStatus && !selectedPatrol && (
+          <div className="absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
+            <PatrolStatusListPanel
+              locations={latestLocations}
+              selectedPatrolKey={selectedPatrolKey}
+              onSelectPatrol={setSelectedPatrol}
+            />
+          </div>
+        )}
+
         {selectedPatrol && (
           <div className="absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
             <PatrolDetailPanel
               location={selectedPatrol}
               showPatrolStatus={showPatrolStatus}
-              onClose={() => setSelectedPatrol(null)}
+              onClose={() => {
+                setSelectedPatrol(null);
+              }}
             />
           </div>
         )}
