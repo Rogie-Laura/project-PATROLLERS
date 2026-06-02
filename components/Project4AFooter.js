@@ -37,7 +37,7 @@ export default function Project4AFooter({ className = "", compact = false }) {
         }`}
       >
         <Image
-          src="/RICTMD.png"
+          src="/RICTMD4A.png"
           alt="RICTMD Logo"
           width={120}
           height={120}
