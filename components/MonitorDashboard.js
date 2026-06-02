@@ -82,106 +82,57 @@ export default function MonitorDashboard({ user, onLogout }) {
 
   return (
     <main className="flex h-dvh flex-col bg-background">
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <Image
+            src="/PNP.png"
+            alt="PNP"
+            width={44}
+            height={44}
+            className="h-9 w-auto shrink-0 object-contain sm:h-10"
+          />
           <Image
             src="/PRO4A.png"
             alt="PRO4A"
-            width={40}
-            height={44}
-            className="h-10 w-auto shrink-0 object-contain"
+            width={44}
+            height={49}
+            className="h-9 w-auto shrink-0 object-contain sm:h-10"
           />
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-bold tracking-wide sm:text-lg">
-              PATROLLERS
+          <div className="min-w-0 border-l border-border/60 pl-2.5 sm:pl-3">
+            <h1 className="truncate text-xs font-bold uppercase tracking-wide text-foreground sm:text-sm md:text-base">
+              PRO4A - PATROLLERS MONITORING CENTER
             </h1>
-            <p className="truncate text-xs text-muted sm:text-sm">
-              Live Locator Map
-              {!loading && (
-                <>
-                  {" "}
-                  · {latestLocations.length} active patrol
-                  {latestLocations.length !== 1 ? "s" : ""}
-                </>
-              )}
+            <p className="truncate text-[10px] text-muted sm:text-xs">
+              {loading
+                ? "Loading patrol data..."
+                : `${latestLocations.length} active patrol${latestLocations.length !== 1 ? "s" : ""} on map`}
             </p>
           </div>
         </div>
-        <span className="hidden rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent sm:inline">
-          Online
-        </span>
+
+        <AccountCard
+          user={user}
+          onSignOut={handleSignOut}
+          signingOut={signingOut}
+        />
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <section className="relative min-h-[280px] flex-1 lg:min-h-0">
-          <PatrolMap locations={latestLocations} />
+      <section className="relative min-h-0 flex-1">
+        <PatrolMap locations={latestLocations} />
 
-          {loading && (
-            <div className="pointer-events-none absolute inset-0 flex items-start justify-center bg-background/40 pt-8">
-              <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted shadow-sm">
-                Loading patrol data...
-              </p>
-            </div>
-          )}
+        {error && (
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[500] max-w-sm -translate-x-1/2 rounded-lg border border-red-500/30 bg-card/95 px-4 py-2 text-center text-sm text-red-400 shadow-lg backdrop-blur-sm">
+            {error}
+          </div>
+        )}
 
-          {!loading && latestLocations.length === 0 && (
-            <div className="pointer-events-none absolute bottom-4 left-1/2 max-w-xs -translate-x-1/2 rounded-xl border border-border bg-card/95 px-4 py-2.5 text-center text-sm text-muted shadow-lg backdrop-blur-sm">
-              No patrol locations yet. Markers will appear here in realtime.
-            </div>
-          )}
-        </section>
-
-        <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-t border-border bg-card p-4 lg:w-80 lg:border-t-0 lg:border-l">
-          <AccountCard
-            user={user}
-            onSignOut={handleSignOut}
-            signingOut={signingOut}
-          />
-
-          <section className="rounded-xl border border-border bg-background p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-              Patrol List
-            </h2>
-
-            {error && (
-              <p className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
-                {error}
-              </p>
-            )}
-
-            {loading ? (
-              <p className="text-sm text-muted">Loading patrols...</p>
-            ) : latestLocations.length === 0 ? (
-              <p className="text-sm text-muted">Waiting for patrol updates...</p>
-            ) : (
-              <ul className="space-y-2">
-                {latestLocations.map((loc) => (
-                  <li
-                    key={loc.user_id}
-                    className="rounded-lg border border-border bg-card px-3 py-2.5"
-                  >
-                    <p className="font-medium">
-                      {loc.patrol_name || "Unknown Patrol"}
-                    </p>
-                    {loc.badge_number && (
-                      <p className="text-xs text-muted">
-                        Badge {loc.badge_number}
-                      </p>
-                    )}
-                    <p className="mt-1 font-mono text-xs text-muted">
-                      {Number(loc.latitude).toFixed(5)},{" "}
-                      {Number(loc.longitude).toFixed(5)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted">
-                      Last seen: {new Date(loc.created_at).toLocaleString()}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </aside>
-      </div>
+        {!loading && !error && latestLocations.length === 0 && (
+          <div className="pointer-events-none absolute bottom-6 left-1/2 max-w-md -translate-x-1/2 rounded-xl border border-border bg-card/95 px-4 py-3 text-center text-sm text-muted shadow-lg backdrop-blur-sm">
+            Waiting for patrol locations from mobile devices. Updates appear here
+            in realtime.
+          </div>
+        )}
+      </section>
     </main>
   );
 }

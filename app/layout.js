@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Patrollers — Location Monitoring",
-  description: "Real-time patrol location monitoring with map",
+  title: "PRO4A — Patrollers Monitoring Center",
+  description: "Real-time patrol location monitoring dashboard",
 };
 
 export default function RootLayout({ children }) {
