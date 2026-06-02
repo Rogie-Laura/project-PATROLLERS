@@ -108,7 +108,7 @@ function PatrolMarker({ location }) {
 function MapBasemapToggle({ activeId, onChange }) {
   return (
     <div
-      className="pointer-events-auto absolute bottom-3 left-1/2 z-[1000] flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-xl border border-border/80 bg-card/95 p-1 shadow-lg backdrop-blur-sm sm:bottom-4 sm:max-w-none sm:flex-nowrap"
+      className="pointer-events-auto absolute bottom-2 left-1/2 z-[1000] flex max-w-[calc(100%-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-0.5 rounded-lg border border-border/80 bg-card/95 p-0.5 shadow-md backdrop-blur-sm sm:max-w-none sm:flex-nowrap"
       role="group"
       aria-label="Map view selection"
     >
@@ -121,7 +121,7 @@ function MapBasemapToggle({ activeId, onChange }) {
             type="button"
             onClick={() => onChange(basemap.id)}
             aria-pressed={active}
-            className={`rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition sm:px-3 sm:text-xs ${
+            className={`rounded-md px-1.5 py-1 text-[10px] font-medium leading-none transition sm:px-2 sm:text-[11px] ${
               active
                 ? "bg-accent text-background shadow-sm"
                 : "text-muted hover:bg-background/80 hover:text-foreground"
