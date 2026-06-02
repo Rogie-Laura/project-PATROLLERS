@@ -33,7 +33,7 @@ export default function Project4AFooter({ className = "", compact = false }) {
       </p>
       <div
         className={`flex w-full flex-col items-center justify-center ${
-          compact ? "mt-6 pt-1" : "mt-8 pt-2"
+          compact ? "mt-8 pt-2" : "mt-10 pt-2"
         }`}
       >
         <Image
@@ -41,7 +41,7 @@ export default function Project4AFooter({ className = "", compact = false }) {
           alt="RICTMD Logo"
           width={120}
           height={120}
-          className="mx-auto block h-5 w-auto object-contain opacity-90"
+          className="mx-auto block h-[1.875rem] w-auto object-contain opacity-90"
         />
         <p className="mt-2 w-full text-center text-[10px] uppercase tracking-widest text-muted/70">
           Developed by RICTMD 4A

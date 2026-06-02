@@ -229,7 +229,7 @@ export default function HomePage() {
             </button>
           </form>
 
-          <Project4AFooter compact className="mt-6 pb-1" />
+          <Project4AFooter compact className="mt-7 pb-2" />
         </PatrolLoginCard>
       </div>
     </main>
