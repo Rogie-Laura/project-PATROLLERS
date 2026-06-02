@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth/session";
+import { parseLocationPayload } from "@/lib/location/parseCoordinates";
 
 export async function POST(request) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser(request);
   if (!user) {
     return NextResponse.json(
-      { error: "Session expired or signed in on another device. Please log in again." },
+      {
+        error:
+          "Unauthorized. Log in first and send Authorization: Bearer <token> from the mobile app.",
+      },
       { status: 401 }
     );
   }
@@ -15,37 +19,42 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const latitude = Number(body?.latitude);
-  const longitude = Number(body?.longitude);
-  const accuracy =
-    body?.accuracy === null || body?.accuracy === undefined
-      ? null
-      : Number(body.accuracy);
-
-  if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
-    return NextResponse.json({ error: "Invalid coordinates." }, { status: 400 });
+  const parsed = parseLocationPayload(body);
+  if (parsed.error) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-    return NextResponse.json({ error: "Coordinates out of range." }, { status: 400 });
-  }
+  const { latitude, longitude, accuracy } = parsed;
 
   const admin = createAdminClient();
-  const { error } = await admin.from("location_updates").insert({
-    user_id: user.id,
-    latitude,
-    longitude,
-    accuracy,
-    patrol_name: user.rank_fullname || user.full_name || "Patrol",
-    badge_number: user.badge_number,
-  });
+  const { data, error } = await admin
+    .from("location_updates")
+    .insert({
+      user_id: user.id,
+      latitude,
+      longitude,
+      accuracy,
+      patrol_name: user.rank_fullname || user.full_name || "Patrol",
+      badge_number: user.badge_number,
+    })
+    .select("id, latitude, longitude, accuracy, created_at")
+    .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    location: {
+      id: data.id,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      accuracy: data.accuracy,
+      recorded_at: data.created_at,
+    },
+  });
 }

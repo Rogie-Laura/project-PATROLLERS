@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SESSION_COOKIE } from "@/lib/auth/session";
+import { resolveSessionTokenFromRequest, SESSION_COOKIE } from "@/lib/auth/session";
 
-export async function POST() {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+export async function POST(request) {
+  const token = await resolveSessionTokenFromRequest(request);
 
   if (token) {
     const admin = createAdminClient();
