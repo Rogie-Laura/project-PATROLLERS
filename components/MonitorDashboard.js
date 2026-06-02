@@ -116,6 +116,7 @@ export default function MonitorDashboard({ user, onLogout }) {
         showBasemap
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
+        showAddCallResponse
         showPatrolStatus={showPatrolStatus}
         onShowPatrolStatusChange={(value) => {
           setShowPatrolStatus(value);

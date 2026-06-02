@@ -100,6 +100,26 @@ const NAV_ITEMS = [
   },
 ];
 
+function PhoneCallIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden
+    >
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+      <path d="M14.05 2a9 9 0 0 1 8 7.94" />
+      <path d="M14.05 6A5 5 0 0 1 18 10" />
+    </svg>
+  );
+}
+
 function PatrolStatusToggle({ enabled, onChange }) {
   return (
     <button
@@ -134,12 +154,18 @@ function PatrolStatusToggle({ enabled, onChange }) {
   );
 }
 
+function ToolbarSeparator() {
+  return <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />;
+}
+
 export default function MapToolbar({
   active = "map",
   user,
   basemapId,
   onBasemapChange,
   showBasemap = false,
+  showAddCallResponse = false,
+  onAddCallResponse,
   showPatrolStatus = true,
   onShowPatrolStatusChange,
 }) {
@@ -174,7 +200,7 @@ export default function MapToolbar({
 
       {showBasemap && onBasemapChange && (
         <>
-          <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />
+          <ToolbarSeparator />
           <div
             className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
             role="group"
@@ -201,9 +227,24 @@ export default function MapToolbar({
             })}
           </div>
 
+          {showAddCallResponse && (
+            <>
+              <ToolbarSeparator />
+              <button
+                type="button"
+                onClick={onAddCallResponse}
+                title="Add call-for-service response on the map"
+                className="flex shrink-0 items-center gap-1.5 rounded-md border border-red-500/70 bg-red-600 px-2 py-1 text-[10px] font-semibold leading-none text-white shadow-sm transition hover:bg-red-500 sm:text-[11px]"
+              >
+                <PhoneCallIcon />
+                <span className="whitespace-nowrap">Add Call Response</span>
+              </button>
+            </>
+          )}
+
           {onShowPatrolStatusChange && (
             <>
-              <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />
+              <ToolbarSeparator />
               <PatrolStatusToggle
                 enabled={showPatrolStatus}
                 onChange={onShowPatrolStatusChange}
