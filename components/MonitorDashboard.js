@@ -8,6 +8,7 @@ import MonitorHeader from "@/components/MonitorHeader";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
+import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
   ssr: false,
@@ -41,7 +42,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
-  const [showPatrolStatus, setShowPatrolStatus] = useState(true);
+  const [showPatrolStatus, setShowPatrolStatus] = useShowPatrolStatus();
   const [selectedPatrol, setSelectedPatrol] = useState(null);
 
   const latestLocations = useMemo(
