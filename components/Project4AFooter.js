@@ -12,30 +12,7 @@ export default function Project4AFooter({ className = "", compact = false }) {
     <div
       className={`border-t border-border/60 text-center ${compact ? "pt-3 sm:pt-4" : "pt-6"} ${className}`}
     >
-      <p className="text-xs font-bold tracking-[0.2em] sm:text-sm sm:tracking-[0.25em]">
-        <span className="text-accent">PRO</span>
-        <span className="text-foreground">JECT</span>
-        <span className="text-accent">4A</span>
-      </p>
-      <p className={`text-[10px] leading-snug text-muted sm:text-[11px] ${compact ? "mt-1 sm:mt-1.5" : "mt-2"}`}>
-        {TAGLINE.map((word, index) => (
-          <span key={word.rest}>
-            <span className="font-medium text-accent/90">{word.lead}</span>
-            {word.rest}
-            {index < TAGLINE.length - 1 ? (
-              <>
-                {" "}
-                <span className="text-border">·</span>{" "}
-              </>
-            ) : null}
-          </span>
-        ))}
-      </p>
-      <div
-        className={`flex w-full flex-col items-center justify-center ${
-          compact ? "mt-4 pt-1 sm:mt-5 sm:pt-2" : "mt-10 pt-2"
-        }`}
-      >
+      <div className="flex w-full flex-col items-center justify-center">
         <Image
           src="/RICTMD4A.png"
           alt="RICTMD Logo"
@@ -45,6 +22,32 @@ export default function Project4AFooter({ className = "", compact = false }) {
         />
         <p className="mt-1.5 w-full text-center text-[9px] uppercase tracking-widest text-muted/70 sm:text-[10px]">
           Developed by RICTMD 4A
+        </p>
+      </div>
+
+      <div
+        className={`border-t border-border/60 ${compact ? "mt-4 pt-3 sm:mt-5 sm:pt-4" : "mt-6 pt-5"}`}
+      >
+        <p className="text-xs font-bold tracking-[0.2em] sm:text-sm sm:tracking-[0.25em]">
+          <span className="text-accent">PRO</span>
+          <span className="text-foreground">JECT</span>
+          <span className="text-accent">4A</span>
+        </p>
+        <p
+          className={`text-[10px] leading-snug text-muted sm:text-[11px] ${compact ? "mt-1 sm:mt-1.5" : "mt-2"}`}
+        >
+          {TAGLINE.map((word, index) => (
+            <span key={word.rest}>
+              <span className="font-medium text-accent/90">{word.lead}</span>
+              {word.rest}
+              {index < TAGLINE.length - 1 ? (
+                <>
+                  {" "}
+                  <span className="text-border">·</span>{" "}
+                </>
+              ) : null}
+            </span>
+          ))}
         </p>
       </div>
     </div>
