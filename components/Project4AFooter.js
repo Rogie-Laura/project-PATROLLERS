@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const TAGLINE = [
   { lead: "A", rest: "ccurate" },
   { lead: "A", rest: "ccessible" },
@@ -29,9 +31,20 @@ export default function Project4AFooter({ className = "", compact = false }) {
           </span>
         ))}
       </p>
-      <p className={`text-[10px] uppercase tracking-widest text-muted/70 ${compact ? "mt-2.5" : "mt-4"}`}>
-        Developed by RICTMD4A
-      </p>
+      <div
+        className={`flex flex-col items-center ${compact ? "mt-2.5" : "mt-4"}`}
+      >
+        <Image
+          src="/RICTMD.png"
+          alt="RICTMD Logo"
+          width={120}
+          height={120}
+          className="h-5 w-auto object-contain opacity-90"
+        />
+        <p className="mt-1.5 text-[10px] uppercase tracking-widest text-muted/70">
+          Developed by RICTMD4A
+        </p>
+      </div>
     </div>
   );
 }
