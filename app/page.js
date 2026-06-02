@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import PatrollersBranding from "@/components/PatrollersBranding";
 import PatrolLoginCard from "@/components/PatrolLoginCard";
 import MonitorDashboard from "@/components/MonitorDashboard";
+import Project4AFooter from "@/components/Project4AFooter";
 
 export default function HomePage() {
   const [user, setUser] = useState(null);
@@ -227,11 +228,9 @@ export default function HomePage() {
               )}
             </button>
           </form>
-        </PatrolLoginCard>
 
-        <p className="mt-8 text-center text-sm font-semibold tracking-[0.25em] text-muted/70">
-          PROJECT4A
-        </p>
+          <Project4AFooter className="mt-8" />
+        </PatrolLoginCard>
       </div>
     </main>
   );
