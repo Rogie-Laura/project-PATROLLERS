@@ -11,12 +11,12 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const badgeNumber = String(body?.badge_number ?? "").trim();
+  const email = String(body?.email ?? "").trim().toLowerCase();
   const password = String(body?.password ?? "");
 
-  if (!badgeNumber || !password) {
+  if (!email || !password) {
     return NextResponse.json(
-      { error: "Enter your badge number and password." },
+      { error: "Enter your email and password." },
       { status: 400 }
     );
   }
@@ -26,7 +26,7 @@ export async function POST(request) {
   const { data: user, error } = await admin
     .from("user")
     .select("*")
-    .eq("badge_number", badgeNumber)
+    .eq("email", email)
     .maybeSingle();
 
   if (error) {
@@ -38,7 +38,7 @@ export async function POST(request) {
 
   if (!user || user.password !== password) {
     return NextResponse.json(
-      { error: "Invalid badge number or password." },
+      { error: "Invalid email or password." },
       { status: 401 }
     );
   }
@@ -60,6 +60,7 @@ export async function POST(request) {
   const response = NextResponse.json({
     user: {
       id: user.id,
+      email: user.email,
       rank: user.rank,
       full_name: user.full_name,
       rank_fullname: user.rank_fullname,

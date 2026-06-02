@@ -6,8 +6,9 @@ import PatrollersBranding from "@/components/PatrollersBranding";
 import PatrolLoginCard from "@/components/PatrolLoginCard";
 
 export default function PatrolPage() {
-  const [badgeNumber, setBadgeNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -49,7 +50,7 @@ export default function PatrolPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ badge_number: badgeNumber, password }),
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
 
@@ -241,7 +242,7 @@ export default function PatrolPage() {
   }
 
   const inputClassName =
-    "w-full rounded-xl border border-border/80 bg-background/80 px-4 py-3.5 text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20";
+    "w-full rounded-xl border border-border/80 bg-background/80 py-3.5 pl-11 pr-4 text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20";
 
   return (
     <main
@@ -277,47 +278,140 @@ export default function PatrolPage() {
           }
         >
           {!user ? (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground/90">
-                  Badge Number
+                  Email
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={badgeNumber}
-                  onChange={(e) => setBadgeNumber(e.target.value)}
-                  className={inputClassName}
-                  placeholder="Enter Badge Number"
-                  autoComplete="username"
-                  inputMode="numeric"
-                />
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <rect x="2" y="4" width="20" height="16" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                  </span>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClassName}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    inputMode="email"
+                  />
+                </div>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground/90">
                   Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={inputClassName}
-                  placeholder="Enter Password"
-                  autoComplete="current-password"
-                />
+                <div className="relative">
+                  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${inputClassName} pr-12`}
+                    placeholder="Enter Password"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted transition hover:text-foreground"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5"
+                      >
+                        <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                        <line x1="2" y1="2" x2="22" y2="22" />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5"
+                      >
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
               {error && (
-                <p className="rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-400 ring-1 ring-red-500/20">
+                <p className="flex items-center gap-2 rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-400 ring-1 ring-red-500/20">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 shrink-0"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
                   {error}
                 </p>
               )}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-xl bg-accent py-3.5 font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50"
               >
-                {submitting ? "Signing in..." : "Sign In"}
+                {submitting ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-background/40 border-t-background" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </button>
             </form>
           ) : (
@@ -327,10 +421,10 @@ export default function PatrolPage() {
                   Signed in as
                 </p>
                 <p className="mt-1 font-medium text-foreground">
-                  {user.rank_fullname || user.full_name}
+                  {user.rank_fullname || user.full_name || user.email}
                 </p>
                 <p className="mt-0.5 text-xs text-muted">
-                  Badge {user.badge_number}
+                  {user.email}
                   {user.unit ? ` · ${user.unit}` : ""}
                   {user.role ? ` · ${user.role}` : ""}
                 </p>
