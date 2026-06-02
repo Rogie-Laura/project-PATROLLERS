@@ -7,10 +7,8 @@ import {
   Marker,
   Circle,
   Polyline,
-  Popup,
   useMap,
 } from "react-leaflet";
-import { createCheckpointIcon } from "@/lib/cordonMapIcons";
 import {
   createIncidentMarkerIcon,
   INCIDENT_RADIUS_RINGS,
@@ -84,116 +82,91 @@ function InvalidateOnResize() {
   return null;
 }
 
-function FlyToIncident({ incidentMarker }) {
+function FlyToCallResponse({ callResponse }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!incidentMarker) return;
+    if (!callResponse) return;
 
-    const lat = toNumber(incidentMarker.latitude);
-    const lng = toNumber(incidentMarker.longitude);
+    const lat = toNumber(callResponse.latitude);
+    const lng = toNumber(callResponse.longitude);
     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
 
-    map.flyTo([lat, lng], 11, { duration: 1.2 });
-  }, [map, incidentMarker]);
+    map.flyTo([lat, lng], 12, { duration: 1 });
+  }, [map, callResponse?.id]);
 
   return null;
 }
 
-function IncidentMarkerLayer({ incidentMarker }) {
-  if (!incidentMarker) return null;
+function FlyToUnit({ location }) {
+  const map = useMap();
 
-  const lat = toNumber(incidentMarker.latitude);
-  const lng = toNumber(incidentMarker.longitude);
-  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+  useEffect(() => {
+    if (!location) return;
+    const lat = toNumber(location.latitude);
+    const lng = toNumber(location.longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    map.flyTo([lat, lng], 14, { duration: 0.8 });
+  }, [map, location]);
 
-  const center = [lat, lng];
-  const icon = createIncidentMarkerIcon();
+  return null;
+}
+
+function CallResponsesLayer({ callResponses, selectedCallId }) {
+  if (!callResponses?.length) return null;
 
   return (
     <>
-      {INCIDENT_RADIUS_RINGS.map((ring) => (
-        <Circle
-          key={ring.radiusMeters}
-          center={center}
-          radius={ring.radiusMeters}
-          pathOptions={{
-            color: ring.color,
-            fillColor: ring.color,
-            fillOpacity: ring.fillOpacity,
-            weight: ring.weight,
-          }}
-        />
-      ))}
-      <Marker position={center} icon={icon} zIndexOffset={2000} />
+      {callResponses.map((call) => {
+        const lat = toNumber(call.latitude);
+        const lng = toNumber(call.longitude);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+        const center = [lat, lng];
+        const isSelected = call.id === selectedCallId;
+        const icon = createIncidentMarkerIcon();
+
+        return (
+          <span key={call.id}>
+            {INCIDENT_RADIUS_RINGS.map((ring) => (
+              <Circle
+                key={`${call.id}-${ring.radiusMeters}`}
+                center={center}
+                radius={ring.radiusMeters}
+                pathOptions={{
+                  color: ring.color,
+                  fillColor: ring.color,
+                  fillOpacity: isSelected
+                    ? ring.fillOpacity
+                    : ring.fillOpacity * 0.5,
+                  weight: isSelected ? ring.weight : 1,
+                }}
+              />
+            ))}
+            <Marker
+              position={center}
+              icon={icon}
+              zIndexOffset={isSelected ? 2000 : 1500}
+            />
+          </span>
+        );
+      })}
     </>
   );
 }
 
-function FlyToHighlightedCheckpoint({ cordonPlan, highlightedCheckpointId }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!highlightedCheckpointId || !cordonPlan?.checkpoints) return;
-
-    const point = cordonPlan.checkpoints.find(
-      (c) => c.id === highlightedCheckpointId
-    );
-    if (!point) return;
-
-    map.flyTo([point.latitude, point.longitude], 14, { duration: 0.8 });
-  }, [map, cordonPlan, highlightedCheckpointId]);
-
-  return null;
-}
-
-function CordonOverlayLayer({
-  cordonPlan,
-  highlightedCheckpointId,
-  onHighlightCheckpoint,
-}) {
-  if (!cordonPlan) return null;
+function DispatchRouteLayer({ dispatchRoute }) {
+  if (!dispatchRoute?.coordinates?.length) return null;
 
   return (
-    <>
-      {cordonPlan.escapeRoutes?.map((route) => (
-        <Polyline
-          key={`escape-${route.id}`}
-          positions={route.coordinates}
-          pathOptions={{
-            color: "#fb923c",
-            weight: 4,
-            opacity: 0.75,
-            dashArray: "10 8",
-          }}
-        />
-      ))}
-
-      {cordonPlan.checkpoints?.map((point) => {
-        const isHighlighted = highlightedCheckpointId === point.id;
-        const icon = createCheckpointIcon(point.priority, isHighlighted);
-
-        return (
-          <Marker
-            key={`checkpoint-${point.id}`}
-            position={[point.latitude, point.longitude]}
-            icon={icon}
-            zIndexOffset={isHighlighted ? 1500 : 1200}
-            eventHandlers={{
-              click: () => onHighlightCheckpoint?.(point.id),
-            }}
-          >
-            <Popup>
-              <div className="text-xs">
-                <strong>{point.label}</strong>
-                <br />
-                Priority: {point.priority} · {point.zone} ({point.distanceLabel})
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-    </>
+    <Polyline
+      positions={dispatchRoute.coordinates}
+      pathOptions={{
+        color: "#22c55e",
+        weight: 5,
+        opacity: 0.9,
+      }}
+    />
   );
 }
 
@@ -214,6 +187,7 @@ function PatrolMarker({
   location,
   showPatrolStatus,
   isSelected,
+  isDispatchHighlight,
   onSelect,
 }) {
   const markerRef = useRef(null);
@@ -237,7 +211,7 @@ function PatrolMarker({
       ref={markerRef}
       position={position}
       icon={icon}
-      zIndexOffset={isSelected ? 1000 : 0}
+      zIndexOffset={isDispatchHighlight ? 1100 : isSelected ? 1000 : 0}
       eventHandlers={{
         click: () => onSelect?.(location),
       }}
@@ -251,10 +225,12 @@ export default function PatrolMap({
   showPatrolStatus = true,
   selectedPatrolKey = null,
   onSelectPatrol,
-  incidentMarker = null,
-  cordonPlan = null,
-  highlightedCheckpointId = null,
-  onHighlightCheckpoint,
+  callResponses = [],
+  selectedCallId = null,
+  flyToCall = null,
+  highlightedUnitKey = null,
+  highlightedUnitLocation = null,
+  dispatchRoute = null,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -294,17 +270,13 @@ export default function PatrolMap({
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />
         <InvalidateOnResize />
-        <FlyToIncident incidentMarker={incidentMarker} />
-        <IncidentMarkerLayer incidentMarker={incidentMarker} />
-        <FlyToHighlightedCheckpoint
-          cordonPlan={cordonPlan}
-          highlightedCheckpointId={highlightedCheckpointId}
+        <FlyToCallResponse callResponse={flyToCall} />
+        <FlyToUnit location={highlightedUnitLocation} />
+        <CallResponsesLayer
+          callResponses={callResponses}
+          selectedCallId={selectedCallId}
         />
-        <CordonOverlayLayer
-          cordonPlan={cordonPlan}
-          highlightedCheckpointId={highlightedCheckpointId}
-          onHighlightCheckpoint={onHighlightCheckpoint}
-        />
+        <DispatchRouteLayer dispatchRoute={dispatchRoute} />
 
         {parsedLocations.map((loc, index) => {
           const key = patrolKey(loc) ?? index;
@@ -314,6 +286,9 @@ export default function PatrolMap({
               location={loc}
               showPatrolStatus={showPatrolStatus}
               isSelected={selectedPatrolKey != null && selectedPatrolKey === key}
+              isDispatchHighlight={
+                highlightedUnitKey != null && highlightedUnitKey === key
+              }
               onSelect={onSelectPatrol}
             />
           );

@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
 import MonitorHeader from "@/components/MonitorHeader";
+import CallResponsePanel from "@/components/CallResponsePanel";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
-import IncidentCordonPanel from "@/components/IncidentCordonPanel";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
-import { loadCordonPlan } from "@/lib/loadCordonPlan";
+import { createCallResponse, getUnitKey } from "@/lib/dispatchUnits";
 import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
@@ -48,13 +48,11 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [selectedPatrol, setSelectedPatrol] = useState(null);
   const [callResponseOpen, setCallResponseOpen] = useState(false);
   const [callResponsePlace, setCallResponsePlace] = useState(null);
-  const [incidentMarker, setIncidentMarker] = useState(null);
-  const [cordonPlan, setCordonPlan] = useState(null);
-  const [cordonLoading, setCordonLoading] = useState(false);
-  const [cordonError, setCordonError] = useState("");
-  const [highlightedCheckpointId, setHighlightedCheckpointId] = useState(null);
-  const [cordonRetryKey, setCordonRetryKey] = useState(0);
-  const cordonRequestIdRef = useRef(0);
+  const [callResponses, setCallResponses] = useState([]);
+  const [selectedCallId, setSelectedCallId] = useState(null);
+  const [flyToCallId, setFlyToCallId] = useState(null);
+  const [highlightedUnitKey, setHighlightedUnitKey] = useState(null);
+  const [dispatchRoute, setDispatchRoute] = useState(null);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -64,6 +62,16 @@ export default function MonitorDashboard({ user, onLogout }) {
   const selectedPatrolKey = selectedPatrol
     ? selectedPatrol.access_token_id || selectedPatrol.user_id
     : null;
+
+  const flyToCall = callResponses.find((c) => c.id === flyToCallId);
+
+  const highlightedUnitLocation = useMemo(() => {
+    if (!highlightedUnitKey) return null;
+    return (
+      latestLocations.find((loc) => getUnitKey(loc) === highlightedUnitKey) ??
+      null
+    );
+  }, [highlightedUnitKey, latestLocations]);
 
   useEffect(() => {
     if (!selectedPatrolKey) return;
@@ -107,50 +115,39 @@ export default function MonitorDashboard({ user, onLogout }) {
     };
   }, [supabase]);
 
-  useEffect(() => {
-    if (!incidentMarker) {
-      setCordonPlan(null);
-      setCordonError("");
-      setHighlightedCheckpointId(null);
-      return;
-    }
-
-    const requestId = ++cordonRequestIdRef.current;
-    setCordonLoading(true);
-    setCordonError("");
-    setCordonPlan(null);
-    setHighlightedCheckpointId(null);
-
-    loadCordonPlan(incidentMarker.latitude, incidentMarker.longitude)
-      .then(({ plan, error }) => {
-        if (cordonRequestIdRef.current !== requestId) return;
-        if (error) {
-          setCordonError(error);
-          return;
-        }
-        setCordonPlan(plan);
-      })
-      .catch(() => {
-        if (cordonRequestIdRef.current !== requestId) return;
-        setCordonError("Could not load cordon suggestions. Tap Retry.");
-      })
-      .finally(() => {
-        if (cordonRequestIdRef.current === requestId) {
-          setCordonLoading(false);
-        }
-      });
-
-    return () => {
-      cordonRequestIdRef.current += 1;
-    };
-  }, [incidentMarker, cordonRetryKey]);
-
-  function handleClearIncident() {
-    setIncidentMarker(null);
-    setCordonPlan(null);
-    setCordonError("");
-    setHighlightedCheckpointId(null);
+  function handleAddCallResponse(place) {
+    const entry = createCallResponse(place);
+    setCallResponses((prev) => [...prev, entry]);
+    setSelectedCallId(entry.id);
+    setFlyToCallId(entry.id);
+    setCallResponseOpen(false);
     setCallResponsePlace(null);
+    setSelectedPatrol(null);
+    setDispatchRoute(null);
+    setHighlightedUnitKey(null);
+  }
+
+  function handleRemoveCall(callId) {
+    setCallResponses((prev) => {
+      const next = prev.filter((c) => c.id !== callId);
+      if (selectedCallId === callId) {
+        const fallback = next[0]?.id ?? null;
+        setSelectedCallId(fallback);
+        setFlyToCallId(fallback);
+      }
+      return next;
+    });
+    setDispatchRoute((route) => (route?.callId === callId ? null : route));
+    setHighlightedUnitKey(null);
+  }
+
+  function handleHighlightUnit(unitKey) {
+    setHighlightedUnitKey((prev) => (prev === unitKey ? null : unitKey));
+  }
+
+  function handleShowRoute({ callId, unitKey, coordinates, label }) {
+    setDispatchRoute({ callId, unitKey, coordinates, label });
+    setHighlightedUnitKey(unitKey);
   }
 
   async function handleSignOut() {
@@ -158,6 +155,8 @@ export default function MonitorDashboard({ user, onLogout }) {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     onLogout();
   }
+
+  const hasActiveCalls = callResponses.length > 0;
 
   return (
     <main className="flex h-dvh flex-col bg-background">
@@ -178,15 +177,7 @@ export default function MonitorDashboard({ user, onLogout }) {
         onCallResponseOpenChange={setCallResponseOpen}
         callResponsePlace={callResponsePlace}
         onCallResponsePlaceChange={setCallResponsePlace}
-        onAddIncidentMarker={(place) => {
-          setIncidentMarker({
-            latitude: place.latitude,
-            longitude: place.longitude,
-            label: place.displayName,
-          });
-          setCallResponseOpen(false);
-          setSelectedPatrol(null);
-        }}
+        onAddIncidentMarker={handleAddCallResponse}
         showPatrolStatus={showPatrolStatus}
         onShowPatrolStatusChange={(value) => {
           setShowPatrolStatus(value);
@@ -202,10 +193,12 @@ export default function MonitorDashboard({ user, onLogout }) {
             showPatrolStatus={showPatrolStatus}
             selectedPatrolKey={selectedPatrolKey}
             onSelectPatrol={setSelectedPatrol}
-            incidentMarker={incidentMarker}
-            cordonPlan={cordonPlan}
-            highlightedCheckpointId={highlightedCheckpointId}
-            onHighlightCheckpoint={setHighlightedCheckpointId}
+            callResponses={callResponses}
+            selectedCallId={selectedCallId}
+            flyToCall={flyToCall}
+            highlightedUnitKey={highlightedUnitKey}
+            highlightedUnitLocation={highlightedUnitLocation}
+            dispatchRoute={dispatchRoute}
           />
 
           {error && (
@@ -215,24 +208,28 @@ export default function MonitorDashboard({ user, onLogout }) {
           )}
         </div>
 
-        {incidentMarker && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-[500] w-[min(100%,360px)]">
+        {hasActiveCalls && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,380px)]">
             <div className="pointer-events-auto h-full shadow-2xl">
-              <IncidentCordonPanel
-                incidentLabel={incidentMarker.label}
-                cordonPlan={cordonPlan}
-                loading={cordonLoading}
-                error={cordonError}
-                highlightedId={highlightedCheckpointId}
-                onHighlight={setHighlightedCheckpointId}
-                onClearIncident={handleClearIncident}
-                onRetry={() => setCordonRetryKey((k) => k + 1)}
+              <CallResponsePanel
+                callResponses={callResponses}
+                selectedCallId={selectedCallId ?? callResponses[0]?.id}
+                onSelectCall={(id) => {
+                  setSelectedCallId(id);
+                  setFlyToCallId(id);
+                  setDispatchRoute(null);
+                }}
+                onRemoveCall={handleRemoveCall}
+                latestLocations={latestLocations}
+                highlightedUnitKey={highlightedUnitKey}
+                onHighlightUnit={handleHighlightUnit}
+                onShowRoute={handleShowRoute}
               />
             </div>
           </div>
         )}
 
-        {showPatrolStatus && !selectedPatrol && !incidentMarker && (
+        {showPatrolStatus && !selectedPatrol && !hasActiveCalls && (
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
             <div className="pointer-events-auto h-full shadow-2xl">
               <PatrolStatusListPanel
@@ -244,7 +241,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           </div>
         )}
 
-        {selectedPatrol && (
+        {selectedPatrol && !hasActiveCalls && (
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
             <div className="pointer-events-auto h-full shadow-2xl">
               <PatrolDetailPanel

@@ -190,7 +190,7 @@ export default function AddCallResponsePopover({
         onClick={handleAddMarker}
         className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md border border-red-500/70 bg-red-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-45"
       >
-        Add Incident Marker
+        Add call response
       </button>
     </div>
   );
