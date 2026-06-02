@@ -49,6 +49,16 @@ export default function MonitorHeader({
               Map
             </Link>
             <Link
+              href="/track-review"
+              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:text-xs ${
+                active === "review"
+                  ? "bg-accent/15 text-accent"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Review Track
+            </Link>
+            <Link
               href="/access-tokens"
               className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:text-xs ${
                 active === "tokens"

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function MapToolbar() {
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-card/90 px-3 py-1 sm:px-4">
@@ -33,14 +35,26 @@ export default function MapToolbar() {
       />
 
       <div className="flex shrink-0 items-center gap-1">
-        <button
-          type="button"
-          disabled
-          title="Tools (coming soon)"
-          className="rounded-md border border-border/60 px-2 py-1 text-[10px] font-medium text-muted disabled:cursor-not-allowed disabled:opacity-60 sm:text-[11px]"
+        <Link
+          href="/track-review"
+          title="Review patrol track history"
+          className="flex items-center gap-1 rounded-md border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-medium text-accent transition hover:bg-accent/20 sm:text-[11px]"
         >
-          Tools
-        </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3.5 w-3.5"
+            aria-hidden
+          >
+            <path d="M3 12h4l3 8 4-16 3 8h4" />
+          </svg>
+          Review Track
+        </Link>
         <button
           type="button"
           disabled

@@ -160,8 +160,11 @@ export default function PatrolMap({ locations }) {
 
         <CalabarzonInitialView />
 
-        {parsedLocations.map((loc) => (
-          <PatrolMarker key={loc.user_id} location={loc} />
+        {parsedLocations.map((loc, index) => (
+          <PatrolMarker
+            key={loc.access_token_id || loc.user_id || loc.id || index}
+            location={loc}
+          />
         ))}
       </MapContainer>
 
