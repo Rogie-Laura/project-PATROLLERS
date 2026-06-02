@@ -12,9 +12,14 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
-
-const CALABARZON_CENTER = [14.2, 121.1];
-const CALABARZON_ZOOM = 9;
+import {
+  CALABARZON_CENTER,
+  CALABARZON_ZOOM,
+  MAP_MAX_ZOOM,
+  MAP_MIN_ZOOM,
+  MAX_BOUNDS_VISCOSITY,
+  PHILIPPINES_BOUNDS,
+} from "@/lib/mapBounds";
 
 function toNumber(value) {
   return typeof value === "number" ? value : parseFloat(value);
@@ -73,6 +78,10 @@ export default function TrackReviewMap({ points, basemapId = DEFAULT_BASEMAP_ID 
     <MapContainer
       center={CALABARZON_CENTER}
       zoom={CALABARZON_ZOOM}
+      minZoom={MAP_MIN_ZOOM}
+      maxZoom={MAP_MAX_ZOOM}
+      maxBounds={PHILIPPINES_BOUNDS}
+      maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
       className="h-full w-full"
       scrollWheelZoom
     >

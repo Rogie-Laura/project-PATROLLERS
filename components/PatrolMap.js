@@ -2,19 +2,20 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
+import {
+  CALABARZON_BOUNDS,
+  CALABARZON_CENTER,
+  CALABARZON_ZOOM,
+  MAP_MAX_ZOOM,
+  MAP_MIN_ZOOM,
+  MAX_BOUNDS_VISCOSITY,
+  PHILIPPINES_BOUNDS,
+} from "@/lib/mapBounds";
 import {
   createPatrolMarkerIcon,
   getPatrolStatusLabel,
 } from "@/lib/patrolMarker";
-
-const CALABARZON_CENTER = [14.2, 121.1];
-const CALABARZON_ZOOM = 9;
-const CALABARZON_BOUNDS = L.latLngBounds(
-  [13.62, 120.7],
-  [15.08, 122.4]
-);
 
 function toNumber(value) {
   return typeof value === "number" ? value : parseFloat(value);
@@ -86,6 +87,10 @@ export default function PatrolMap({ locations, basemapId = DEFAULT_BASEMAP_ID })
       <MapContainer
         center={CALABARZON_CENTER}
         zoom={CALABARZON_ZOOM}
+        minZoom={MAP_MIN_ZOOM}
+        maxZoom={MAP_MAX_ZOOM}
+        maxBounds={PHILIPPINES_BOUNDS}
+        maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
         className="h-full w-full"
         scrollWheelZoom
       >
