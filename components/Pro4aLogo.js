@@ -7,7 +7,7 @@ const heights = {
   lg: "8rem",
 };
 
-export default function Pro4aLogo({ size = "md" }) {
+export default function Pro4aLogo({ size = "md", className = "" }) {
   const height = heights[size] || heights.md;
 
   return (
@@ -16,8 +16,8 @@ export default function Pro4aLogo({ size = "md" }) {
       alt="PRO4A Logo"
       width={284}
       height={318}
-      className="mx-auto object-contain drop-shadow-lg"
-      style={{ width: "auto", height }}
+      className={`mx-auto object-contain drop-shadow-lg ${className}`}
+      style={className ? { width: "auto" } : { width: "auto", height }}
       priority
     />
   );

@@ -75,10 +75,10 @@ export default function HomePage() {
   }
 
   const inputClassName =
-    "w-full rounded-lg border border-border/80 bg-background/80 py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20";
+    "w-full rounded-lg border border-border/80 bg-background/80 py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20 sm:rounded-xl sm:py-3 sm:pl-11 sm:text-base";
 
   return (
-    <main className="relative flex h-dvh flex-col items-center justify-start overflow-hidden px-4 pt-4 sm:pt-6">
+    <main className="relative flex h-dvh flex-col items-center justify-start overflow-hidden px-4 py-4 sm:justify-center sm:px-6 sm:py-6">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.12)_0%,_transparent_55%)]"
@@ -88,13 +88,13 @@ export default function HomePage() {
         className="pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-accent/5 blur-3xl"
       />
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative w-full max-w-sm sm:max-w-md md:max-w-lg">
         <PatrolLoginCard>
           <PatrollersBranding inCard />
 
-          <form onSubmit={handleLogin} className="space-y-3">
+          <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
             <div>
-              <label className="mb-0.5 block text-xs font-medium text-foreground/90">
+              <label className="mb-0.5 block text-xs font-medium text-foreground/90 sm:mb-1 sm:text-sm">
                 Email Address
               </label>
               <div className="relative">
@@ -126,7 +126,7 @@ export default function HomePage() {
               </div>
             </div>
             <div>
-              <label className="mb-0.5 block text-xs font-medium text-foreground/90">
+              <label className="mb-0.5 block text-xs font-medium text-foreground/90 sm:mb-1 sm:text-sm">
                 Password
               </label>
               <div className="relative">
@@ -216,7 +216,7 @@ export default function HomePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50 sm:rounded-xl sm:py-3 sm:text-base"
             >
               {submitting ? (
                 <>
@@ -229,7 +229,7 @@ export default function HomePage() {
             </button>
           </form>
 
-          <Project4AFooter compact className="mt-4" />
+          <Project4AFooter compact className="mt-4 sm:mt-5" />
         </PatrolLoginCard>
       </div>
     </main>

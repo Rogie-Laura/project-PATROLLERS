@@ -38,18 +38,31 @@ function Tagline({ className = "" }) {
 export default function PatrollersBranding({ compact = false, inCard = false }) {
   return (
     <header
-      className={`text-center ${inCard ? "mb-3" : compact ? "mb-4" : "mb-6"}`}
+      className={`text-center ${inCard ? "mb-3 sm:mb-4" : compact ? "mb-4" : "mb-6"}`}
     >
-      <Pro4aLogo size={inCard ? "xs" : compact ? "sm" : "md"} />
+      <Pro4aLogo
+        size={inCard ? "xs" : compact ? "sm" : "md"}
+        className={
+          inCard ? "h-[3.75rem] w-auto sm:h-[4.75rem] md:h-20 lg:h-24" : ""
+        }
+      />
 
       <div
         className={
-          inCard ? "mt-1.5 space-y-0.5" : compact ? "mt-3 space-y-1.5" : "mt-4 space-y-2"
+          inCard
+            ? "mt-1.5 space-y-0.5 sm:mt-2 sm:space-y-1"
+            : compact
+              ? "mt-3 space-y-1.5"
+              : "mt-4 space-y-2"
         }
       >
         <h1
-          className={`font-bold tracking-[0.15em] text-foreground ${
-            inCard ? "text-base sm:text-lg" : compact ? "text-xl" : "text-2xl sm:text-3xl"
+          className={`font-bold tracking-[0.15em] text-foreground sm:tracking-[0.2em] ${
+            inCard
+              ? "text-base sm:text-xl md:text-2xl"
+              : compact
+                ? "text-xl"
+                : "text-2xl sm:text-3xl"
           }`}
         >
           PATROLLERS
@@ -57,7 +70,7 @@ export default function PatrollersBranding({ compact = false, inCard = false }) 
         <Tagline
           className={
             inCard
-              ? "text-[9px] leading-tight sm:text-[10px]"
+              ? "max-w-xs text-[9px] leading-tight sm:max-w-sm sm:text-[11px] md:text-xs"
               : compact
                 ? "text-[11px]"
                 : "text-xs sm:text-sm"
@@ -65,7 +78,7 @@ export default function PatrollersBranding({ compact = false, inCard = false }) 
         />
       </div>
 
-      <div className="mx-auto mt-2 h-px w-12 bg-gradient-to-r from-transparent via-accent to-transparent" />
+      <div className="mx-auto mt-2 h-px w-12 bg-gradient-to-r from-transparent via-accent to-transparent sm:mt-3 sm:w-16" />
     </header>
   );
 }
