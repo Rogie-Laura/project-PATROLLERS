@@ -9,6 +9,7 @@ import PatrolDetailPanel from "@/components/PatrolDetailPanel";
 import IncidentCordonPanel from "@/components/IncidentCordonPanel";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
+import { loadCordonPlan } from "@/lib/loadCordonPlan";
 import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
@@ -52,6 +53,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [cordonLoading, setCordonLoading] = useState(false);
   const [cordonError, setCordonError] = useState("");
   const [highlightedCheckpointId, setHighlightedCheckpointId] = useState(null);
+  const [cordonRetryKey, setCordonRetryKey] = useState(0);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -118,25 +120,19 @@ export default function MonitorDashboard({ user, onLogout }) {
     setCordonPlan(null);
     setHighlightedCheckpointId(null);
 
-    fetch("/api/incident/cordon", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        latitude: incidentMarker.latitude,
-        longitude: incidentMarker.longitude,
-      }),
-    })
-      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
+    loadCordonPlan(incidentMarker.latitude, incidentMarker.longitude)
+      .then(({ plan, error }) => {
         if (cancelled) return;
-        if (!ok) {
-          setCordonError(data.error || "Cordon analysis failed");
+        if (error) {
+          setCordonError(error);
           return;
         }
-        setCordonPlan(data);
+        setCordonPlan(plan);
       })
       .catch(() => {
-        if (!cancelled) setCordonError("Could not load cordon suggestions");
+        if (!cancelled) {
+          setCordonError("Could not load cordon suggestions. Tap Retry.");
+        }
       })
       .finally(() => {
         if (!cancelled) setCordonLoading(false);
@@ -145,7 +141,7 @@ export default function MonitorDashboard({ user, onLogout }) {
     return () => {
       cancelled = true;
     };
-  }, [incidentMarker]);
+  }, [incidentMarker, cordonRetryKey]);
 
   function handleClearIncident() {
     setIncidentMarker(null);
@@ -228,6 +224,7 @@ export default function MonitorDashboard({ user, onLogout }) {
                 highlightedId={highlightedCheckpointId}
                 onHighlight={setHighlightedCheckpointId}
                 onClearIncident={handleClearIncident}
+                onRetry={() => setCordonRetryKey((k) => k + 1)}
               />
             </div>
           </div>

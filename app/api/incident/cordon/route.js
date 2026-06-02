@@ -1,22 +1,9 @@
 import { NextResponse } from "next/server";
 import { analyzeCordon } from "@/lib/cordonAnalysis";
+import { fetchOverpassElements } from "@/lib/overpassClient";
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
-
-function buildOverpassQuery(lat, lon) {
-  return `
-[out:json][timeout:30];
-(
-  node(around:6000,${lat},${lon})["highway"="traffic_signals"];
-  node(around:6000,${lat},${lon})["highway"="stop"];
-  node(around:6000,${lat},${lon})["highway"="motorway_junction"];
-  node(around:6000,${lat},${lon})["highway"="mini_roundabout"];
-  node(around:6000,${lat},${lon})["junction"~"yes|roundabout"];
-  way(around:6000,${lat},${lon})["highway"~"motorway|trunk|primary|secondary|tertiary"]["highway"!~"footway|path|cycleway|steps|track"];
-);
-out body geom;
-`;
-}
+/** Allow longer fetch on Vercel Pro; Hobby still capped ~10s */
+export const maxDuration = 30;
 
 export async function POST(request) {
   let body;
@@ -38,27 +25,7 @@ export async function POST(request) {
   }
 
   try {
-    const query = buildOverpassQuery(latitude, longitude);
-    const response = await fetch(OVERPASS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
-      body: `data=${encodeURIComponent(query)}`,
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: "Road network data temporarily unavailable" },
-        { status: 502 }
-      );
-    }
-
-    const payload = await response.json();
-    const elements = Array.isArray(payload?.elements) ? payload.elements : [];
-
+    const elements = await fetchOverpassElements(latitude, longitude);
     const osmNodes = elements.filter((el) => el.type === "node");
     const osmWays = elements.filter((el) => el.type === "way");
 
@@ -70,10 +37,12 @@ export async function POST(request) {
     });
 
     return NextResponse.json(plan);
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to analyze cordon suggestions" },
-      { status: 500 }
-    );
+  } catch (err) {
+    const message =
+      err?.message?.includes("timeout") || err?.name === "TimeoutError"
+        ? "Road data request timed out. Try again in a few seconds."
+        : "Road network data temporarily unavailable. The map will retry from your browser.";
+
+    return NextResponse.json({ error: message, retryable: true }, { status: 502 });
   }
 }

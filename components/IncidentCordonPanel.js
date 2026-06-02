@@ -14,6 +14,7 @@ export default function IncidentCordonPanel({
   highlightedId,
   onHighlight,
   onClearIncident,
+  onRetry,
 }) {
   const checkpoints = cordonPlan?.checkpoints ?? [];
   const escapeRoutes = cordonPlan?.escapeRoutes ?? [];
@@ -27,15 +28,21 @@ export default function IncidentCordonPanel({
         <h2 className="text-sm font-semibold text-foreground">
           Suggested block &amp; escape points
         </h2>
+        <p className="mt-1 text-[10px] leading-snug text-muted">
+          After you place an incident, this lists intersections to consider for
+          a dragnet and roads that may be escape routes (from map data).
+        </p>
         {incidentLabel && (
-          <p className="mt-1 line-clamp-2 text-[11px] text-muted">{incidentLabel}</p>
+          <p className="mt-1 line-clamp-2 text-[11px] text-foreground/80">
+            {incidentLabel}
+          </p>
         )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <p className="mb-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] leading-relaxed text-amber-100/90">
           Decision support only — verify on the ground with field units before
-          blocking roads. Data from OpenStreetMap.
+          blocking roads. Data from OpenStreetMap (not a second deployment).
         </p>
 
         {loading && (
@@ -46,7 +53,18 @@ export default function IncidentCordonPanel({
         )}
 
         {error && (
-          <p className="text-sm text-red-400">{error}</p>
+          <div className="space-y-2">
+            <p className="text-sm text-red-400">{error}</p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/20"
+              >
+                Retry analysis
+              </button>
+            )}
+          </div>
         )}
 
         {!loading && !error && cordonPlan?.summary && (
