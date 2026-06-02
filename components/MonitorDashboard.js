@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
@@ -27,11 +26,12 @@ function getLatestByPatrol(locations) {
   return Array.from(latest.values());
 }
 
-export default function MonitorPage() {
+export default function MonitorDashboard({ user, onLogout }) {
   const supabase = createClient();
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -72,22 +72,31 @@ export default function MonitorPage() {
     };
   }, [supabase]);
 
+  async function handleSignOut() {
+    setSigningOut(true);
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    onLogout();
+  }
+
   return (
     <main className="flex h-screen flex-col">
       <header className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3">
         <div>
-          <h1 className="text-lg font-bold">Monitor Dashboard</h1>
+          <h1 className="text-lg font-bold">PATROLLERS</h1>
           <p className="text-xs text-muted">
             {latestLocations.length} active patrol
             {latestLocations.length !== 1 ? "s" : ""} on map
+            {user?.email ? ` · ${user.email}` : ""}
           </p>
         </div>
-        <Link
-          href="/"
-          className="rounded-lg border border-border px-3 py-1.5 text-sm text-muted transition hover:text-foreground"
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="rounded-lg border border-border px-3 py-1.5 text-sm text-muted transition hover:text-foreground disabled:opacity-50"
         >
-          Home
-        </Link>
+          {signingOut ? "Signing out..." : "Sign Out"}
+        </button>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -98,10 +107,8 @@ export default function MonitorPage() {
             </div>
           ) : latestLocations.length === 0 ? (
             <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-2 px-6 text-center text-muted">
-              <p>No locations loaded yet.</p>
-              <p className="text-sm">
-                Send a location from Patrol Login, then refresh this page.
-              </p>
+              <p>No patrol locations yet.</p>
+              <p className="text-sm">Locations will appear here in realtime.</p>
             </div>
           ) : (
             <PatrolMap locations={latestLocations} />
@@ -121,10 +128,7 @@ export default function MonitorPage() {
             )}
 
             {latestLocations.length === 0 ? (
-              <p className="text-sm text-muted">
-                No patrol locations yet. Ask patrols to log in and send their
-                location.
-              </p>
+              <p className="text-sm text-muted">Waiting for patrol updates...</p>
             ) : (
               <ul className="space-y-2">
                 {latestLocations.map((loc) => (
@@ -141,7 +145,8 @@ export default function MonitorPage() {
                       </p>
                     )}
                     <p className="mt-1 font-mono text-xs text-muted">
-                      {Number(loc.latitude).toFixed(5)}, {Number(loc.longitude).toFixed(5)}
+                      {Number(loc.latitude).toFixed(5)},{" "}
+                      {Number(loc.longitude).toFixed(5)}
                     </p>
                     <p className="mt-1 text-xs text-muted">
                       Last seen: {new Date(loc.created_at).toLocaleString()}

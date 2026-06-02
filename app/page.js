@@ -1,17 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import PatrollersBranding from "@/components/PatrollersBranding";
 import PatrolLoginCard from "@/components/PatrolLoginCard";
+import MonitorDashboard from "@/components/MonitorDashboard";
 
 export default function HomePage() {
-  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (active) setUser(data.user ?? null);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setCheckingSession(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -28,14 +47,30 @@ export default function HomePage() {
 
       if (!res.ok) {
         setError(data.error || "Login failed.");
-        setSubmitting(false);
       } else {
-        router.push("/monitor");
+        setUser(data.user);
+        setPassword("");
       }
     } catch {
       setError("Network error. Please try again.");
-      setSubmitting(false);
     }
+
+    setSubmitting(false);
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="text-sm text-muted">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (user) {
+    return <MonitorDashboard user={user} onLogout={() => setUser(null)} />;
   }
 
   const inputClassName =
@@ -55,10 +90,7 @@ export default function HomePage() {
       <div className="relative w-full max-w-md">
         <PatrollersBranding />
 
-        <PatrolLoginCard
-          title="Sign In"
-          subtitle="Enter your credentials to access the monitoring dashboard."
-        >
+        <PatrolLoginCard>
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground/90">
