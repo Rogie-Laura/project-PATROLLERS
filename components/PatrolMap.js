@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
+import {
+  createPatrolMarkerIcon,
+  getPatrolStatusLabel,
+} from "@/lib/patrolMarker";
 
 const CALABARZON_CENTER = [14.2, 121.1];
 const CALABARZON_ZOOM = 9;
@@ -11,20 +15,6 @@ const CALABARZON_BOUNDS = L.latLngBounds(
   [13.62, 120.7],
   [15.08, 122.4]
 );
-
-const patrolIcon = L.divIcon({
-  className: "patrol-marker",
-  html: `<div style="
-    width: 18px;
-    height: 18px;
-    background: #22c55e;
-    border: 3px solid #fff;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  "></div>`,
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
 
 function toNumber(value) {
   return typeof value === "number" ? value : parseFloat(value);
@@ -49,15 +39,24 @@ function PatrolMarker({ location }) {
   const latitude = toNumber(location.latitude);
   const longitude = toNumber(location.longitude);
   const position = [latitude, longitude];
+  const icon = useMemo(
+    () => createPatrolMarkerIcon(location.patrol_status),
+    [location.patrol_status]
+  );
 
   useEffect(() => {
-    markerRef.current?.setLatLng(position);
-  }, [latitude, longitude]);
+    const marker = markerRef.current;
+    if (!marker) return;
+    marker.setLatLng(position);
+    marker.setIcon(icon);
+  }, [latitude, longitude, icon]);
 
   return (
-    <Marker ref={markerRef} position={position} icon={patrolIcon}>
+    <Marker ref={markerRef} position={position} icon={icon}>
       <Popup>
         <strong>{location.patrol_name || "Patrol"}</strong>
+        <br />
+        Status: {getPatrolStatusLabel(location.patrol_status)}
         <br />
         Lat: {latitude.toFixed(6)}
         <br />
