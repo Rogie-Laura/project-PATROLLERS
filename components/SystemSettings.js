@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 function SettingCard({ title, description, children }) {
   return (
@@ -18,26 +18,97 @@ function ReadOnlyValue({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/50 px-3 py-2.5">
       <span className="text-xs text-muted">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
+      <span className="text-right text-sm font-medium text-foreground">{value}</span>
     </div>
   );
 }
 
 export default function SystemSettings() {
-  const [intervalMinutes, setIntervalMinutes] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [intervalSeconds, setIntervalSeconds] = useState(1800);
+  const [intervalLabel, setIntervalLabel] = useState("");
+  const [minSeconds, setMinSeconds] = useState(30);
+  const [maxSeconds, setMaxSeconds] = useState(86400);
+
+  const [value, setValue] = useState("30");
+  const [unit, setUnit] = useState("minutes");
+
+  const applySettings = useCallback((settings) => {
+    const seconds = settings.location_interval_seconds ?? 1800;
+    setIntervalSeconds(seconds);
+    setIntervalLabel(settings.interval_label ?? "");
+    setMinSeconds(settings.min_seconds ?? 30);
+    setMaxSeconds(settings.max_seconds ?? 86400);
+
+    if (seconds % 60 === 0 && seconds >= 60) {
+      setUnit("minutes");
+      setValue(String(seconds / 60));
+    } else {
+      setUnit("seconds");
+      setValue(String(seconds));
+    }
+  }, []);
+
+  const loadSettings = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/admin/system-settings");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not load settings.");
+      }
+
+      applySettings(data.settings);
+    } catch (err) {
+      setError(err.message ?? "Could not load settings.");
+    } finally {
+      setLoading(false);
+    }
+  }, [applySettings]);
 
   useEffect(() => {
-    fetch("/api/admin/system-settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.settings?.location_interval_minutes != null) {
-          setIntervalMinutes(data.settings.location_interval_minutes);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    loadSettings();
+  }, [loadSettings]);
+
+  async function handleSave(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: Number(value), unit }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save settings.");
+      }
+
+      applySettings(data.settings);
+      setSuccess(
+        "Saved. Mobile devices will use this interval the next time they validate their access token or restart tracking."
+      );
+    } catch (err) {
+      setError(err.message ?? "Could not save settings.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const maxValue = unit === "minutes" ? maxSeconds / 60 : maxSeconds;
+  const minValue = unit === "minutes" ? minSeconds / 60 : minSeconds;
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
@@ -45,29 +116,77 @@ export default function SystemSettings() {
         <div>
           <h1 className="text-lg font-semibold text-foreground">System Settings</h1>
           <p className="mt-1 text-sm text-muted">
-            Monitoring center configuration for mobile patrol units and the command
-            center map.
+            Configure how often patrol devices send GPS while live tracking is active.
           </p>
         </div>
+
+        {error && (
+          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+            {error}
+          </p>
+        )}
+
+        {success && (
+          <p className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent">
+            {success}
+          </p>
+        )}
 
         <SettingCard
           title="Mobile location updates"
           description="How often patrol devices send GPS updates while live tracking is active."
         >
           <ReadOnlyValue
-            label="Send interval"
-            value={
-              loading
-                ? "Loading..."
-                : `Every ${intervalMinutes} minutes`
-            }
+            label="Current interval"
+            value={loading ? "Loading..." : intervalLabel || `Every ${intervalSeconds} seconds`}
           />
-          <p className="mt-2 text-[11px] text-muted">
-            Configured via server environment variable{" "}
-            <code className="rounded bg-background/80 px-1 py-0.5 text-[10px]">
-              MOBILE_LOCATION_INTERVAL_MINUTES
-            </code>
-            . Mobile apps read this value when validating the access token.
+
+          <form onSubmit={handleSave} className="mt-4 space-y-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted">
+                New interval
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min={minValue}
+                  max={maxValue}
+                  step={unit === "minutes" ? 1 : 1}
+                  required
+                  disabled={loading || saving}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                />
+                <select
+                  value={unit}
+                  disabled={loading || saving}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="rounded-lg border border-border/70 bg-background/80 px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
+                >
+                  <option value="seconds">Seconds</option>
+                  <option value="minutes">Minutes</option>
+                </select>
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted">
+                Allowed: {minSeconds} seconds ({Math.ceil(minSeconds / 60)} min) up to{" "}
+                {maxSeconds} seconds ({maxSeconds / 60} min).
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || saving}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save interval"}
+            </button>
+          </form>
+
+          <p className="mt-3 text-[11px] text-muted">
+            Stored in the database and sent to mobile apps on token validation. Patrol
+            phones already logged in may need to re-enter their token or restart live
+            tracking to pick up a new interval.
           </p>
         </SettingCard>
 
@@ -77,10 +196,6 @@ export default function SystemSettings() {
         >
           <ReadOnlyValue label="Default status" value="Police Visibility" />
           <ReadOnlyValue label="Incident alert status" value="On Incident Response" />
-          <p className="mt-2 text-[11px] text-muted">
-            Map markers use green for Police Visibility and red for On Incident
-            Response when Patrol Status is enabled on the live map.
-          </p>
         </SettingCard>
 
         <SettingCard
@@ -89,8 +204,7 @@ export default function SystemSettings() {
         >
           <p className="text-xs text-muted">
             Use <strong className="text-foreground">Access Tokens</strong> in the menu
-            bar to create or deactivate mobile device tokens. System Administrator
-            role is required for token management and this settings page.
+            bar to create or deactivate mobile device tokens.
           </p>
         </SettingCard>
       </div>

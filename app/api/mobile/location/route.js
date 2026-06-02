@@ -3,10 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   buildPatrolLabel,
   extractBearerToken,
-  MOBILE_LOCATION_INTERVAL_MINUTES,
   normalizePersonnelOnBoard,
   resolveAccessToken,
 } from "@/lib/mobile/accessToken";
+import { getLocationIntervalSeconds } from "@/lib/mobile/systemSettings";
 import { parseLocationPayload } from "@/lib/location/parseCoordinates";
 
 export async function POST(request) {
@@ -90,9 +90,12 @@ export async function POST(request) {
       .eq("access_token_id", accessToken.id);
   }
 
+  const intervalSeconds = await getLocationIntervalSeconds();
+
   return NextResponse.json({
     ok: true,
-    interval_minutes: MOBILE_LOCATION_INTERVAL_MINUTES,
+    interval_seconds: intervalSeconds,
+    interval_minutes: Math.max(1, Math.ceil(intervalSeconds / 60)),
     location: {
       id: data.id,
       latitude: data.latitude,

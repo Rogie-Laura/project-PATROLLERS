@@ -1,9 +1,6 @@
-import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
-import {
-  MOBILE_LOCATION_INTERVAL_MINUTES,
-  resolveAccessToken,
-} from "@/lib/mobile/accessToken";
+import { resolveAccessToken } from "@/lib/mobile/accessToken";
+import { getLocationIntervalSeconds } from "@/lib/mobile/systemSettings";
 
 export async function POST(request) {
   let body;
@@ -23,17 +20,23 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid or inactive access token." }, { status: 401 });
   }
 
+  const intervalSeconds = await getLocationIntervalSeconds();
+
   return NextResponse.json({
     ok: true,
     token: accessToken.token,
     label: accessToken.label,
-    interval_minutes: MOBILE_LOCATION_INTERVAL_MINUTES,
+    interval_seconds: intervalSeconds,
+    interval_minutes: Math.max(1, Math.ceil(intervalSeconds / 60)),
   });
 }
 
 export async function GET() {
+  const intervalSeconds = await getLocationIntervalSeconds();
+
   return NextResponse.json({
     ok: true,
-    interval_minutes: MOBILE_LOCATION_INTERVAL_MINUTES,
+    interval_seconds: intervalSeconds,
+    interval_minutes: Math.max(1, Math.ceil(intervalSeconds / 60)),
   });
 }
