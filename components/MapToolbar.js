@@ -202,9 +202,9 @@ export default function MapToolbar({
         <>
           <ToolbarSeparator />
           <div
-            className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+            className="flex min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto"
             role="group"
-            aria-label="Map basemap"
+            aria-label="Map basemap and call response"
           >
             {BASEMAPS.map((basemap) => {
               const isActive = basemap.id === basemapId;
@@ -225,22 +225,22 @@ export default function MapToolbar({
                 </button>
               );
             })}
-          </div>
 
-          {showAddCallResponse && (
-            <>
-              <ToolbarSeparator />
-              <button
-                type="button"
-                onClick={onAddCallResponse}
-                title="Add call-for-service response on the map"
-                className="flex shrink-0 items-center gap-1.5 rounded-md border border-red-500/70 bg-red-600 px-2 py-1 text-[10px] font-semibold leading-none text-white shadow-sm transition hover:bg-red-500 sm:text-[11px]"
-              >
-                <PhoneCallIcon />
-                <span className="whitespace-nowrap">Add Call Response</span>
-              </button>
-            </>
-          )}
+            {showAddCallResponse && (
+              <>
+                <ToolbarSeparator />
+                <button
+                  type="button"
+                  onClick={onAddCallResponse}
+                  title="Add call-for-service response on the map"
+                  className="flex shrink-0 items-center gap-1.5 rounded-md border border-red-500/70 bg-red-600 px-2 py-1 text-[10px] font-semibold leading-none text-white shadow-sm transition hover:bg-red-500 sm:text-[11px]"
+                >
+                  <PhoneCallIcon />
+                  <span className="whitespace-nowrap">Add Call Response</span>
+                </button>
+              </>
+            )}
+          </div>
 
           {onShowPatrolStatusChange && (
             <>
