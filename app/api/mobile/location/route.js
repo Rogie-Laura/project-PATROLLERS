@@ -39,6 +39,7 @@ export async function POST(request) {
   }
 
   const { latitude, longitude, accuracy } = parsed;
+  const patrolStatus = String(body?.status ?? "").trim() || null;
   const admin = createAdminClient();
 
   const { data: profile } = await admin
@@ -64,12 +65,20 @@ export async function POST(request) {
       office: profile?.office ?? null,
       unit: profile?.unit ?? null,
       personnel_on_board: normalizePersonnelOnBoard(profile?.personnel_on_board),
+      patrol_status: patrolStatus,
     })
     .select("id, latitude, longitude, accuracy, created_at")
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (patrolStatus) {
+    await admin
+      .from("mobile_device_profiles")
+      .update({ patrol_status: patrolStatus })
+      .eq("access_token_id", accessToken.id);
   }
 
   return NextResponse.json({

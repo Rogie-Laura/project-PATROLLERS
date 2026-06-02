@@ -38,6 +38,7 @@ function profileResponse(row) {
     office: row?.office ?? "",
     unit: row?.unit ?? "",
     personnel_on_board: normalizePersonnelOnBoard(row?.personnel_on_board),
+    patrol_status: row?.patrol_status ?? "",
     updated_at: row?.updated_at ?? null,
   };
 }
@@ -82,6 +83,7 @@ export async function PUT(request) {
     office: String(body?.office ?? "").trim() || null,
     unit: String(body?.unit ?? "").trim() || null,
     personnel_on_board: normalizePersonnelOnBoard(body?.personnel_on_board),
+    patrol_status: String(body?.patrol_status ?? "").trim() || null,
     updated_at: new Date().toISOString(),
   };
 
