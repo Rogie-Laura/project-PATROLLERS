@@ -39,6 +39,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
+  const [showPatrolStatus, setShowPatrolStatus] = useState(true);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -99,10 +100,16 @@ export default function MonitorDashboard({ user, onLogout }) {
         showBasemap
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
+        showPatrolStatus={showPatrolStatus}
+        onShowPatrolStatusChange={setShowPatrolStatus}
       />
 
       <section className="relative min-h-0 flex-1">
-        <PatrolMap locations={latestLocations} basemapId={basemapId} />
+        <PatrolMap
+          locations={latestLocations}
+          basemapId={basemapId}
+          showPatrolStatus={showPatrolStatus}
+        />
 
         {error && (
           <div className="pointer-events-none absolute left-1/2 top-4 z-[500] max-w-sm -translate-x-1/2 rounded-lg border border-red-500/30 bg-card/95 px-4 py-2 text-center text-sm text-red-400 shadow-lg backdrop-blur-sm">

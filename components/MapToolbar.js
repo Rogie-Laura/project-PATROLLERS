@@ -74,12 +74,48 @@ const NAV_ITEMS = [
   },
 ];
 
+function PatrolStatusToggle({ enabled, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      aria-label="View patrol status on map"
+      title="Show patrol status colors and labels on markers"
+      onClick={() => onChange(!enabled)}
+      className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1 transition hover:bg-background/80"
+    >
+      <span
+        className={`relative inline-flex h-4 w-7 shrink-0 rounded-full transition ${
+          enabled ? "bg-accent" : "bg-muted/50"
+        }`}
+        aria-hidden
+      >
+        <span
+          className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition ${
+            enabled ? "left-3.5" : "left-0.5"
+          }`}
+        />
+      </span>
+      <span
+        className={`whitespace-nowrap text-[10px] font-medium sm:text-[11px] ${
+          enabled ? "text-accent" : "text-muted"
+        }`}
+      >
+        Patrol Status
+      </span>
+    </button>
+  );
+}
+
 export default function MapToolbar({
   active = "map",
   user,
   basemapId,
   onBasemapChange,
   showBasemap = false,
+  showPatrolStatus = true,
+  onShowPatrolStatusChange,
 }) {
   const isAdmin = isAdminRole(user?.role);
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
@@ -138,6 +174,16 @@ export default function MapToolbar({
               );
             })}
           </div>
+
+          {onShowPatrolStatusChange && (
+            <>
+              <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />
+              <PatrolStatusToggle
+                enabled={showPatrolStatus}
+                onChange={onShowPatrolStatusChange}
+              />
+            </>
+          )}
         </>
       )}
 

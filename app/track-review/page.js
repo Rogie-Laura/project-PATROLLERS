@@ -13,6 +13,7 @@ export default function TrackReviewPage() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
+  const [showPatrolStatus, setShowPatrolStatus] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -71,8 +72,10 @@ export default function TrackReviewPage() {
         showBasemap
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
+        showPatrolStatus={showPatrolStatus}
+        onShowPatrolStatusChange={setShowPatrolStatus}
       />
-      <TrackReview basemapId={basemapId} />
+      <TrackReview basemapId={basemapId} showPatrolStatus={showPatrolStatus} />
     </main>
   );
 }

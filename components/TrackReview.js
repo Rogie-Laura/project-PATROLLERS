@@ -34,7 +34,7 @@ function deviceLabel(row) {
   );
 }
 
-export default function TrackReview({ basemapId }) {
+export default function TrackReview({ basemapId, showPatrolStatus = true }) {
   const supabase = useMemo(() => createClient(), []);
 
   const [devices, setDevices] = useState([]);
@@ -212,7 +212,11 @@ export default function TrackReview({ basemapId }) {
             No location history for this unit in the selected time range.
           </div>
         ) : (
-          <TrackReviewMap points={points} basemapId={basemapId} />
+          <TrackReviewMap
+            points={points}
+            basemapId={basemapId}
+            showPatrolStatus={showPatrolStatus}
+          />
         )}
       </section>
     </div>

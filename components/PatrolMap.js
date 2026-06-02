@@ -35,14 +35,14 @@ function CalabarzonInitialView() {
   return null;
 }
 
-function PatrolMarker({ location }) {
+function PatrolMarker({ location, showPatrolStatus }) {
   const markerRef = useRef(null);
   const latitude = toNumber(location.latitude);
   const longitude = toNumber(location.longitude);
   const position = [latitude, longitude];
   const icon = useMemo(
-    () => createPatrolMarkerIcon(location.patrol_status),
-    [location.patrol_status]
+    () => createPatrolMarkerIcon(location.patrol_status, showPatrolStatus),
+    [location.patrol_status, showPatrolStatus]
   );
 
   useEffect(() => {
@@ -57,8 +57,12 @@ function PatrolMarker({ location }) {
       <Popup>
         <strong>{location.patrol_name || "Patrol"}</strong>
         <br />
-        Status: {getPatrolStatusLabel(location.patrol_status)}
-        <br />
+        {showPatrolStatus && (
+          <>
+            Status: {getPatrolStatusLabel(location.patrol_status)}
+            <br />
+          </>
+        )}
         Lat: {latitude.toFixed(6)}
         <br />
         Lng: {longitude.toFixed(6)}
@@ -69,7 +73,11 @@ function PatrolMarker({ location }) {
   );
 }
 
-export default function PatrolMap({ locations, basemapId = DEFAULT_BASEMAP_ID }) {
+export default function PatrolMap({
+  locations,
+  basemapId = DEFAULT_BASEMAP_ID,
+  showPatrolStatus = true,
+}) {
   const basemap = getBasemapById(basemapId);
 
   const parsedLocations = useMemo(
@@ -106,6 +114,7 @@ export default function PatrolMap({ locations, basemapId = DEFAULT_BASEMAP_ID })
           <PatrolMarker
             key={loc.access_token_id || loc.user_id || loc.id || index}
             location={loc}
+            showPatrolStatus={showPatrolStatus}
           />
         ))}
       </MapContainer>

@@ -12,6 +12,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
+import { getPatrolMarkerColor } from "@/lib/patrolMarker";
 import {
   CALABARZON_CENTER,
   CALABARZON_ZOOM,
@@ -61,7 +62,11 @@ function FitToTrack({ positions }) {
   return null;
 }
 
-export default function TrackReviewMap({ points, basemapId = DEFAULT_BASEMAP_ID }) {
+export default function TrackReviewMap({
+  points,
+  basemapId = DEFAULT_BASEMAP_ID,
+  showPatrolStatus = true,
+}) {
   const basemap = getBasemapById(basemapId);
   const positions = useMemo(
     () =>
@@ -108,16 +113,24 @@ export default function TrackReviewMap({ points, basemapId = DEFAULT_BASEMAP_ID 
         const isEndpoint = index === 0 || index === points.length - 1;
         if (isEndpoint) return null;
 
+        const color = showPatrolStatus
+          ? getPatrolMarkerColor(point.patrol_status)
+          : "#22c55e";
+
         return (
           <CircleMarker
             key={point.id ?? index}
             center={[lat, lng]}
             radius={3}
-            pathOptions={{ color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.8 }}
+            pathOptions={{
+              color,
+              fillColor: color,
+              fillOpacity: 0.8,
+            }}
           >
             <Popup>
               <small>{new Date(point.created_at).toLocaleString()}</small>
-              {point.patrol_status && (
+              {showPatrolStatus && point.patrol_status && (
                 <>
                   <br />
                   <small>Status: {point.patrol_status}</small>
