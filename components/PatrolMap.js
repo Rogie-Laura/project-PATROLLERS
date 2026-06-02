@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Circle, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Circle,
+  Polyline,
+  Popup,
+  useMap,
+} from "react-leaflet";
+import { createCheckpointIcon } from "@/lib/cordonMapIcons";
 import {
   createIncidentMarkerIcon,
   INCIDENT_RADIUS_RINGS,
@@ -121,6 +130,73 @@ function IncidentMarkerLayer({ incidentMarker }) {
   );
 }
 
+function FlyToHighlightedCheckpoint({ cordonPlan, highlightedCheckpointId }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!highlightedCheckpointId || !cordonPlan?.checkpoints) return;
+
+    const point = cordonPlan.checkpoints.find(
+      (c) => c.id === highlightedCheckpointId
+    );
+    if (!point) return;
+
+    map.flyTo([point.latitude, point.longitude], 14, { duration: 0.8 });
+  }, [map, cordonPlan, highlightedCheckpointId]);
+
+  return null;
+}
+
+function CordonOverlayLayer({
+  cordonPlan,
+  highlightedCheckpointId,
+  onHighlightCheckpoint,
+}) {
+  if (!cordonPlan) return null;
+
+  return (
+    <>
+      {cordonPlan.escapeRoutes?.map((route) => (
+        <Polyline
+          key={`escape-${route.id}`}
+          positions={route.coordinates}
+          pathOptions={{
+            color: "#fb923c",
+            weight: 4,
+            opacity: 0.75,
+            dashArray: "10 8",
+          }}
+        />
+      ))}
+
+      {cordonPlan.checkpoints?.map((point) => {
+        const isHighlighted = highlightedCheckpointId === point.id;
+        const icon = createCheckpointIcon(point.priority, isHighlighted);
+
+        return (
+          <Marker
+            key={`checkpoint-${point.id}`}
+            position={[point.latitude, point.longitude]}
+            icon={icon}
+            zIndexOffset={isHighlighted ? 1500 : 1200}
+            eventHandlers={{
+              click: () => onHighlightCheckpoint?.(point.id),
+            }}
+          >
+            <Popup>
+              <div className="text-xs">
+                <strong>{point.label}</strong>
+                <br />
+                Priority: {point.priority} · {point.zone} ({point.distanceLabel})
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
+
 function SyncBasemapZoom({ maxZoom }) {
   const map = useMap();
 
@@ -176,6 +252,9 @@ export default function PatrolMap({
   selectedPatrolKey = null,
   onSelectPatrol,
   incidentMarker = null,
+  cordonPlan = null,
+  highlightedCheckpointId = null,
+  onHighlightCheckpoint,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -217,6 +296,15 @@ export default function PatrolMap({
         <InvalidateOnResize />
         <FlyToIncident incidentMarker={incidentMarker} />
         <IncidentMarkerLayer incidentMarker={incidentMarker} />
+        <FlyToHighlightedCheckpoint
+          cordonPlan={cordonPlan}
+          highlightedCheckpointId={highlightedCheckpointId}
+        />
+        <CordonOverlayLayer
+          cordonPlan={cordonPlan}
+          highlightedCheckpointId={highlightedCheckpointId}
+          onHighlightCheckpoint={onHighlightCheckpoint}
+        />
 
         {parsedLocations.map((loc, index) => {
           const key = patrolKey(loc) ?? index;

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
 import MonitorHeader from "@/components/MonitorHeader";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
+import IncidentCordonPanel from "@/components/IncidentCordonPanel";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
@@ -47,6 +48,10 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [callResponseOpen, setCallResponseOpen] = useState(false);
   const [callResponsePlace, setCallResponsePlace] = useState(null);
   const [incidentMarker, setIncidentMarker] = useState(null);
+  const [cordonPlan, setCordonPlan] = useState(null);
+  const [cordonLoading, setCordonLoading] = useState(false);
+  const [cordonError, setCordonError] = useState("");
+  const [highlightedCheckpointId, setHighlightedCheckpointId] = useState(null);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -99,6 +104,57 @@ export default function MonitorDashboard({ user, onLogout }) {
     };
   }, [supabase]);
 
+  useEffect(() => {
+    if (!incidentMarker) {
+      setCordonPlan(null);
+      setCordonError("");
+      setHighlightedCheckpointId(null);
+      return;
+    }
+
+    let cancelled = false;
+    setCordonLoading(true);
+    setCordonError("");
+    setCordonPlan(null);
+    setHighlightedCheckpointId(null);
+
+    fetch("/api/incident/cordon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude: incidentMarker.latitude,
+        longitude: incidentMarker.longitude,
+      }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (cancelled) return;
+        if (!ok) {
+          setCordonError(data.error || "Cordon analysis failed");
+          return;
+        }
+        setCordonPlan(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCordonError("Could not load cordon suggestions");
+      })
+      .finally(() => {
+        if (!cancelled) setCordonLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [incidentMarker]);
+
+  function handleClearIncident() {
+    setIncidentMarker(null);
+    setCordonPlan(null);
+    setCordonError("");
+    setHighlightedCheckpointId(null);
+    setCallResponsePlace(null);
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
@@ -149,6 +205,9 @@ export default function MonitorDashboard({ user, onLogout }) {
             selectedPatrolKey={selectedPatrolKey}
             onSelectPatrol={setSelectedPatrol}
             incidentMarker={incidentMarker}
+            cordonPlan={cordonPlan}
+            highlightedCheckpointId={highlightedCheckpointId}
+            onHighlightCheckpoint={setHighlightedCheckpointId}
           />
 
           {error && (
@@ -158,7 +217,23 @@ export default function MonitorDashboard({ user, onLogout }) {
           )}
         </div>
 
-        {showPatrolStatus && !selectedPatrol && (
+        {incidentMarker && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[500] w-[min(100%,360px)]">
+            <div className="pointer-events-auto h-full shadow-2xl">
+              <IncidentCordonPanel
+                incidentLabel={incidentMarker.label}
+                cordonPlan={cordonPlan}
+                loading={cordonLoading}
+                error={cordonError}
+                highlightedId={highlightedCheckpointId}
+                onHighlight={setHighlightedCheckpointId}
+                onClearIncident={handleClearIncident}
+              />
+            </div>
+          </div>
+        )}
+
+        {showPatrolStatus && !selectedPatrol && !incidentMarker && (
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
             <div className="pointer-events-auto h-full shadow-2xl">
               <PatrolStatusListPanel
