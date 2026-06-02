@@ -120,13 +120,6 @@ export default function MonitorDashboard({ user, onLogout }) {
             {error}
           </div>
         )}
-
-        {!loading && !error && latestLocations.length === 0 && (
-          <div className="pointer-events-none absolute bottom-6 left-1/2 max-w-md -translate-x-1/2 rounded-xl border border-border bg-card/95 px-4 py-3 text-center text-sm text-muted shadow-lg backdrop-blur-sm">
-            Waiting for patrol locations from mobile devices. Updates appear here
-            in realtime.
-          </div>
-        )}
       </section>
     </main>
   );
