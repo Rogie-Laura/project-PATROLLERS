@@ -10,8 +10,10 @@ export default function Project4AFooter({ className = "", compact = false }) {
     <div
       className={`border-t border-border/60 text-center ${compact ? "pt-4" : "pt-6"} ${className}`}
     >
-      <p className="text-sm font-bold tracking-[0.25em] text-accent">
-        PROJECT4A
+      <p className="text-sm font-bold tracking-[0.25em]">
+        <span className="text-accent">PRO</span>
+        <span className="text-foreground">JECT</span>
+        <span className="text-accent">4A</span>
       </p>
       <p className={`text-[11px] leading-relaxed text-muted ${compact ? "mt-1.5" : "mt-2"}`}>
         {TAGLINE.map((word, index) => (
