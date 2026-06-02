@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { analyzeCordon } from "@/lib/cordonAnalysis";
 import { fetchOverpassElements } from "@/lib/overpassClient";
 
-/** Allow longer fetch on Vercel Pro; Hobby still capped ~10s */
-export const maxDuration = 30;
+export const maxDuration = 25;
+export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   let body;
@@ -36,13 +36,21 @@ export async function POST(request) {
       osmWays,
     });
 
-    return NextResponse.json(plan);
+    return NextResponse.json({
+      ...plan,
+      partial: osmWays.length === 0 && (plan.escapeRoutes?.length ?? 0) === 0,
+    });
   } catch (err) {
-    const message =
-      err?.message?.includes("timeout") || err?.name === "TimeoutError"
-        ? "Road data request timed out. Try again in a few seconds."
-        : "Road network data temporarily unavailable. The map will retry from your browser.";
+    const isTimeout =
+      err?.name === "AbortError" || String(err?.message || "").includes("abort");
 
-    return NextResponse.json({ error: message, retryable: true }, { status: 502 });
+    return NextResponse.json(
+      {
+        error: isTimeout
+          ? "Road data timed out. Tap Retry — intersections load first when the service is busy."
+          : "Road network data temporarily unavailable. Tap Retry.",
+      },
+      { status: 502 }
+    );
   }
 }

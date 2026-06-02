@@ -68,9 +68,17 @@ export default function IncidentCordonPanel({
         )}
 
         {!loading && !error && cordonPlan?.summary && (
-          <p className="mb-3 text-[11px] leading-relaxed text-foreground/90">
-            {cordonPlan.summary}
-          </p>
+          <>
+            <p className="mb-3 text-[11px] leading-relaxed text-foreground/90">
+              {cordonPlan.summary}
+            </p>
+            {cordonPlan.partial && (
+              <p className="mb-3 text-[10px] text-amber-200/90">
+                Loaded intersections only; escape routes skipped this time due to
+                slow map data.
+              </p>
+            )}
+          </>
         )}
 
         {!loading && checkpoints.length > 0 && (

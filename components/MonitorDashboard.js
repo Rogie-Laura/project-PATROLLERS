@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
@@ -54,6 +54,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [cordonError, setCordonError] = useState("");
   const [highlightedCheckpointId, setHighlightedCheckpointId] = useState(null);
   const [cordonRetryKey, setCordonRetryKey] = useState(0);
+  const cordonRequestIdRef = useRef(0);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -114,7 +115,7 @@ export default function MonitorDashboard({ user, onLogout }) {
       return;
     }
 
-    let cancelled = false;
+    const requestId = ++cordonRequestIdRef.current;
     setCordonLoading(true);
     setCordonError("");
     setCordonPlan(null);
@@ -122,7 +123,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
     loadCordonPlan(incidentMarker.latitude, incidentMarker.longitude)
       .then(({ plan, error }) => {
-        if (cancelled) return;
+        if (cordonRequestIdRef.current !== requestId) return;
         if (error) {
           setCordonError(error);
           return;
@@ -130,16 +131,17 @@ export default function MonitorDashboard({ user, onLogout }) {
         setCordonPlan(plan);
       })
       .catch(() => {
-        if (!cancelled) {
-          setCordonError("Could not load cordon suggestions. Tap Retry.");
-        }
+        if (cordonRequestIdRef.current !== requestId) return;
+        setCordonError("Could not load cordon suggestions. Tap Retry.");
       })
       .finally(() => {
-        if (!cancelled) setCordonLoading(false);
+        if (cordonRequestIdRef.current === requestId) {
+          setCordonLoading(false);
+        }
       });
 
     return () => {
-      cancelled = true;
+      cordonRequestIdRef.current += 1;
     };
   }, [incidentMarker, cordonRetryKey]);
 
