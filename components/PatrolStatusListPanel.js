@@ -91,7 +91,7 @@ export default function PatrolStatusListPanel({
   );
 
   return (
-    <aside className="flex h-full w-full max-w-[340px] shrink-0 flex-col border-r border-border/60 bg-card/95 backdrop-blur-sm sm:w-[320px]">
+    <aside className="flex h-full w-full max-w-[340px] shrink-0 flex-col border-l border-border/60 bg-card/95 backdrop-blur-sm sm:w-[320px]">
       <div className="border-b border-border/60 px-4 py-3">
         <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
           Live overview

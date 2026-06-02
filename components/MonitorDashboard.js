@@ -123,28 +123,6 @@ export default function MonitorDashboard({ user, onLogout }) {
       />
 
       <section className="flex min-h-0 flex-1">
-        {showPatrolStatus && !selectedPatrol && (
-          <div className="absolute inset-y-0 left-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
-            <PatrolStatusListPanel
-              locations={latestLocations}
-              selectedPatrolKey={selectedPatrolKey}
-              onSelectPatrol={setSelectedPatrol}
-            />
-          </div>
-        )}
-
-        {selectedPatrol && (
-          <div className="absolute inset-y-0 left-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
-            <PatrolDetailPanel
-              location={selectedPatrol}
-              showPatrolStatus={showPatrolStatus}
-              onClose={() => {
-                setSelectedPatrol(null);
-              }}
-            />
-          </div>
-        )}
-
         <div className="relative min-h-0 min-w-0 flex-1">
           <PatrolMap
             locations={latestLocations}
@@ -160,6 +138,28 @@ export default function MonitorDashboard({ user, onLogout }) {
             </div>
           )}
         </div>
+
+        {showPatrolStatus && !selectedPatrol && (
+          <div className="absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
+            <PatrolStatusListPanel
+              locations={latestLocations}
+              selectedPatrolKey={selectedPatrolKey}
+              onSelectPatrol={setSelectedPatrol}
+            />
+          </div>
+        )}
+
+        {selectedPatrol && (
+          <div className="absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
+            <PatrolDetailPanel
+              location={selectedPatrol}
+              showPatrolStatus={showPatrolStatus}
+              onClose={() => {
+                setSelectedPatrol(null);
+              }}
+            />
+          </div>
+        )}
       </section>
     </main>
   );
