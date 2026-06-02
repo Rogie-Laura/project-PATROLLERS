@@ -89,9 +89,9 @@ export default function HomePage() {
       />
 
       <div className="relative w-full max-w-md">
-        <PatrollersBranding />
-
         <PatrolLoginCard>
+          <PatrollersBranding inCard />
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground/90">

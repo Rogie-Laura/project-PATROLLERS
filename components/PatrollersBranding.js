@@ -35,20 +35,30 @@ function Tagline({ className = "" }) {
   );
 }
 
-export default function PatrollersBranding({ compact = false }) {
+export default function PatrollersBranding({ compact = false, inCard = false }) {
   return (
-    <header className={`text-center ${compact ? "mb-4" : "mb-6"}`}>
-      <Pro4aLogo size={compact ? "sm" : "md"} />
+    <header
+      className={`text-center ${inCard ? "mb-6" : compact ? "mb-4" : "mb-6"}`}
+    >
+      <Pro4aLogo size={inCard ? "sm" : compact ? "sm" : "md"} />
 
-      <div className={compact ? "mt-3 space-y-1.5" : "mt-4 space-y-2"}>
+      <div
+        className={
+          inCard ? "mt-3 space-y-1.5" : compact ? "mt-3 space-y-1.5" : "mt-4 space-y-2"
+        }
+      >
         <h1
           className={`font-bold tracking-[0.2em] text-foreground ${
-            compact ? "text-xl" : "text-2xl sm:text-3xl"
+            inCard ? "text-xl sm:text-2xl" : compact ? "text-xl" : "text-2xl sm:text-3xl"
           }`}
         >
           PATROLLERS
         </h1>
-        <Tagline className={compact ? "text-[11px]" : "text-xs sm:text-sm"} />
+        <Tagline
+          className={
+            inCard ? "text-[11px] sm:text-xs" : compact ? "text-[11px]" : "text-xs sm:text-sm"
+          }
+        />
       </div>
 
       <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-accent to-transparent" />
