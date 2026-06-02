@@ -1,10 +1,41 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 
 const defaultCenter = [14.5995, 120.9842];
+
+const BASEMAPS = [
+  {
+    id: "street",
+    label: "Street",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  {
+    id: "satellite",
+    label: "Satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      '&copy; <a href="https://www.esri.com/">Esri</a>',
+  },
+  {
+    id: "cartoDark",
+    label: "Carto Dark",
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  },
+  {
+    id: "cartoLight",
+    label: "Carto Light",
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  },
+];
 
 const patrolIcon = L.divIcon({
   className: "patrol-marker",
@@ -74,7 +105,41 @@ function PatrolMarker({ location }) {
   );
 }
 
+function MapBasemapToggle({ activeId, onChange }) {
+  return (
+    <div
+      className="pointer-events-auto absolute bottom-3 left-1/2 z-[1000] flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-xl border border-border/80 bg-card/95 p-1 shadow-lg backdrop-blur-sm sm:bottom-4 sm:max-w-none sm:flex-nowrap"
+      role="group"
+      aria-label="Map view selection"
+    >
+      {BASEMAPS.map((basemap) => {
+        const active = basemap.id === activeId;
+
+        return (
+          <button
+            key={basemap.id}
+            type="button"
+            onClick={() => onChange(basemap.id)}
+            aria-pressed={active}
+            className={`rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition sm:px-3 sm:text-xs ${
+              active
+                ? "bg-accent text-background shadow-sm"
+                : "text-muted hover:bg-background/80 hover:text-foreground"
+            }`}
+          >
+            {basemap.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function PatrolMap({ locations }) {
+  const [activeBasemap, setActiveBasemap] = useState("street");
+  const basemap =
+    BASEMAPS.find((layer) => layer.id === activeBasemap) ?? BASEMAPS[0];
+
   const parsedLocations = useMemo(
     () =>
       locations.map((loc) => ({
@@ -93,7 +158,7 @@ export default function PatrolMap({ locations }) {
       : defaultCenter;
 
   return (
-    <div className="h-full min-h-[400px] w-full">
+    <div className="relative h-full min-h-[400px] w-full">
       <MapContainer
         center={center}
         zoom={13}
@@ -101,8 +166,9 @@ export default function PatrolMap({ locations }) {
         scrollWheelZoom
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          key={basemap.id}
+          attribution={basemap.attribution}
+          url={basemap.url}
         />
 
         {parsedLocations.length > 0 && (
@@ -113,6 +179,8 @@ export default function PatrolMap({ locations }) {
           <PatrolMarker key={loc.user_id} location={loc} />
         ))}
       </MapContainer>
+
+      <MapBasemapToggle activeId={activeBasemap} onChange={setActiveBasemap} />
     </div>
   );
 }
