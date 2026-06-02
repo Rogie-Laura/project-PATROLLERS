@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AccessTokensManager from "@/components/AccessTokensManager";
 import MonitorHeader from "@/components/MonitorHeader";
+import MapToolbar from "@/components/MapToolbar";
 import { isAdminRole } from "@/lib/mobile/adminRoles";
 
 export default function AccessTokensPage() {
@@ -69,8 +70,8 @@ export default function AccessTokensPage() {
         user={user}
         onSignOut={handleSignOut}
         signingOut={signingOut}
-        active="tokens"
       />
+      <MapToolbar active="tokens" user={user} />
       <AccessTokensManager />
     </main>
   );

@@ -89,10 +89,9 @@ export default function MonitorDashboard({ user, onLogout }) {
         user={user}
         onSignOut={handleSignOut}
         signingOut={signingOut}
-        active="map"
       />
 
-      <MapToolbar />
+      <MapToolbar active="map" user={user} />
 
       <section className="relative min-h-0 flex-1">
         <PatrolMap locations={latestLocations} />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MonitorHeader from "@/components/MonitorHeader";
+import MapToolbar from "@/components/MapToolbar";
 import TrackReview from "@/components/TrackReview";
 
 export default function TrackReviewPage() {
@@ -61,8 +62,8 @@ export default function TrackReviewPage() {
         user={user}
         onSignOut={handleSignOut}
         signingOut={signingOut}
-        active="review"
       />
+      <MapToolbar active="review" user={user} />
       <TrackReview />
     </main>
   );

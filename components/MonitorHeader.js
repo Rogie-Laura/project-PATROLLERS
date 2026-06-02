@@ -1,16 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
 import AccountCard from "@/components/AccountCard";
-import { isAdminRole } from "@/lib/mobile/adminRoles";
 
-export default function MonitorHeader({
-  user,
-  onSignOut,
-  signingOut = false,
-  active = "map",
-}) {
-  const showAdminNav = isAdminRole(user?.role);
-
+export default function MonitorHeader({ user, onSignOut, signingOut = false }) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5 sm:gap-3 sm:px-4 sm:py-2">
       <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
@@ -36,41 +27,6 @@ export default function MonitorHeader({
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        {showAdminNav && (
-          <nav className="flex items-center gap-1">
-            <Link
-              href="/"
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:text-xs ${
-                active === "map"
-                  ? "bg-accent/15 text-accent"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              Map
-            </Link>
-            <Link
-              href="/track-review"
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:text-xs ${
-                active === "review"
-                  ? "bg-accent/15 text-accent"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              Review Track
-            </Link>
-            <Link
-              href="/access-tokens"
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:text-xs ${
-                active === "tokens"
-                  ? "bg-accent/15 text-accent"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              Access Tokens
-            </Link>
-          </nav>
-        )}
-
         <AccountCard user={user} onSignOut={onSignOut} signingOut={signingOut} />
       </div>
     </header>
