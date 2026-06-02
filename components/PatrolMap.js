@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
   CALABARZON_BOUNDS,
@@ -12,10 +12,11 @@ import {
   MAX_BOUNDS_VISCOSITY,
   PHILIPPINES_BOUNDS,
 } from "@/lib/mapBounds";
-import {
-  createPatrolMarkerIcon,
-  getPatrolStatusLabel,
-} from "@/lib/patrolMarker";
+import { createPatrolMarkerIcon } from "@/lib/patrolMarker";
+
+function patrolKey(location) {
+  return location.access_token_id || location.user_id || location.id;
+}
 
 function toNumber(value) {
   return typeof value === "number" ? value : parseFloat(value);
@@ -35,7 +36,12 @@ function CalabarzonInitialView() {
   return null;
 }
 
-function PatrolMarker({ location, showPatrolStatus }) {
+function PatrolMarker({
+  location,
+  showPatrolStatus,
+  isSelected,
+  onSelect,
+}) {
   const markerRef = useRef(null);
   const latitude = toNumber(location.latitude);
   const longitude = toNumber(location.longitude);
@@ -53,23 +59,15 @@ function PatrolMarker({ location, showPatrolStatus }) {
   }, [latitude, longitude, icon]);
 
   return (
-    <Marker ref={markerRef} position={position} icon={icon}>
-      <Popup>
-        <strong>{location.patrol_name || "Patrol"}</strong>
-        <br />
-        {showPatrolStatus && (
-          <>
-            Status: {getPatrolStatusLabel(location.patrol_status)}
-            <br />
-          </>
-        )}
-        Lat: {latitude.toFixed(6)}
-        <br />
-        Lng: {longitude.toFixed(6)}
-        <br />
-        <small>{new Date(location.created_at).toLocaleString()}</small>
-      </Popup>
-    </Marker>
+    <Marker
+      ref={markerRef}
+      position={position}
+      icon={icon}
+      zIndexOffset={isSelected ? 1000 : 0}
+      eventHandlers={{
+        click: () => onSelect?.(location),
+      }}
+    />
   );
 }
 
@@ -77,6 +75,8 @@ export default function PatrolMap({
   locations,
   basemapId = DEFAULT_BASEMAP_ID,
   showPatrolStatus = true,
+  selectedPatrolKey = null,
+  onSelectPatrol,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -110,13 +110,18 @@ export default function PatrolMap({
 
         <CalabarzonInitialView />
 
-        {parsedLocations.map((loc, index) => (
-          <PatrolMarker
-            key={loc.access_token_id || loc.user_id || loc.id || index}
-            location={loc}
-            showPatrolStatus={showPatrolStatus}
-          />
-        ))}
+        {parsedLocations.map((loc, index) => {
+          const key = patrolKey(loc) ?? index;
+          return (
+            <PatrolMarker
+              key={key}
+              location={loc}
+              showPatrolStatus={showPatrolStatus}
+              isSelected={selectedPatrolKey != null && selectedPatrolKey === key}
+              onSelect={onSelectPatrol}
+            />
+          );
+        })}
       </MapContainer>
     </div>
   );

@@ -12,7 +12,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
-import { getPatrolMarkerColor } from "@/lib/patrolMarker";
+import { getPatrolMarkerColor } from "@/lib/patrolStatusLabels";
 import {
   CALABARZON_CENTER,
   CALABARZON_ZOOM,

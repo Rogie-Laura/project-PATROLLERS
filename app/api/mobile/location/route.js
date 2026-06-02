@@ -40,6 +40,13 @@ export async function POST(request) {
 
   const { latitude, longitude, accuracy } = parsed;
   const patrolStatus = String(body?.status ?? "").trim() || null;
+  const batteryRaw = body?.battery_level ?? body?.batteryLevel;
+  const batteryLevel =
+    batteryRaw != null && !Number.isNaN(Number(batteryRaw))
+      ? Math.min(100, Math.max(0, Math.round(Number(batteryRaw))))
+      : null;
+  const signalLabel =
+    String(body?.signal_label ?? body?.signalLabel ?? "").trim() || null;
   const admin = createAdminClient();
 
   const { data: profile } = await admin
@@ -66,6 +73,8 @@ export async function POST(request) {
       unit: profile?.unit ?? null,
       personnel_on_board: normalizePersonnelOnBoard(profile?.personnel_on_board),
       patrol_status: patrolStatus,
+      battery_level: batteryLevel,
+      signal_label: signalLabel,
     })
     .select("id, latitude, longitude, accuracy, created_at")
     .single();

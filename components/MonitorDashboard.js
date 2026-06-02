@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
 import MonitorHeader from "@/components/MonitorHeader";
+import PatrolDetailPanel from "@/components/PatrolDetailPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
@@ -40,11 +41,24 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const [showPatrolStatus, setShowPatrolStatus] = useState(true);
+  const [selectedPatrol, setSelectedPatrol] = useState(null);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
     [locations]
   );
+
+  const selectedPatrolKey = selectedPatrol
+    ? selectedPatrol.access_token_id || selectedPatrol.user_id
+    : null;
+
+  useEffect(() => {
+    if (!selectedPatrolKey) return;
+    const updated = latestLocations.find(
+      (loc) => (loc.access_token_id || loc.user_id) === selectedPatrolKey
+    );
+    if (updated) setSelectedPatrol(updated);
+  }, [latestLocations, selectedPatrolKey]);
 
   useEffect(() => {
     async function loadLocations() {
@@ -104,16 +118,30 @@ export default function MonitorDashboard({ user, onLogout }) {
         onShowPatrolStatusChange={setShowPatrolStatus}
       />
 
-      <section className="relative min-h-0 flex-1">
-        <PatrolMap
-          locations={latestLocations}
-          basemapId={basemapId}
-          showPatrolStatus={showPatrolStatus}
-        />
+      <section className="flex min-h-0 flex-1">
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <PatrolMap
+            locations={latestLocations}
+            basemapId={basemapId}
+            showPatrolStatus={showPatrolStatus}
+            selectedPatrolKey={selectedPatrolKey}
+            onSelectPatrol={setSelectedPatrol}
+          />
 
-        {error && (
-          <div className="pointer-events-none absolute left-1/2 top-4 z-[500] max-w-sm -translate-x-1/2 rounded-lg border border-red-500/30 bg-card/95 px-4 py-2 text-center text-sm text-red-400 shadow-lg backdrop-blur-sm">
-            {error}
+          {error && (
+            <div className="pointer-events-none absolute left-1/2 top-4 z-[500] max-w-sm -translate-x-1/2 rounded-lg border border-red-500/30 bg-card/95 px-4 py-2 text-center text-sm text-red-400 shadow-lg backdrop-blur-sm">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {selectedPatrol && (
+          <div className="absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
+            <PatrolDetailPanel
+              location={selectedPatrol}
+              showPatrolStatus={showPatrolStatus}
+              onClose={() => setSelectedPatrol(null)}
+            />
           </div>
         )}
       </section>
