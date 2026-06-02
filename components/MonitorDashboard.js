@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import AccountCard from "@/components/AccountCard";
 import MapToolbar from "@/components/MapToolbar";
+import MonitorHeader from "@/components/MonitorHeader";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
   ssr: false,
@@ -20,9 +19,12 @@ function getLatestByPatrol(locations) {
   const latest = new Map();
 
   for (const loc of locations) {
-    const existing = latest.get(loc.user_id);
+    const key = loc.access_token_id || loc.user_id;
+    if (!key) continue;
+
+    const existing = latest.get(key);
     if (!existing || new Date(loc.created_at) > new Date(existing.created_at)) {
-      latest.set(loc.user_id, loc);
+      latest.set(key, loc);
     }
   }
 
@@ -83,35 +85,12 @@ export default function MonitorDashboard({ user, onLogout }) {
 
   return (
     <main className="flex h-dvh flex-col bg-background">
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5 sm:gap-3 sm:px-4 sm:py-2">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-          <Image
-            src="/PNP.png"
-            alt="PNP"
-            width={36}
-            height={36}
-            className="h-8 w-auto shrink-0 object-contain"
-          />
-          <Image
-            src="/PRO4A.png"
-            alt="PRO4A"
-            width={36}
-            height={40}
-            className="h-8 w-auto shrink-0 object-contain"
-          />
-          <div className="min-w-0 border-l border-border/60 pl-2 sm:pl-2.5">
-            <h1 className="truncate text-xs font-bold uppercase tracking-wide text-foreground sm:text-sm">
-              PATROLLERS MONITORING CENTER
-            </h1>
-          </div>
-        </div>
-
-        <AccountCard
-          user={user}
-          onSignOut={handleSignOut}
-          signingOut={signingOut}
-        />
-      </header>
+      <MonitorHeader
+        user={user}
+        onSignOut={handleSignOut}
+        signingOut={signingOut}
+        active="map"
+      />
 
       <MapToolbar />
 
