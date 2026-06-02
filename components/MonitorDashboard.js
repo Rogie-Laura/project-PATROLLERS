@@ -44,6 +44,9 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const [showPatrolStatus, setShowPatrolStatus] = useShowPatrolStatus();
   const [selectedPatrol, setSelectedPatrol] = useState(null);
+  const [callResponseOpen, setCallResponseOpen] = useState(false);
+  const [callResponsePlace, setCallResponsePlace] = useState(null);
+  const [incidentMarker, setIncidentMarker] = useState(null);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -117,6 +120,19 @@ export default function MonitorDashboard({ user, onLogout }) {
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
         showAddCallResponse
+        callResponseOpen={callResponseOpen}
+        onCallResponseOpenChange={setCallResponseOpen}
+        callResponsePlace={callResponsePlace}
+        onCallResponsePlaceChange={setCallResponsePlace}
+        onAddIncidentMarker={(place) => {
+          setIncidentMarker({
+            latitude: place.latitude,
+            longitude: place.longitude,
+            label: place.displayName,
+          });
+          setCallResponseOpen(false);
+          setSelectedPatrol(null);
+        }}
         showPatrolStatus={showPatrolStatus}
         onShowPatrolStatusChange={(value) => {
           setShowPatrolStatus(value);
@@ -132,6 +148,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             showPatrolStatus={showPatrolStatus}
             selectedPatrolKey={selectedPatrolKey}
             onSelectPatrol={setSelectedPatrol}
+            incidentMarker={incidentMarker}
           />
 
           {error && (

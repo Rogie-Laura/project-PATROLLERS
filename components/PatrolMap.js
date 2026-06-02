@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, useMap } from "react-leaflet";
+import {
+  createIncidentMarkerIcon,
+  INCIDENT_RADIUS_RINGS,
+} from "@/lib/incidentMarker";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
   CALABARZON_BOUNDS,
@@ -71,6 +75,52 @@ function InvalidateOnResize() {
   return null;
 }
 
+function FlyToIncident({ incidentMarker }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!incidentMarker) return;
+
+    const lat = toNumber(incidentMarker.latitude);
+    const lng = toNumber(incidentMarker.longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+    map.flyTo([lat, lng], 11, { duration: 1.2 });
+  }, [map, incidentMarker]);
+
+  return null;
+}
+
+function IncidentMarkerLayer({ incidentMarker }) {
+  if (!incidentMarker) return null;
+
+  const lat = toNumber(incidentMarker.latitude);
+  const lng = toNumber(incidentMarker.longitude);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+  const center = [lat, lng];
+  const icon = createIncidentMarkerIcon();
+
+  return (
+    <>
+      {INCIDENT_RADIUS_RINGS.map((ring) => (
+        <Circle
+          key={ring.radiusMeters}
+          center={center}
+          radius={ring.radiusMeters}
+          pathOptions={{
+            color: ring.color,
+            fillColor: ring.color,
+            fillOpacity: ring.fillOpacity,
+            weight: ring.weight,
+          }}
+        />
+      ))}
+      <Marker position={center} icon={icon} zIndexOffset={2000} />
+    </>
+  );
+}
+
 function SyncBasemapZoom({ maxZoom }) {
   const map = useMap();
 
@@ -125,6 +175,7 @@ export default function PatrolMap({
   showPatrolStatus = true,
   selectedPatrolKey = null,
   onSelectPatrol,
+  incidentMarker = null,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -164,6 +215,8 @@ export default function PatrolMap({
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />
         <InvalidateOnResize />
+        <FlyToIncident incidentMarker={incidentMarker} />
+        <IncidentMarkerLayer incidentMarker={incidentMarker} />
 
         {parsedLocations.map((loc, index) => {
           const key = patrolKey(loc) ?? index;

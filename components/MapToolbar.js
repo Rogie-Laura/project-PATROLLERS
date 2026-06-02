@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AddCallResponsePopover from "@/components/AddCallResponsePopover";
 import { isAdminRole } from "@/lib/mobile/adminRoles";
 import { BASEMAPS } from "@/lib/mapBasemaps";
 
@@ -172,7 +173,11 @@ export default function MapToolbar({
   onBasemapChange,
   showBasemap = false,
   showAddCallResponse = false,
-  onAddCallResponse,
+  callResponseOpen = false,
+  onCallResponseOpenChange,
+  callResponsePlace = null,
+  onCallResponsePlaceChange,
+  onAddIncidentMarker,
   showPatrolStatus = true,
   onShowPatrolStatusChange,
 }) {
@@ -209,42 +214,59 @@ export default function MapToolbar({
         <>
           <ToolbarSeparator />
           <div
-            className="flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto"
+            className="flex min-w-0 shrink-0 items-center gap-1"
             role="group"
             aria-label="Map basemap and call response"
           >
-            {BASEMAPS.map((basemap) => {
-              const isActive = basemap.id === basemapId;
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {BASEMAPS.map((basemap) => {
+                const isActive = basemap.id === basemapId;
 
-              return (
-                <button
-                  key={basemap.id}
-                  type="button"
-                  onClick={() => onBasemapChange(basemap.id)}
-                  aria-pressed={isActive}
-                  className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-medium leading-none transition sm:px-2 sm:text-[11px] ${
-                    isActive
-                      ? "bg-accent text-background shadow-sm"
-                      : "text-muted hover:bg-background/80 hover:text-foreground"
-                  }`}
-                >
-                  {basemap.label}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={basemap.id}
+                    type="button"
+                    onClick={() => onBasemapChange(basemap.id)}
+                    aria-pressed={isActive}
+                    className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-medium leading-none transition sm:px-2 sm:text-[11px] ${
+                      isActive
+                        ? "bg-accent text-background shadow-sm"
+                        : "text-muted hover:bg-background/80 hover:text-foreground"
+                    }`}
+                  >
+                    {basemap.label}
+                  </button>
+                );
+              })}
+            </div>
 
-            {showAddCallResponse && (
+            {showAddCallResponse && onCallResponseOpenChange && (
               <>
                 <ToolbarSeparator spacious />
-                <button
-                  type="button"
-                  onClick={onAddCallResponse}
-                  title="Add call-for-service response on the map"
-                  className="flex shrink-0 items-center gap-1.5 rounded-md border border-red-500/70 bg-red-600 px-2 py-1 text-[10px] font-semibold leading-none text-white shadow-sm transition hover:bg-red-500 sm:text-[11px]"
-                >
-                  <PhoneCallIcon />
-                  <span className="whitespace-nowrap">Add Call Response</span>
-                </button>
+                <div className="relative z-[700] shrink-0">
+                  <button
+                    type="button"
+                    data-call-response-trigger
+                    onClick={() => onCallResponseOpenChange(!callResponseOpen)}
+                    aria-expanded={callResponseOpen}
+                    title="Add call-for-service response on the map"
+                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold leading-none shadow-sm transition sm:text-[11px] ${
+                      callResponseOpen
+                        ? "border-red-400 bg-red-500 text-white"
+                        : "border-red-500/70 bg-red-600 text-white hover:bg-red-500"
+                    }`}
+                  >
+                    <PhoneCallIcon />
+                    <span className="whitespace-nowrap">Add Call Response</span>
+                  </button>
+                  <AddCallResponsePopover
+                    open={callResponseOpen}
+                    onClose={() => onCallResponseOpenChange(false)}
+                    selectedPlace={callResponsePlace}
+                    onSelectedPlaceChange={onCallResponsePlaceChange}
+                    onAddIncidentMarker={onAddIncidentMarker}
+                  />
+                </div>
               </>
             )}
           </div>
