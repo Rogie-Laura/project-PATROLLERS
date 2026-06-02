@@ -3,7 +3,7 @@ export default function PatrolLoginCard({ title, subtitle, children }) {
     <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/95 shadow-2xl shadow-black/20 backdrop-blur-sm">
       <div className="h-1 bg-gradient-to-r from-accent/40 via-accent to-accent/40" />
 
-      <div className="p-6 sm:p-7">
+      <div className="p-5 sm:p-6">
         {(title || subtitle) && (
           <div className="mb-6 text-center">
             {title && (

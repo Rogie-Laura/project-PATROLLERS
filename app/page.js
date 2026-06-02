@@ -75,10 +75,10 @@ export default function HomePage() {
   }
 
   const inputClassName =
-    "w-full rounded-xl border border-border/80 bg-background/80 py-3.5 pl-11 pr-4 text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20";
+    "w-full rounded-xl border border-border/80 bg-background/80 py-3 pl-11 pr-4 text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20";
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-8">
+    <main className="relative flex h-dvh flex-col items-center justify-start overflow-hidden px-4 pt-5 sm:pt-8">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.12)_0%,_transparent_55%)]"
@@ -92,9 +92,9 @@ export default function HomePage() {
         <PatrolLoginCard>
           <PatrollersBranding inCard />
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground/90">
+              <label className="mb-1 block text-sm font-medium text-foreground/90">
                 Email Address
               </label>
               <div className="relative">
@@ -126,7 +126,7 @@ export default function HomePage() {
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground/90">
+              <label className="mb-1 block text-sm font-medium text-foreground/90">
                 Password
               </label>
               <div className="relative">
@@ -216,7 +216,7 @@ export default function HomePage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5 font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50"
             >
               {submitting ? (
                 <>
@@ -229,7 +229,7 @@ export default function HomePage() {
             </button>
           </form>
 
-          <Project4AFooter className="mt-8" />
+          <Project4AFooter compact className="mt-5" />
         </PatrolLoginCard>
       </div>
     </main>

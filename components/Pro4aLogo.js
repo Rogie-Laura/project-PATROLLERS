@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 const heights = {
+  xs: "3.75rem",
   sm: "5rem",
   md: "7rem",
   lg: "8rem",

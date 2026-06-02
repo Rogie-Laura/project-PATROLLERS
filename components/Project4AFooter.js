@@ -5,15 +5,15 @@ const TAGLINE = [
   { lead: "A", rest: "utomated" },
 ];
 
-export default function Project4AFooter({ className = "" }) {
+export default function Project4AFooter({ className = "", compact = false }) {
   return (
     <div
-      className={`border-t border-border/60 pt-6 text-center ${className}`}
+      className={`border-t border-border/60 text-center ${compact ? "pt-4" : "pt-6"} ${className}`}
     >
       <p className="text-sm font-bold tracking-[0.25em] text-accent">
         PROJECT4A
       </p>
-      <p className="mt-2 text-[11px] leading-relaxed text-muted">
+      <p className={`text-[11px] leading-relaxed text-muted ${compact ? "mt-1.5" : "mt-2"}`}>
         {TAGLINE.map((word, index) => (
           <span key={word.rest}>
             <span className="font-medium text-accent/90">{word.lead}</span>
@@ -27,7 +27,7 @@ export default function Project4AFooter({ className = "" }) {
           </span>
         ))}
       </p>
-      <p className="mt-4 text-[10px] uppercase tracking-widest text-muted/70">
+      <p className={`text-[10px] uppercase tracking-widest text-muted/70 ${compact ? "mt-2.5" : "mt-4"}`}>
         Developed by RICTMD4A
       </p>
     </div>
