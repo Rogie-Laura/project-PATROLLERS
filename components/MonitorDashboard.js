@@ -122,8 +122,8 @@ export default function MonitorDashboard({ user, onLogout }) {
         }}
       />
 
-      <section className="flex min-h-0 flex-1">
-        <div className="relative min-h-0 min-w-0 flex-1">
+      <section className="relative min-h-0 flex-1">
+        <div className="absolute inset-0">
           <PatrolMap
             locations={latestLocations}
             basemapId={basemapId}
@@ -140,24 +140,28 @@ export default function MonitorDashboard({ user, onLogout }) {
         </div>
 
         {showPatrolStatus && !selectedPatrol && (
-          <div className="absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
-            <PatrolStatusListPanel
-              locations={latestLocations}
-              selectedPatrolKey={selectedPatrolKey}
-              onSelectPatrol={setSelectedPatrol}
-            />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
+            <div className="pointer-events-auto h-full shadow-2xl">
+              <PatrolStatusListPanel
+                locations={latestLocations}
+                selectedPatrolKey={selectedPatrolKey}
+                onSelectPatrol={setSelectedPatrol}
+              />
+            </div>
           </div>
         )}
 
         {selectedPatrol && (
-          <div className="absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)] shadow-2xl sm:static sm:z-auto sm:shadow-none">
-            <PatrolDetailPanel
-              location={selectedPatrol}
-              showPatrolStatus={showPatrolStatus}
-              onClose={() => {
-                setSelectedPatrol(null);
-              }}
-            />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
+            <div className="pointer-events-auto h-full shadow-2xl">
+              <PatrolDetailPanel
+                location={selectedPatrol}
+                showPatrolStatus={showPatrolStatus}
+                onClose={() => {
+                  setSelectedPatrol(null);
+                }}
+              />
+            </div>
           </div>
         )}
       </section>
