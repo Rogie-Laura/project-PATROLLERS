@@ -10,14 +10,14 @@ const TAGLINE = [
 export default function Project4AFooter({ className = "", compact = false }) {
   return (
     <div
-      className={`border-t border-border/60 text-center ${compact ? "pt-4" : "pt-6"} ${className}`}
+      className={`border-t border-border/60 text-center ${compact ? "pt-3" : "pt-6"} ${className}`}
     >
-      <p className="text-sm font-bold tracking-[0.25em]">
+      <p className="text-xs font-bold tracking-[0.2em]">
         <span className="text-accent">PRO</span>
         <span className="text-foreground">JECT</span>
         <span className="text-accent">4A</span>
       </p>
-      <p className={`text-[11px] leading-relaxed text-muted ${compact ? "mt-1.5" : "mt-2"}`}>
+      <p className={`text-[10px] leading-snug text-muted ${compact ? "mt-1" : "mt-2"}`}>
         {TAGLINE.map((word, index) => (
           <span key={word.rest}>
             <span className="font-medium text-accent/90">{word.lead}</span>
@@ -33,7 +33,7 @@ export default function Project4AFooter({ className = "", compact = false }) {
       </p>
       <div
         className={`flex w-full flex-col items-center justify-center ${
-          compact ? "mt-8 pt-2" : "mt-10 pt-2"
+          compact ? "mt-4 pt-1" : "mt-10 pt-2"
         }`}
       >
         <Image
@@ -43,7 +43,7 @@ export default function Project4AFooter({ className = "", compact = false }) {
           height={120}
           className="mx-auto block h-[3.375rem] w-auto object-contain opacity-90"
         />
-        <p className="mt-2 w-full text-center text-[10px] uppercase tracking-widest text-muted/70">
+        <p className="mt-1.5 w-full text-center text-[9px] uppercase tracking-widest text-muted/70">
           Developed by RICTMD 4A
         </p>
       </div>

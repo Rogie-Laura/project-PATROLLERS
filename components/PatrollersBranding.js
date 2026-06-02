@@ -38,18 +38,18 @@ function Tagline({ className = "" }) {
 export default function PatrollersBranding({ compact = false, inCard = false }) {
   return (
     <header
-      className={`text-center ${inCard ? "mb-4" : compact ? "mb-4" : "mb-6"}`}
+      className={`text-center ${inCard ? "mb-3" : compact ? "mb-4" : "mb-6"}`}
     >
-      <Pro4aLogo size={inCard ? "sm" : compact ? "sm" : "md"} />
+      <Pro4aLogo size={inCard ? "xs" : compact ? "sm" : "md"} />
 
       <div
         className={
-          inCard ? "mt-2 space-y-1" : compact ? "mt-3 space-y-1.5" : "mt-4 space-y-2"
+          inCard ? "mt-1.5 space-y-0.5" : compact ? "mt-3 space-y-1.5" : "mt-4 space-y-2"
         }
       >
         <h1
-          className={`font-bold tracking-[0.2em] text-foreground ${
-            inCard ? "text-lg sm:text-xl" : compact ? "text-xl" : "text-2xl sm:text-3xl"
+          className={`font-bold tracking-[0.15em] text-foreground ${
+            inCard ? "text-base sm:text-lg" : compact ? "text-xl" : "text-2xl sm:text-3xl"
           }`}
         >
           PATROLLERS
@@ -57,7 +57,7 @@ export default function PatrollersBranding({ compact = false, inCard = false }) 
         <Tagline
           className={
             inCard
-              ? "text-[10px] leading-snug sm:text-[11px]"
+              ? "text-[9px] leading-tight sm:text-[10px]"
               : compact
                 ? "text-[11px]"
                 : "text-xs sm:text-sm"
@@ -65,7 +65,7 @@ export default function PatrollersBranding({ compact = false, inCard = false }) 
         />
       </div>
 
-      <div className="mx-auto mt-3 h-px w-16 bg-gradient-to-r from-transparent via-accent to-transparent" />
+      <div className="mx-auto mt-2 h-px w-12 bg-gradient-to-r from-transparent via-accent to-transparent" />
     </header>
   );
 }
