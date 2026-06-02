@@ -40,7 +40,7 @@ export default function PatrollersBranding({ compact = false, inCard = false }) 
     <header
       className={`text-center ${inCard ? "mb-4" : compact ? "mb-4" : "mb-6"}`}
     >
-      <Pro4aLogo size={inCard ? "xs" : compact ? "sm" : "md"} />
+      <Pro4aLogo size={inCard ? "sm" : compact ? "sm" : "md"} />
 
       <div
         className={
