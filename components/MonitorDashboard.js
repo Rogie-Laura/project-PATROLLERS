@@ -82,31 +82,26 @@ export default function MonitorDashboard({ user, onLogout }) {
 
   return (
     <main className="flex h-dvh flex-col bg-background">
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-3 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
-        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5 sm:gap-3 sm:px-4 sm:py-2">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
           <Image
             src="/PNP.png"
             alt="PNP"
-            width={44}
-            height={44}
-            className="h-9 w-auto shrink-0 object-contain sm:h-10"
+            width={36}
+            height={36}
+            className="h-8 w-auto shrink-0 object-contain"
           />
           <Image
             src="/PRO4A.png"
             alt="PRO4A"
-            width={44}
-            height={49}
-            className="h-9 w-auto shrink-0 object-contain sm:h-10"
+            width={36}
+            height={40}
+            className="h-8 w-auto shrink-0 object-contain"
           />
-          <div className="min-w-0 border-l border-border/60 pl-2.5 sm:pl-3">
-            <h1 className="truncate text-xs font-bold uppercase tracking-wide text-foreground sm:text-sm md:text-base">
-              PRO4A - PATROLLERS MONITORING CENTER
+          <div className="min-w-0 border-l border-border/60 pl-2 sm:pl-2.5">
+            <h1 className="truncate text-xs font-bold uppercase tracking-wide text-foreground sm:text-sm">
+              PATROLLERS MONITORING CENTER
             </h1>
-            <p className="truncate text-[10px] text-muted sm:text-xs">
-              {loading
-                ? "Loading patrol data..."
-                : `${latestLocations.length} active patrol${latestLocations.length !== 1 ? "s" : ""} on map`}
-            </p>
           </div>
         </div>
 
