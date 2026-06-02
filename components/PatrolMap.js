@@ -7,7 +7,6 @@ import {
   CALABARZON_BOUNDS,
   CALABARZON_CENTER,
   CALABARZON_ZOOM,
-  MAP_MAX_ZOOM,
   MAP_MIN_ZOOM,
   MAX_BOUNDS_VISCOSITY,
   PHILIPPINES_BOUNDS,
@@ -42,16 +41,21 @@ function InvalidateOnResize() {
   useEffect(() => {
     const container = map.getContainer();
     let frame = null;
+    let debounceTimer = null;
 
     const refresh = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => map.invalidateSize());
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (frame) cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => {
+          map.invalidateSize({ pan: false });
+        });
+      }, 150);
     };
 
     const observer = new ResizeObserver(refresh);
     observer.observe(container);
 
-    // Catch transitions/layout changes that don't trigger the observer immediately.
     const timer = setTimeout(refresh, 250);
     window.addEventListener("resize", refresh);
 
@@ -59,9 +63,23 @@ function InvalidateOnResize() {
       observer.disconnect();
       window.removeEventListener("resize", refresh);
       clearTimeout(timer);
+      if (debounceTimer) clearTimeout(debounceTimer);
       if (frame) cancelAnimationFrame(frame);
     };
   }, [map]);
+
+  return null;
+}
+
+function SyncBasemapZoom({ maxZoom }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setMaxZoom(maxZoom);
+    if (map.getZoom() > maxZoom) {
+      map.setZoom(maxZoom);
+    }
+  }, [map, maxZoom]);
 
   return null;
 }
@@ -126,19 +144,25 @@ export default function PatrolMap({
         center={CALABARZON_CENTER}
         zoom={CALABARZON_ZOOM}
         minZoom={MAP_MIN_ZOOM}
-        maxZoom={MAP_MAX_ZOOM}
+        maxZoom={basemap.maxZoom}
         maxBounds={PHILIPPINES_BOUNDS}
         maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
         className="h-full w-full"
         scrollWheelZoom
+        worldCopyJump={false}
       >
         <TileLayer
           key={basemap.id}
           attribution={basemap.attribution}
           url={basemap.url}
+          maxZoom={basemap.maxZoom}
+          maxNativeZoom={basemap.maxNativeZoom}
+          minZoom={MAP_MIN_ZOOM}
+          noWrap
         />
 
         <CalabarzonInitialView />
+        <SyncBasemapZoom maxZoom={basemap.maxZoom} />
         <InvalidateOnResize />
 
         {parsedLocations.map((loc, index) => {

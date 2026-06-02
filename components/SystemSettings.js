@@ -107,8 +107,27 @@ export default function SystemSettings() {
     }
   }
 
-  const maxValue = unit === "minutes" ? maxSeconds / 60 : maxSeconds;
-  const minValue = unit === "minutes" ? minSeconds / 60 : minSeconds;
+  const maxMinutes = Math.floor(maxSeconds / 60);
+  const minMinutes = Math.max(1, Math.ceil(minSeconds / 60));
+  const maxValue = unit === "minutes" ? maxMinutes : maxSeconds;
+  const minValue = unit === "minutes" ? minMinutes : minSeconds;
+
+  function handleUnitChange(newUnit) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setUnit(newUnit);
+      return;
+    }
+
+    const asSeconds = unit === "minutes" ? amount * 60 : amount;
+
+    if (newUnit === "minutes") {
+      setValue(String(Math.max(minMinutes, Math.ceil(asSeconds / 60))));
+    } else {
+      setValue(String(Math.max(minSeconds, Math.round(asSeconds))));
+    }
+    setUnit(newUnit);
+  }
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
@@ -151,7 +170,7 @@ export default function SystemSettings() {
                   type="number"
                   min={minValue}
                   max={maxValue}
-                  step={unit === "minutes" ? 1 : 1}
+                  step={1}
                   required
                   disabled={loading || saving}
                   value={value}
@@ -161,7 +180,7 @@ export default function SystemSettings() {
                 <select
                   value={unit}
                   disabled={loading || saving}
-                  onChange={(e) => setUnit(e.target.value)}
+                  onChange={(e) => handleUnitChange(e.target.value)}
                   className="rounded-lg border border-border/70 bg-background/80 px-2 py-2 text-sm text-foreground outline-none focus:border-accent"
                 >
                   <option value="seconds">Seconds</option>
@@ -169,8 +188,8 @@ export default function SystemSettings() {
                 </select>
               </div>
               <p className="mt-1.5 text-[11px] text-muted">
-                Allowed: {minSeconds} seconds ({Math.ceil(minSeconds / 60)} min) up to{" "}
-                {maxSeconds} seconds ({maxSeconds / 60} min).
+                Allowed: {minSeconds} seconds (min {minMinutes} min) up to {maxSeconds}{" "}
+                seconds (max {maxMinutes} min). Use seconds for intervals under 1 minute.
               </p>
             </div>
 
