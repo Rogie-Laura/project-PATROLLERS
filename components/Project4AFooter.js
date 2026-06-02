@@ -41,7 +41,7 @@ export default function Project4AFooter({ className = "", compact = false }) {
           alt="RICTMD Logo"
           width={120}
           height={120}
-          className="mx-auto block h-[1.875rem] w-auto object-contain opacity-90"
+          className="mx-auto block h-[3.375rem] w-auto object-contain opacity-90"
         />
         <p className="mt-2 w-full text-center text-[10px] uppercase tracking-widest text-muted/70">
           Developed by RICTMD 4A
