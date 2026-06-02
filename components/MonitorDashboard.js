@@ -145,9 +145,9 @@ export default function MonitorDashboard({ user, onLogout }) {
     setHighlightedUnitKey((prev) => (prev === unitKey ? null : unitKey));
   }
 
-  function handleShowRoute({ callId, unitKey, coordinates, label }) {
-    setDispatchRoute({ callId, unitKey, coordinates, label });
-    setHighlightedUnitKey(unitKey);
+  function handleShowRoute(route) {
+    setDispatchRoute(route);
+    setHighlightedUnitKey(route.unitKey);
   }
 
   async function handleSignOut() {
@@ -209,7 +209,7 @@ export default function MonitorDashboard({ user, onLogout }) {
         </div>
 
         {hasActiveCalls && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,380px)]">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[500] w-[min(100%,380px)]">
             <div className="pointer-events-auto h-full shadow-2xl">
               <CallResponsePanel
                 callResponses={callResponses}
@@ -224,6 +224,7 @@ export default function MonitorDashboard({ user, onLogout }) {
                 highlightedUnitKey={highlightedUnitKey}
                 onHighlightUnit={handleHighlightUnit}
                 onShowRoute={handleShowRoute}
+                dispatchRoute={dispatchRoute}
               />
             </div>
           </div>

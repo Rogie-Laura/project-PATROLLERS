@@ -7,6 +7,10 @@ import {
   rankNearbyUnits,
 } from "@/lib/dispatchUnits";
 import { formatDistanceKm } from "@/lib/geo";
+import {
+  formatStepDistance,
+  formatStepDuration,
+} from "@/lib/formatRoute";
 
 const ZONE_STYLES = {
   "1km": "bg-red-500/20 text-red-300 border-red-500/40",
@@ -34,6 +38,7 @@ export default function CallResponsePanel({
   highlightedUnitKey,
   onHighlightUnit,
   onShowRoute,
+  dispatchRoute,
 }) {
   const selectedCall = callResponses.find((c) => c.id === selectedCallId);
   const nearbyUnits = useMemo(() => {
@@ -69,15 +74,16 @@ export default function CallResponsePanel({
       )
         .then((route) => {
           if (cancelled) return;
+          const etaSeconds =
+            route.durationInTrafficSeconds ?? route.durationSeconds;
           setRouteByUnit((prev) => ({
             ...prev,
             [unit.key]: {
               loading: false,
-              distanceMeters: route.distanceMeters,
-              durationSeconds: route.durationSeconds,
-              coordinates: route.coordinates,
+              ...route,
               distanceLabel: formatDistanceKm(route.distanceMeters),
-              etaLabel: formatEtaMinutes(route.durationSeconds),
+              etaLabel: formatEtaMinutes(etaSeconds),
+              etaClearLabel: formatEtaMinutes(route.durationSeconds),
             },
           }));
         })
@@ -95,8 +101,13 @@ export default function CallResponsePanel({
     };
   }, [selectedCallId, latestLocations, selectedCall]);
 
+  const showDirections =
+    dispatchRoute &&
+    dispatchRoute.callId === selectedCallId &&
+    dispatchRoute.steps?.length > 0;
+
   return (
-    <aside className="flex h-full w-full max-w-[380px] flex-col border-l border-border/60 bg-card/95 backdrop-blur-sm">
+    <aside className="flex h-full w-full max-w-[380px] flex-col border-r border-border/60 bg-card/95 backdrop-blur-sm">
       <div className="border-b border-border/60 px-4 py-3">
         <p className="text-[10px] font-medium uppercase tracking-wide text-red-400">
           Call response — dispatch assist
@@ -105,8 +116,7 @@ export default function CallResponsePanel({
           Active incidents ({callResponses.length})
         </h2>
         <p className="mt-1 text-[10px] text-muted">
-          Units within {(DISPATCH_MAX_RADIUS_M / 1000).toFixed(0)} km with
-          distance and driving ETA.
+          Left panel: nearest units, driving route &amp; turn-by-turn (Google-style).
         </p>
       </div>
 
@@ -166,6 +176,9 @@ export default function CallResponsePanel({
             {nearbyUnits.map((unit, index) => {
               const route = routeByUnit[unit.key];
               const isHighlighted = highlightedUnitKey === unit.key;
+              const isRouteActive =
+                dispatchRoute?.unitKey === unit.key &&
+                dispatchRoute?.callId === selectedCallId;
               const drivingDistance = route?.distanceLabel ?? unit.distanceLabel;
               const eta =
                 route?.etaLabel ?? `~${unit.etaMinutesEstimate} min (est.)`;
@@ -174,7 +187,7 @@ export default function CallResponsePanel({
                 <li key={unit.key}>
                   <div
                     className={`rounded-lg border px-2.5 py-2 transition ${
-                      isHighlighted
+                      isHighlighted || isRouteActive
                         ? "border-accent bg-accent/10"
                         : "border-border/60 bg-background/40"
                     }`}
@@ -205,11 +218,27 @@ export default function CallResponsePanel({
                       <dd className="text-right font-medium text-foreground">
                         {route?.loading ? "…" : drivingDistance}
                       </dd>
-                      <dt className="text-muted">ETA (drive)</dt>
+                      <dt className="text-muted">
+                        {route?.hasTraffic ? "ETA (traffic)" : "ETA (drive)"}
+                      </dt>
                       <dd className="text-right font-medium text-accent">
                         {route?.loading ? "…" : eta}
                       </dd>
+                      {route?.hasTraffic && route?.etaClearLabel && (
+                        <>
+                          <dt className="text-muted">Without traffic</dt>
+                          <dd className="text-right text-muted">
+                            {route.etaClearLabel}
+                          </dd>
+                        </>
+                      )}
                     </dl>
+
+                    {route?.trafficNote && !route?.loading && (
+                      <p className="mt-1 text-[9px] leading-snug text-amber-200/90">
+                        {route.trafficNote}
+                      </p>
+                    )}
 
                     <div className="mt-2 flex gap-1">
                       <button
@@ -226,13 +255,21 @@ export default function CallResponsePanel({
                           onShowRoute?.({
                             callId: selectedCall.id,
                             unitKey: unit.key,
-                            coordinates: route?.coordinates ?? [],
                             label: unit.label,
+                            coordinates: route.coordinates,
+                            steps: route.steps ?? [],
+                            hasTraffic: route.hasTraffic,
+                            provider: route.provider,
+                            trafficNote: route.trafficNote,
                           })
                         }
-                        className="flex-1 rounded border border-accent/50 bg-accent/10 px-2 py-1 text-[10px] font-medium text-accent hover:bg-accent/20 disabled:opacity-40"
+                        className={`flex-1 rounded border px-2 py-1 text-[10px] font-medium transition disabled:opacity-40 ${
+                          isRouteActive
+                            ? "border-[#4285f4] bg-[#4285f4]/20 text-[#8ab4f8]"
+                            : "border-accent/50 bg-accent/10 text-accent hover:bg-accent/20"
+                        }`}
                       >
-                        Show route
+                        {isRouteActive ? "Route on map" : "Show route"}
                       </button>
                     </div>
                   </div>
@@ -240,6 +277,70 @@ export default function CallResponsePanel({
               );
             })}
           </ul>
+        )}
+
+        {showDirections && (
+          <div className="mt-3 border-t border-border/60 pt-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wide text-[#8ab4f8]">
+                Turn-by-turn — {dispatchRoute.label}
+              </h3>
+              {dispatchRoute.hasTraffic && (
+                <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-medium text-amber-200">
+                  Traffic ETA
+                </span>
+              )}
+            </div>
+
+            <div className="mb-2 flex gap-2 text-[9px] text-muted">
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-1 w-4 rounded bg-[#4285f4]" />
+                Route
+              </span>
+              {dispatchRoute.hasTraffic && (
+                <span className="flex items-center gap-1">
+                  <span className="inline-block h-1 w-4 rounded bg-[#34a853]" />
+                  With traffic data
+                </span>
+              )}
+            </div>
+
+            {dispatchRoute.trafficNote && (
+              <p className="mb-2 text-[10px] text-amber-200/90">
+                {dispatchRoute.trafficNote}
+              </p>
+            )}
+
+            <ol className="max-h-48 space-y-1.5 overflow-y-auto rounded-md border border-border/50 bg-background/40 p-2">
+              {dispatchRoute.steps.map((step, stepIndex) => (
+                <li
+                  key={`${dispatchRoute.unitKey}-step-${stepIndex}`}
+                  className="flex gap-2 text-[10px] leading-snug"
+                >
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#4285f4]/30 text-[9px] font-bold text-[#8ab4f8]">
+                    {stepIndex + 1}
+                  </span>
+                  <span>
+                    <span className="text-foreground">
+                      {step.instruction || "Continue"}
+                    </span>
+                    <span className="mt-0.5 block text-muted">
+                      {formatStepDistance(step.distanceMeters)} ·{" "}
+                      {formatStepDuration(step.durationSeconds)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+
+            {!dispatchRoute.hasTraffic && (
+              <p className="mt-2 text-[9px] text-muted">
+                For live traffic like Google Maps, set{" "}
+                <code className="text-accent">GOOGLE_MAPS_API_KEY</code> in
+                Vercel env (Directions API enabled).
+              </p>
+            )}
+          </div>
         )}
       </div>
     </aside>

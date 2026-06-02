@@ -159,14 +159,28 @@ function DispatchRouteLayer({ dispatchRoute }) {
   if (!dispatchRoute?.coordinates?.length) return null;
 
   return (
-    <Polyline
-      positions={dispatchRoute.coordinates}
-      pathOptions={{
-        color: "#22c55e",
-        weight: 5,
-        opacity: 0.9,
-      }}
-    />
+    <>
+      <Polyline
+        positions={dispatchRoute.coordinates}
+        pathOptions={{
+          color: "#1a73e8",
+          weight: 8,
+          opacity: 0.35,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      <Polyline
+        positions={dispatchRoute.coordinates}
+        pathOptions={{
+          color: dispatchRoute.hasTraffic ? "#34a853" : "#4285f4",
+          weight: 5,
+          opacity: 0.95,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+    </>
   );
 }
 
