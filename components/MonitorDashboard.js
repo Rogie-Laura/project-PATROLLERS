@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
 import MonitorHeader from "@/components/MonitorHeader";
+import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
   ssr: false,
@@ -37,6 +38,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+  const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
 
   const latestLocations = useMemo(
     () => getLatestByPatrol(locations),
@@ -91,10 +93,16 @@ export default function MonitorDashboard({ user, onLogout }) {
         signingOut={signingOut}
       />
 
-      <MapToolbar active="map" user={user} />
+      <MapToolbar
+        active="map"
+        user={user}
+        showBasemap
+        basemapId={basemapId}
+        onBasemapChange={setBasemapId}
+      />
 
       <section className="relative min-h-0 flex-1">
-        <PatrolMap locations={latestLocations} />
+        <PatrolMap locations={latestLocations} basemapId={basemapId} />
 
         {error && (
           <div className="pointer-events-none absolute left-1/2 top-4 z-[500] max-w-sm -translate-x-1/2 rounded-lg border border-red-500/30 bg-card/95 px-4 py-2 text-center text-sm text-red-400 shadow-lg backdrop-blur-sm">

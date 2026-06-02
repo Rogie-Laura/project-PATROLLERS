@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 
 const CALABARZON_CENTER = [14.2, 121.1];
 const CALABARZON_ZOOM = 9;
@@ -10,37 +11,6 @@ const CALABARZON_BOUNDS = L.latLngBounds(
   [13.62, 120.7],
   [15.08, 122.4]
 );
-
-const BASEMAPS = [
-  {
-    id: "street",
-    label: "Street",
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  },
-  {
-    id: "satellite",
-    label: "Satellite",
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution:
-      '&copy; <a href="https://www.esri.com/">Esri</a>',
-  },
-  {
-    id: "cartoDark",
-    label: "Carto Dark",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  },
-  {
-    id: "cartoLight",
-    label: "Carto Light",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  },
-];
 
 const patrolIcon = L.divIcon({
   className: "patrol-marker",
@@ -99,40 +69,8 @@ function PatrolMarker({ location }) {
   );
 }
 
-function MapBasemapToggle({ activeId, onChange }) {
-  return (
-    <div
-      className="pointer-events-auto absolute bottom-2 left-1/2 z-[1000] flex max-w-[calc(100%-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-0.5 rounded-lg border border-border/80 bg-card/95 p-0.5 shadow-md backdrop-blur-sm sm:max-w-none sm:flex-nowrap"
-      role="group"
-      aria-label="Map view selection"
-    >
-      {BASEMAPS.map((basemap) => {
-        const active = basemap.id === activeId;
-
-        return (
-          <button
-            key={basemap.id}
-            type="button"
-            onClick={() => onChange(basemap.id)}
-            aria-pressed={active}
-            className={`rounded-md px-1.5 py-1 text-[10px] font-medium leading-none transition sm:px-2 sm:text-[11px] ${
-              active
-                ? "bg-accent text-background shadow-sm"
-                : "text-muted hover:bg-background/80 hover:text-foreground"
-            }`}
-          >
-            {basemap.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-export default function PatrolMap({ locations }) {
-  const [activeBasemap, setActiveBasemap] = useState("street");
-  const basemap =
-    BASEMAPS.find((layer) => layer.id === activeBasemap) ?? BASEMAPS[0];
+export default function PatrolMap({ locations, basemapId = DEFAULT_BASEMAP_ID }) {
+  const basemap = getBasemapById(basemapId);
 
   const parsedLocations = useMemo(
     () =>
@@ -167,8 +105,6 @@ export default function PatrolMap({ locations }) {
           />
         ))}
       </MapContainer>
-
-      <MapBasemapToggle activeId={activeBasemap} onChange={setActiveBasemap} />
     </div>
   );
 }

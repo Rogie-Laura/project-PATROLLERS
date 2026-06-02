@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { isAdminRole } from "@/lib/mobile/adminRoles";
+import { BASEMAPS } from "@/lib/mapBasemaps";
 
 function MapIcon() {
   return (
@@ -71,13 +74,19 @@ const NAV_ITEMS = [
   },
 ];
 
-export default function MapToolbar({ active = "map", user }) {
+export default function MapToolbar({
+  active = "map",
+  user,
+  basemapId,
+  onBasemapChange,
+  showBasemap = false,
+}) {
   const isAdmin = isAdminRole(user?.role);
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-card/90 px-3 py-1 sm:px-4">
-      <nav className="flex min-w-0 items-center gap-1">
+      <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {
           const isActive = item.id === active;
           const { Icon } = item;
@@ -101,7 +110,38 @@ export default function MapToolbar({ active = "map", user }) {
         })}
       </nav>
 
-      <div className="ml-auto w-32 shrink-0 sm:w-56">
+      {showBasemap && onBasemapChange && (
+        <>
+          <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />
+          <div
+            className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+            role="group"
+            aria-label="Map basemap"
+          >
+            {BASEMAPS.map((basemap) => {
+              const isActive = basemap.id === basemapId;
+
+              return (
+                <button
+                  key={basemap.id}
+                  type="button"
+                  onClick={() => onBasemapChange(basemap.id)}
+                  aria-pressed={isActive}
+                  className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-medium leading-none transition sm:px-2 sm:text-[11px] ${
+                    isActive
+                      ? "bg-accent text-background shadow-sm"
+                      : "text-muted hover:bg-background/80 hover:text-foreground"
+                  }`}
+                >
+                  {basemap.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <div className="ml-auto w-28 shrink-0 sm:w-56">
         <div className="relative">
           <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-muted">
             <svg

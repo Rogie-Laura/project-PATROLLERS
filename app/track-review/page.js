@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import MonitorHeader from "@/components/MonitorHeader";
 import MapToolbar from "@/components/MapToolbar";
 import TrackReview from "@/components/TrackReview";
+import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 
 export default function TrackReviewPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
 
   useEffect(() => {
     let active = true;
@@ -63,8 +65,14 @@ export default function TrackReviewPage() {
         onSignOut={handleSignOut}
         signingOut={signingOut}
       />
-      <MapToolbar active="review" user={user} />
-      <TrackReview />
+      <MapToolbar
+        active="review"
+        user={user}
+        showBasemap
+        basemapId={basemapId}
+        onBasemapChange={setBasemapId}
+      />
+      <TrackReview basemapId={basemapId} />
     </main>
   );
 }

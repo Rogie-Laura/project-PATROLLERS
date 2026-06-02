@@ -11,15 +11,10 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
+import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 
 const CALABARZON_CENTER = [14.2, 121.1];
 const CALABARZON_ZOOM = 9;
-
-const BASEMAP = {
-  url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-};
 
 function toNumber(value) {
   return typeof value === "number" ? value : parseFloat(value);
@@ -61,7 +56,8 @@ function FitToTrack({ positions }) {
   return null;
 }
 
-export default function TrackReviewMap({ points }) {
+export default function TrackReviewMap({ points, basemapId = DEFAULT_BASEMAP_ID }) {
+  const basemap = getBasemapById(basemapId);
   const positions = useMemo(
     () =>
       points
@@ -80,7 +76,11 @@ export default function TrackReviewMap({ points }) {
       className="h-full w-full"
       scrollWheelZoom
     >
-      <TileLayer attribution={BASEMAP.attribution} url={BASEMAP.url} />
+      <TileLayer
+        key={basemap.id}
+        attribution={basemap.attribution}
+        url={basemap.url}
+      />
 
       <FitToTrack positions={positions} />
 
