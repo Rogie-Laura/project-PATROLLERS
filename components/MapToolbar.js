@@ -154,8 +154,15 @@ function PatrolStatusToggle({ enabled, onChange }) {
   );
 }
 
-function ToolbarSeparator() {
-  return <div className="h-5 w-px shrink-0 bg-border/70" aria-hidden />;
+function ToolbarSeparator({ spacious = false }) {
+  return (
+    <div
+      className={`h-6 w-[2px] shrink-0 rounded-full bg-gradient-to-b from-accent/30 via-accent to-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.35)] ${
+        spacious ? "mx-2.5 sm:mx-3" : "mx-1.5 sm:mx-2"
+      }`}
+      aria-hidden
+    />
+  );
 }
 
 export default function MapToolbar({
@@ -202,7 +209,7 @@ export default function MapToolbar({
         <>
           <ToolbarSeparator />
           <div
-            className="flex min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto"
+            className="flex min-w-0 shrink-0 items-center gap-1 overflow-x-auto"
             role="group"
             aria-label="Map basemap and call response"
           >
@@ -228,7 +235,7 @@ export default function MapToolbar({
 
             {showAddCallResponse && (
               <>
-                <ToolbarSeparator />
+                <ToolbarSeparator spacious />
                 <button
                   type="button"
                   onClick={onAddCallResponse}
