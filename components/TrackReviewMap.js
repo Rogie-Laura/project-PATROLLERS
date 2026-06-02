@@ -62,6 +62,35 @@ function FitToTrack({ positions }) {
   return null;
 }
 
+function InvalidateOnResize() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    let frame = null;
+
+    const refresh = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => map.invalidateSize());
+    };
+
+    const observer = new ResizeObserver(refresh);
+    observer.observe(container);
+
+    const timer = setTimeout(refresh, 250);
+    window.addEventListener("resize", refresh);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", refresh);
+      clearTimeout(timer);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [map]);
+
+  return null;
+}
+
 export default function TrackReviewMap({
   points,
   basemapId = DEFAULT_BASEMAP_ID,
@@ -97,6 +126,7 @@ export default function TrackReviewMap({
       />
 
       <FitToTrack positions={positions} />
+      <InvalidateOnResize />
 
       {positions.length > 1 && (
         <Polyline

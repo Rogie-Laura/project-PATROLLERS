@@ -36,6 +36,36 @@ function CalabarzonInitialView() {
   return null;
 }
 
+function InvalidateOnResize() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    let frame = null;
+
+    const refresh = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => map.invalidateSize());
+    };
+
+    const observer = new ResizeObserver(refresh);
+    observer.observe(container);
+
+    // Catch transitions/layout changes that don't trigger the observer immediately.
+    const timer = setTimeout(refresh, 250);
+    window.addEventListener("resize", refresh);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", refresh);
+      clearTimeout(timer);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [map]);
+
+  return null;
+}
+
 function PatrolMarker({
   location,
   showPatrolStatus,
@@ -109,6 +139,7 @@ export default function PatrolMap({
         />
 
         <CalabarzonInitialView />
+        <InvalidateOnResize />
 
         {parsedLocations.map((loc, index) => {
           const key = patrolKey(loc) ?? index;
