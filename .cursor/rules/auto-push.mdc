@@ -1,0 +1,14 @@
+---
+description: Always commit and push code changes to GitHub when work is done
+alwaysApply: true
+---
+
+# Auto push after changes
+
+When you finish making code changes in this project:
+
+1. Commit the changes with a clear message (unless the user explicitly says not to commit).
+2. Push to `origin/main` immediately after a successful commit.
+3. Briefly confirm the push succeeded (commit hash + that Vercel will auto-deploy).
+
+Do not leave completed work only on local disk. The user expects GitHub and Vercel to stay in sync after every change session.
