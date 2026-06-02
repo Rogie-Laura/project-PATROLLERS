@@ -1,0 +1,86 @@
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  buildPatrolLabel,
+  extractBearerToken,
+  MOBILE_LOCATION_INTERVAL_MINUTES,
+  normalizePersonnelOnBoard,
+  resolveAccessToken,
+} from "@/lib/mobile/accessToken";
+import { parseLocationPayload } from "@/lib/location/parseCoordinates";
+
+export async function POST(request) {
+  const bearer = extractBearerToken(request);
+  if (!bearer) {
+    return NextResponse.json(
+      { error: "Missing access token. Send Authorization: Bearer <token>." },
+      { status: 401 }
+    );
+  }
+
+  const accessToken = await resolveAccessToken(bearer);
+  if (!accessToken) {
+    return NextResponse.json(
+      { error: "Invalid or inactive access token." },
+      { status: 401 }
+    );
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const parsed = parseLocationPayload(body);
+  if (parsed.error) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const { latitude, longitude, accuracy } = parsed;
+  const admin = createAdminClient();
+
+  const { data: profile } = await admin
+    .from("mobile_device_profiles")
+    .select("*")
+    .eq("access_token_id", accessToken.id)
+    .maybeSingle();
+
+  const patrolName = buildPatrolLabel(profile);
+
+  const { data, error } = await admin
+    .from("location_updates")
+    .insert({
+      access_token_id: accessToken.id,
+      latitude,
+      longitude,
+      accuracy,
+      patrol_name: patrolName,
+      badge_number: profile?.mobile_plate ?? accessToken.label ?? "MOBILE",
+      mobile_plate: profile?.mobile_plate ?? null,
+      mobile_phone: profile?.mobile_phone ?? null,
+      radio_call_sign: profile?.radio_call_sign ?? null,
+      office: profile?.office ?? null,
+      unit: profile?.unit ?? null,
+      personnel_on_board: normalizePersonnelOnBoard(profile?.personnel_on_board),
+    })
+    .select("id, latitude, longitude, accuracy, created_at")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    interval_minutes: MOBILE_LOCATION_INTERVAL_MINUTES,
+    location: {
+      id: data.id,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      accuracy: data.accuracy,
+      recorded_at: data.created_at,
+    },
+  });
+}
