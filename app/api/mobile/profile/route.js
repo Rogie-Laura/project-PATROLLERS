@@ -5,6 +5,7 @@ import {
   normalizePersonnelOnBoard,
   resolveAccessToken,
 } from "@/lib/mobile/accessToken";
+import { pushLocationSnapshot } from "@/lib/mobile/pushLocationSnapshot";
 
 async function requireAccessToken(request) {
   const token = extractBearerToken(request);
@@ -101,5 +102,76 @@ export async function PUT(request) {
   return NextResponse.json({
     ok: true,
     profile: profileResponse(data),
+  });
+}
+
+export async function PATCH(request) {
+  const auth = await requireAccessToken(request);
+  if (auth.error) return auth.error;
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(body, "personnel_on_board")) {
+    return NextResponse.json(
+      { error: "personnel_on_board is required for this update." },
+      { status: 400 }
+    );
+  }
+
+  const personnel = normalizePersonnelOnBoard(body.personnel_on_board);
+  const admin = createAdminClient();
+  const updatedAt = new Date().toISOString();
+
+  const { data: profile, error } = await admin
+    .from("mobile_device_profiles")
+    .update({
+      personnel_on_board: personnel,
+      updated_at: updatedAt,
+    })
+    .eq("access_token_id", auth.accessToken.id)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  let row = profile;
+
+  if (!row) {
+    const { data: inserted, error: insertError } = await admin
+      .from("mobile_device_profiles")
+      .insert({
+        access_token_id: auth.accessToken.id,
+        personnel_on_board: personnel,
+        updated_at: updatedAt,
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+
+    row = inserted;
+  }
+
+  try {
+    await pushLocationSnapshot(admin, auth.accessToken, row, {
+      personnel_on_board: personnel,
+    });
+  } catch (snapshotError) {
+    console.error("personnel snapshot push failed:", snapshotError);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    profile: profileResponse(row),
+    synced_location: true,
   });
 }
