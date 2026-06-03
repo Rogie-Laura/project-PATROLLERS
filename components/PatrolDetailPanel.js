@@ -2,6 +2,21 @@
 
 import { normalizePersonnelOnBoard } from "@/lib/personnelOnBoard";
 import { getPatrolStatusLabel } from "@/lib/patrolStatusLabels";
+import {
+  CONNECTION_BORDER_COLOR,
+  CONNECTION_LABEL,
+  CONNECTION_STATE,
+  getConnectionState,
+  staleThresholdMs,
+} from "@/lib/connectionState";
+
+function signalText(location, connectionState) {
+  if (connectionState === CONNECTION_STATE.stale) return "No signal (stale)";
+  const level = String(location.signal_level ?? "").toLowerCase();
+  if (level === "weak") return "Weak";
+  if (level === "strong") return "Strong";
+  return location.signal_label || "—";
+}
 
 function DetailRow({ label, value }) {
   return (
@@ -26,9 +41,21 @@ function Section({ title, children }) {
 export default function PatrolDetailPanel({
   location,
   showPatrolStatus = true,
+  nowMs = Date.now(),
+  intervalSeconds = 1800,
   onClose,
 }) {
   if (!location) return null;
+
+  const connectionState = getConnectionState(
+    location,
+    nowMs,
+    staleThresholdMs(intervalSeconds)
+  );
+  const connectionColor =
+    CONNECTION_BORDER_COLOR[connectionState] || CONNECTION_BORDER_COLOR.strong;
+  const connectionLabel =
+    CONNECTION_LABEL[connectionState] || CONNECTION_LABEL.strong;
 
   const personnel = normalizePersonnelOnBoard(location.personnel_on_board);
   const title =
@@ -113,13 +140,31 @@ export default function PatrolDetailPanel({
           )}
         </Section>
 
+        <Section title="Connection">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="shrink-0 text-muted">Live status</span>
+            <span className="flex items-center gap-1.5 font-medium text-foreground">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: connectionColor }}
+                aria-hidden
+              />
+              {connectionLabel}
+            </span>
+          </div>
+          <DetailRow
+            label="Signal Strength"
+            value={signalText(location, connectionState)}
+          />
+        </Section>
+
         <Section title="Phone Status">
           <DetailRow label="Mobile Phone" value={location.mobile_phone} />
           <DetailRow
             label="Battery"
             value={location.battery_level != null ? `${location.battery_level}%` : "—"}
           />
-          <DetailRow label="Signal" value={location.signal_label || "—"} />
+          <DetailRow label="Network" value={location.signal_label || "—"} />
           {(location.battery_level == null && !location.signal_label) && (
             <p className="text-[10px] leading-snug text-muted">
               Battery and signal appear here when the mobile app reports them with

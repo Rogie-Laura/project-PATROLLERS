@@ -4,6 +4,12 @@ import {
   getPatrolStatusLabel,
   PATROL_STATUS,
 } from "@/lib/patrolStatusLabels";
+import {
+  CONNECTION_BORDER_COLOR,
+  CONNECTION_LABEL,
+  getConnectionState,
+  staleThresholdMs,
+} from "@/lib/connectionState";
 
 function patrolLabel(location) {
   return (
@@ -19,7 +25,15 @@ function patrolKey(location) {
   return location.access_token_id || location.user_id || location.id;
 }
 
-function StatusGroup({ title, color, items, selectedPatrolKey, onSelect }) {
+function StatusGroup({
+  title,
+  color,
+  items,
+  selectedPatrolKey,
+  onSelect,
+  nowMs,
+  staleMs,
+}) {
   return (
     <section className="border-b border-border/60 px-4 py-3 last:border-b-0">
       <div className="mb-2 flex items-center gap-2">
@@ -43,6 +57,10 @@ function StatusGroup({ title, color, items, selectedPatrolKey, onSelect }) {
           {items.map((location) => {
             const key = patrolKey(location);
             const selected = key != null && key === selectedPatrolKey;
+            const connectionState = getConnectionState(location, nowMs, staleMs);
+            const connectionColor =
+              CONNECTION_BORDER_COLOR[connectionState] ||
+              CONNECTION_BORDER_COLOR.strong;
 
             return (
               <li key={key ?? location.id}>
@@ -55,8 +73,14 @@ function StatusGroup({ title, color, items, selectedPatrolKey, onSelect }) {
                       : "border-border/50 bg-background/40 hover:border-border hover:bg-background/70"
                   }`}
                 >
-                  <p className="truncate text-xs font-medium text-foreground">
-                    {patrolLabel(location)}
+                  <p className="flex items-center gap-1.5 truncate text-xs font-medium text-foreground">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: connectionColor }}
+                      title={CONNECTION_LABEL[connectionState]}
+                      aria-hidden
+                    />
+                    <span className="truncate">{patrolLabel(location)}</span>
                   </p>
                   {location.mobile_plate && location.patrol_name && (
                     <p className="mt-0.5 truncate text-[10px] text-muted">
@@ -82,7 +106,10 @@ export default function PatrolStatusListPanel({
   locations,
   selectedPatrolKey,
   onSelectPatrol,
+  nowMs = Date.now(),
+  intervalSeconds = 1800,
 }) {
+  const staleMs = staleThresholdMs(intervalSeconds);
   const visibility = locations.filter(
     (loc) => loc.patrol_status !== PATROL_STATUS.incidentResponse
   );
@@ -109,6 +136,8 @@ export default function PatrolStatusListPanel({
           items={visibility}
           selectedPatrolKey={selectedPatrolKey}
           onSelect={onSelectPatrol}
+          nowMs={nowMs}
+          staleMs={staleMs}
         />
         <StatusGroup
           title={getPatrolStatusLabel(PATROL_STATUS.incidentResponse)}
@@ -116,6 +145,8 @@ export default function PatrolStatusListPanel({
           items={incident}
           selectedPatrolKey={selectedPatrolKey}
           onSelect={onSelectPatrol}
+          nowMs={nowMs}
+          staleMs={staleMs}
         />
       </div>
     </aside>

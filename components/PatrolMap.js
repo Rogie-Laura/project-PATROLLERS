@@ -23,6 +23,7 @@ import {
   PHILIPPINES_BOUNDS,
 } from "@/lib/mapBounds";
 import { createPatrolMarkerIcon } from "@/lib/patrolMarker";
+import { getConnectionState } from "@/lib/connectionState";
 
 function patrolKey(location) {
   return location.access_token_id || location.user_id || location.id;
@@ -202,6 +203,7 @@ function PatrolMarker({
   showPatrolStatus,
   isSelected,
   isDispatchHighlight,
+  connectionState,
   onSelect,
 }) {
   const markerRef = useRef(null);
@@ -209,8 +211,13 @@ function PatrolMarker({
   const longitude = toNumber(location.longitude);
   const position = [latitude, longitude];
   const icon = useMemo(
-    () => createPatrolMarkerIcon(location.patrol_status, showPatrolStatus),
-    [location.patrol_status, showPatrolStatus]
+    () =>
+      createPatrolMarkerIcon(
+        location.patrol_status,
+        showPatrolStatus,
+        connectionState
+      ),
+    [location.patrol_status, showPatrolStatus, connectionState]
   );
 
   useEffect(() => {
@@ -245,6 +252,8 @@ export default function PatrolMap({
   highlightedUnitKey = null,
   highlightedUnitLocation = null,
   dispatchRoute = null,
+  nowMs = Date.now(),
+  staleThresholdMs: staleMs = 120000,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -294,11 +303,13 @@ export default function PatrolMap({
 
         {parsedLocations.map((loc, index) => {
           const key = patrolKey(loc) ?? index;
+          const connectionState = getConnectionState(loc, nowMs, staleMs);
           return (
             <PatrolMarker
               key={key}
               location={loc}
               showPatrolStatus={showPatrolStatus}
+              connectionState={connectionState}
               isSelected={selectedPatrolKey != null && selectedPatrolKey === key}
               isDispatchHighlight={
                 highlightedUnitKey != null && highlightedUnitKey === key

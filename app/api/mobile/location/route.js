@@ -47,6 +47,16 @@ export async function POST(request) {
       : null;
   const signalLabel =
     String(body?.signal_label ?? body?.signalLabel ?? "").trim() || null;
+  const signalLevelRaw = String(
+    body?.signal_level ?? body?.signalLevel ?? ""
+  )
+    .trim()
+    .toLowerCase();
+  const signalLevel = ["strong", "weak", "none"].includes(signalLevelRaw)
+    ? signalLevelRaw
+    : null;
+  const trackingActiveRaw = body?.tracking_active ?? body?.trackingActive;
+  const trackingActive = trackingActiveRaw === false ? false : true;
   const admin = createAdminClient();
 
   const { data: profile } = await admin
@@ -75,6 +85,8 @@ export async function POST(request) {
       patrol_status: patrolStatus,
       battery_level: batteryLevel,
       signal_label: signalLabel,
+      signal_level: signalLevel,
+      tracking_active: trackingActive,
     })
     .select("id, latitude, longitude, accuracy, created_at")
     .single();

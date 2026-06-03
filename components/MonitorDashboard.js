@@ -11,6 +11,7 @@ import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 import { createCallResponse, getUnitKey } from "@/lib/dispatchUnits";
 import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
+import { staleThresholdMs } from "@/lib/connectionState";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
   ssr: false,
@@ -53,10 +54,21 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [flyToCallId, setFlyToCallId] = useState(null);
   const [highlightedUnitKey, setHighlightedUnitKey] = useState(null);
   const [dispatchRoute, setDispatchRoute] = useState(null);
+  const [intervalSeconds, setIntervalSeconds] = useState(1800);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
+  // Units that pressed "Stop Tracking" disappear from the map and panels.
   const latestLocations = useMemo(
-    () => getLatestByPatrol(locations),
+    () =>
+      getLatestByPatrol(locations).filter(
+        (loc) => loc.tracking_active !== false
+      ),
     [locations]
+  );
+
+  const staleMs = useMemo(
+    () => staleThresholdMs(intervalSeconds),
+    [intervalSeconds]
   );
 
   const selectedPatrolKey = selectedPatrol
@@ -80,6 +92,25 @@ export default function MonitorDashboard({ user, onLogout }) {
     );
     if (updated) setSelectedPatrol(updated);
   }, [latestLocations, selectedPatrolKey]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/system-settings")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const seconds = data?.settings?.location_interval_seconds;
+        if (active && seconds) setIntervalSeconds(Number(seconds));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     async function loadLocations() {
@@ -199,6 +230,8 @@ export default function MonitorDashboard({ user, onLogout }) {
             highlightedUnitKey={highlightedUnitKey}
             highlightedUnitLocation={highlightedUnitLocation}
             dispatchRoute={dispatchRoute}
+            nowMs={nowMs}
+            staleThresholdMs={staleMs}
           />
 
           {error && (
@@ -237,6 +270,8 @@ export default function MonitorDashboard({ user, onLogout }) {
                 locations={latestLocations}
                 selectedPatrolKey={selectedPatrolKey}
                 onSelectPatrol={setSelectedPatrol}
+                nowMs={nowMs}
+                intervalSeconds={intervalSeconds}
               />
             </div>
           </div>
@@ -248,6 +283,8 @@ export default function MonitorDashboard({ user, onLogout }) {
               <PatrolDetailPanel
                 location={selectedPatrol}
                 showPatrolStatus={showPatrolStatus}
+                nowMs={nowMs}
+                intervalSeconds={intervalSeconds}
                 onClose={() => {
                   setSelectedPatrol(null);
                 }}
