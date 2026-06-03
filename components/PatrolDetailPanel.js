@@ -107,7 +107,7 @@ export default function PatrolDetailPanel({
           <DetailRow label="Mobile Plate" value={location.mobile_plate} />
           <DetailRow label="Radio Call Sign" value={location.radio_call_sign} />
           <DetailRow label="Office" value={location.office} />
-          <DetailRow label="Unit" value={location.unit} />
+          <DetailRow label="Station" value={location.unit} />
           {showPatrolStatus && (
             <DetailRow
               label="Patrol Status"
@@ -128,9 +128,16 @@ export default function PatrolDetailPanel({
                   key={`${person.rankName}-${person.mobileNumber}-${index}`}
                   className="rounded-md border border-border/50 bg-background/40 px-2.5 py-2"
                 >
-                  <p className="text-xs font-medium text-foreground">
-                    {person.rankName || "Unnamed"}
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-medium text-foreground">
+                      {person.rankName || "Unnamed"}
+                    </p>
+                    {person.onDuty && (
+                      <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium text-accent">
+                        On duty
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-0.5 text-[11px] text-muted">
                     {person.mobileNumber || "No mobile number"}
                   </p>

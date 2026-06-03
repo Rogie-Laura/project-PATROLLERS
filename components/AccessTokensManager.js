@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatTokenUser } from "@/lib/mobile/adminRoles";
+import TokenQrCode from "@/components/TokenQrCode";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -155,12 +156,20 @@ export default function AccessTokensManager() {
       <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-6xl">
           {createdToken && (
-            <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-foreground">
+            <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-4 text-sm text-foreground">
               <p className="font-medium text-accent">New access token created</p>
-              <p className="mt-1 break-all font-mono text-xs sm:text-sm">{createdToken.token}</p>
-              <p className="mt-2 text-xs text-muted">
-                Copy this token now and assign it to the mobile device. It stays saved on the phone.
-              </p>
+              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
+                <TokenQrCode value={createdToken.token} size={140} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted">
+                    Scan this QR code on the mobile app, or copy the token below.
+                  </p>
+                  <div className="mt-2 flex items-start gap-2">
+                    <code className="break-all font-mono text-xs sm:text-sm">{createdToken.token}</code>
+                    <CopyButton value={createdToken.token} />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -183,7 +192,7 @@ export default function AccessTokensManager() {
                   <thead className="border-b border-border/70 bg-background/40 text-xs uppercase tracking-wide text-muted">
                     <tr>
                       <th className="px-4 py-3 font-medium">Label</th>
-                      <th className="px-4 py-3 font-medium">Access Token</th>
+                      <th className="px-4 py-3 font-medium">QR / Token</th>
                       <th className="px-4 py-3 font-medium">Mobile User / Unit</th>
                       <th className="px-4 py-3 font-medium">Created By</th>
                       <th className="px-4 py-3 font-medium">Status</th>
@@ -198,10 +207,20 @@ export default function AccessTokensManager() {
                           <div className="mt-1 text-[11px] text-muted">{formatDate(row.created_at)}</div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div className="flex items-start gap-2">
-                            <code className="break-all font-mono text-[11px] sm:text-xs">{row.token}</code>
-                            <CopyButton value={row.token} />
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                            <TokenQrCode
+                              value={row.is_active ? row.token : undefined}
+                              size={96}
+                              className={row.is_active ? "" : "opacity-40"}
+                            />
+                            <div className="flex min-w-0 items-start gap-2">
+                              <code className="break-all font-mono text-[11px] sm:text-xs">{row.token}</code>
+                              <CopyButton value={row.token} />
+                            </div>
                           </div>
+                          {!row.is_active && (
+                            <p className="mt-1 text-[10px] text-muted">QR disabled while token is inactive.</p>
+                          )}
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div>{formatTokenUser(row.mobile_user)}</div>
