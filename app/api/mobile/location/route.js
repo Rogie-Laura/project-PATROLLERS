@@ -1,3 +1,7 @@
+/**
+ * Legacy fallback: mobile apps should call Supabase RPC `insert_mobile_location`
+ * directly (see supabase/migrations/015_insert_mobile_location_rpc.sql).
+ */
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
