@@ -10,6 +10,7 @@ import PatrolDetailPanel from "@/components/PatrolDetailPanel";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 import { createCallResponse, getUnitKey } from "@/lib/dispatchUnits";
+import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
 import { staleThresholdMs } from "@/lib/connectionState";
 
@@ -55,7 +56,14 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [highlightedUnitKey, setHighlightedUnitKey] = useState(null);
   const [dispatchRoute, setDispatchRoute] = useState(null);
   const [intervalSeconds, setIntervalSeconds] = useState(1800);
+  const [mapRadiusSlots, setMapRadiusSlots] = useState(createDefaultRadiusRingSlots);
+  const [dispatchMaxRadiusM, setDispatchMaxRadiusM] = useState(6000);
   const [nowMs, setNowMs] = useState(() => Date.now());
+
+  const incidentRadiusRings = useMemo(
+    () => radiusSlotsToMapRings(mapRadiusSlots),
+    [mapRadiusSlots]
+  );
 
   // Units that pressed "Stop Tracking" disappear from the map and panels.
   const latestLocations = useMemo(
@@ -95,11 +103,19 @@ export default function MonitorDashboard({ user, onLogout }) {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/admin/system-settings")
+    fetch("/api/system-settings/map")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        const seconds = data?.settings?.location_interval_seconds;
-        if (active && seconds) setIntervalSeconds(Number(seconds));
+        if (!active || !data) return;
+        if (data.location_interval_seconds) {
+          setIntervalSeconds(Number(data.location_interval_seconds));
+        }
+        if (data.incident_radius_rings) {
+          setMapRadiusSlots(data.incident_radius_rings);
+        }
+        if (data.dispatch_max_radius_m) {
+          setDispatchMaxRadiusM(Number(data.dispatch_max_radius_m));
+        }
       })
       .catch(() => {});
     return () => {
@@ -230,6 +246,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             highlightedUnitKey={highlightedUnitKey}
             highlightedUnitLocation={highlightedUnitLocation}
             dispatchRoute={dispatchRoute}
+            incidentRadiusRings={incidentRadiusRings}
             nowMs={nowMs}
             staleThresholdMs={staleMs}
           />
@@ -258,6 +275,7 @@ export default function MonitorDashboard({ user, onLogout }) {
                 onHighlightUnit={handleHighlightUnit}
                 onShowRoute={handleShowRoute}
                 dispatchRoute={dispatchRoute}
+                dispatchMaxRadiusM={dispatchMaxRadiusM}
               />
             </div>
           </div>

@@ -113,7 +113,11 @@ function FlyToUnit({ location }) {
   return null;
 }
 
-function CallResponsesLayer({ callResponses, selectedCallId }) {
+function CallResponsesLayer({
+  callResponses,
+  selectedCallId,
+  incidentRadiusRings = INCIDENT_RADIUS_RINGS,
+}) {
   if (!callResponses?.length) return null;
 
   return (
@@ -129,7 +133,7 @@ function CallResponsesLayer({ callResponses, selectedCallId }) {
 
         return (
           <span key={call.id}>
-            {INCIDENT_RADIUS_RINGS.map((ring) => (
+            {incidentRadiusRings.map((ring) => (
               <Circle
                 key={`${call.id}-${ring.radiusMeters}`}
                 center={center}
@@ -252,6 +256,7 @@ export default function PatrolMap({
   highlightedUnitKey = null,
   highlightedUnitLocation = null,
   dispatchRoute = null,
+  incidentRadiusRings = INCIDENT_RADIUS_RINGS,
   nowMs = Date.now(),
   staleThresholdMs: staleMs = 120000,
 }) {
@@ -298,6 +303,7 @@ export default function PatrolMap({
         <CallResponsesLayer
           callResponses={callResponses}
           selectedCallId={selectedCallId}
+          incidentRadiusRings={incidentRadiusRings}
         />
         <DispatchRouteLayer dispatchRoute={dispatchRoute} />
 

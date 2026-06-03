@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  DISPATCH_MAX_RADIUS_M,
   formatEtaMinutes,
   rankNearbyUnits,
 } from "@/lib/dispatchUnits";
@@ -39,12 +38,13 @@ export default function CallResponsePanel({
   onHighlightUnit,
   onShowRoute,
   dispatchRoute,
+  dispatchMaxRadiusM = 6000,
 }) {
   const selectedCall = callResponses.find((c) => c.id === selectedCallId);
   const nearbyUnits = useMemo(() => {
     if (!selectedCall) return [];
-    return rankNearbyUnits(selectedCall, latestLocations);
-  }, [selectedCall, latestLocations]);
+    return rankNearbyUnits(selectedCall, latestLocations, dispatchMaxRadiusM);
+  }, [selectedCall, latestLocations, dispatchMaxRadiusM]);
 
   const [routeByUnit, setRouteByUnit] = useState({});
 
@@ -55,7 +55,11 @@ export default function CallResponsePanel({
   useEffect(() => {
     if (!selectedCall) return;
 
-    const topUnits = rankNearbyUnits(selectedCall, latestLocations).slice(0, 6);
+    const topUnits = rankNearbyUnits(
+      selectedCall,
+      latestLocations,
+      dispatchMaxRadiusM
+    ).slice(0, 6);
     if (topUnits.length === 0) return;
 
     let cancelled = false;
@@ -99,7 +103,7 @@ export default function CallResponsePanel({
     return () => {
       cancelled = true;
     };
-  }, [selectedCallId, latestLocations, selectedCall]);
+  }, [selectedCallId, latestLocations, selectedCall, dispatchMaxRadiusM]);
 
   const showDirections =
     dispatchRoute &&
@@ -166,7 +170,9 @@ export default function CallResponsePanel({
 
         {selectedCall && nearbyUnits.length === 0 && (
           <p className="py-4 text-center text-xs text-muted">
-            No mobile units within {(DISPATCH_MAX_RADIUS_M / 1000).toFixed(0)}{" "}
+            No mobile units within {(dispatchMaxRadiusM / 1000).toFixed(
+              dispatchMaxRadiusM % 1000 === 0 ? 0 : 1
+            )}{" "}
             km of this incident.
           </p>
         )}

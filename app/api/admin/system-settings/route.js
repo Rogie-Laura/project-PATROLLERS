@@ -11,8 +11,10 @@ import {
   normalizeDirectionsProvider,
   parseIntervalInput,
   updateDirectionsProvider,
+  updateIncidentRadiusRings,
   updateLocationIntervalSeconds,
 } from "@/lib/mobile/systemSettings";
+import { formatRadiusRingsSummary } from "@/lib/incidentRadiusRings";
 
 function requireAdmin(user) {
   if (!user) {
@@ -38,6 +40,10 @@ function settingsPayload(settings) {
     max_seconds: MAX_LOCATION_INTERVAL_SECONDS,
     directions_provider: directionsProvider,
     google_maps_configured: isGoogleMapsConfigured(),
+    incident_radius_rings: settings.incident_radius_rings,
+    incident_radius_summary: formatRadiusRingsSummary(
+      settings.incident_radius_rings
+    ),
   };
 }
 
@@ -71,8 +77,9 @@ export async function PATCH(request) {
     body?.value != null ||
     body?.unit != null;
   const hasDirections = body?.directions_provider != null;
+  const hasRadiusRings = body?.incident_radius_rings != null;
 
-  if (!hasInterval && !hasDirections) {
+  if (!hasInterval && !hasDirections && !hasRadiusRings) {
     return NextResponse.json(
       { error: "No settings to update." },
       { status: 400 }
@@ -132,6 +139,17 @@ export async function PATCH(request) {
       return NextResponse.json(
         { error: error.message ?? "Could not save directions provider." },
         { status: 500 }
+      );
+    }
+  }
+
+  if (hasRadiusRings) {
+    try {
+      await updateIncidentRadiusRings(body.incident_radius_rings, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error.message ?? "Could not save radius circles." },
+        { status: 400 }
       );
     }
   }

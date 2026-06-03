@@ -1,6 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  MAX_INCIDENT_RADIUS_CIRCLES,
+  MAX_RADIUS_KM,
+  MIN_RADIUS_KM,
+  createDefaultRadiusRingSlots,
+} from "@/lib/incidentRadiusRings";
 
 function SettingCard({ title, description, children }) {
   return (
@@ -57,10 +63,83 @@ function DirectionsOption({ selected, title, badge, description, onSelect, disab
   );
 }
 
+function RadiusCircleRow({ index, slot, disabled, onChange }) {
+  return (
+    <div
+      className={`rounded-lg border px-3 py-3 transition ${
+        slot.enabled
+          ? "border-border/60 bg-background/50"
+          : "border-border/40 bg-background/25 opacity-75"
+      }`}
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex min-w-[7rem] cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={slot.enabled}
+            disabled={disabled}
+            onChange={(e) => onChange({ ...slot, enabled: e.target.checked })}
+            className="h-4 w-4 shrink-0 accent-accent"
+          />
+          <span className="text-sm font-medium text-foreground">
+            Circle {index + 1}
+          </span>
+        </label>
+
+        {slot.enabled ? (
+          <>
+            <div className="flex items-center gap-2">
+              <label className="sr-only" htmlFor={`radius-km-${index}`}>
+                Distance in kilometers for circle {index + 1}
+              </label>
+              <input
+                id={`radius-km-${index}`}
+                type="number"
+                min={MIN_RADIUS_KM}
+                max={MAX_RADIUS_KM}
+                step={0.1}
+                disabled={disabled}
+                value={slot.radiusKm}
+                onChange={(e) =>
+                  onChange({ ...slot, radiusKm: Number(e.target.value) })
+                }
+                className="w-24 rounded-lg border border-border/70 bg-background/80 px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent"
+              />
+              <span className="text-xs text-muted">km</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="sr-only" htmlFor={`radius-color-${index}`}>
+                Color for circle {index + 1}
+              </label>
+              <input
+                id={`radius-color-${index}`}
+                type="color"
+                disabled={disabled}
+                value={slot.color}
+                onChange={(e) => onChange({ ...slot, color: e.target.value })}
+                className="h-9 w-12 cursor-pointer rounded border border-border/70 bg-transparent p-0.5"
+              />
+              <span
+                className="hidden h-7 w-7 shrink-0 rounded-full border-2 border-white/80 sm:inline-block"
+                style={{ backgroundColor: slot.color }}
+                aria-hidden
+              />
+            </div>
+          </>
+        ) : (
+          <span className="text-xs text-muted">Enable to set distance and color</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingDirections, setSavingDirections] = useState(false);
+  const [savingRadius, setSavingRadius] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -70,6 +149,8 @@ export default function SystemSettings() {
   const [maxSeconds, setMaxSeconds] = useState(86400);
   const [directionsProvider, setDirectionsProvider] = useState("osrm");
   const [googleMapsConfigured, setGoogleMapsConfigured] = useState(false);
+  const [radiusRingSlots, setRadiusRingSlots] = useState(createDefaultRadiusRingSlots);
+  const [radiusSummary, setRadiusSummary] = useState("");
 
   const [value, setValue] = useState("30");
   const [unit, setUnit] = useState("minutes");
@@ -82,6 +163,10 @@ export default function SystemSettings() {
     setMaxSeconds(settings.max_seconds ?? 86400);
     setDirectionsProvider(settings.directions_provider ?? "osrm");
     setGoogleMapsConfigured(Boolean(settings.google_maps_configured));
+    if (settings.incident_radius_rings) {
+      setRadiusRingSlots(settings.incident_radius_rings);
+    }
+    setRadiusSummary(settings.incident_radius_summary ?? "");
 
     if (seconds % 60 === 0 && seconds >= 60) {
       setUnit("minutes");
@@ -174,6 +259,42 @@ export default function SystemSettings() {
     }
   }
 
+  async function handleSaveRadius(event) {
+    event.preventDefault();
+    setSavingRadius(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ incident_radius_rings: radiusRingSlots }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save radius circles.");
+      }
+
+      applySettings(data.settings);
+      setSuccess(
+        "Response radius circles saved. New call responses on the map will use these rings."
+      );
+    } catch (err) {
+      setError(err.message ?? "Could not save radius circles.");
+    } finally {
+      setSavingRadius(false);
+    }
+  }
+
+  function updateRadiusSlot(index, nextSlot) {
+    setRadiusRingSlots((prev) =>
+      prev.map((slot, i) => (i === index ? nextSlot : slot))
+    );
+  }
+
   const directionsLabel =
     directionsProvider === "google"
       ? "Google Directions API"
@@ -207,7 +328,7 @@ export default function SystemSettings() {
         <div>
           <h1 className="text-lg font-semibold text-foreground">System Settings</h1>
           <p className="mt-1 text-sm text-muted">
-            Configure how often patrol devices send GPS while live tracking is active.
+            Configure map response rings, patrol GPS intervals, and dispatch routing.
           </p>
         </div>
 
@@ -222,6 +343,42 @@ export default function SystemSettings() {
             {success}
           </p>
         )}
+
+        <SettingCard
+          title="Call response radius circles"
+          description="Up to five distance rings around each incident marker on the map. Enable a circle, set its radius in kilometers, and pick a color. The largest enabled ring also sets how far dispatch searches for nearby units."
+        >
+          <ReadOnlyValue
+            label="Active rings"
+            value={loading ? "Loading..." : radiusSummary || "—"}
+          />
+
+          <form onSubmit={handleSaveRadius} className="mt-4 space-y-2">
+            {radiusRingSlots.map((slot, index) => (
+              <RadiusCircleRow
+                key={`radius-slot-${index}`}
+                index={index}
+                slot={slot}
+                disabled={loading || savingRadius}
+                onChange={(next) => updateRadiusSlot(index, next)}
+              />
+            ))}
+
+            <p className="pt-1 text-[11px] text-muted">
+              Distances: {MIN_RADIUS_KM}–{MAX_RADIUS_KM} km per circle. Each enabled
+              circle must use a different distance. Maximum {MAX_INCIDENT_RADIUS_CIRCLES}{" "}
+              circles.
+            </p>
+
+            <button
+              type="submit"
+              disabled={loading || savingRadius}
+              className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+            >
+              {savingRadius ? "Saving..." : "Save radius circles"}
+            </button>
+          </form>
+        </SettingCard>
 
         <SettingCard
           title="Mobile location updates"
