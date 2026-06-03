@@ -390,7 +390,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
         {hasActiveCalls && (
           <div className="pointer-events-none absolute inset-y-0 left-0 z-[500] w-[min(100%,380px)]">
-            <div className="pointer-events-auto h-full shadow-2xl">
+            <div className="pointer-events-auto h-full w-full">
               <CallResponsePanel
                 callResponses={callResponses}
                 selectedCallId={selectedCallId ?? callResponses[0]?.id}
@@ -413,7 +413,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
         {showPatrolStatus && !selectedPatrol && !hasActiveCalls && (
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
-            <div className="pointer-events-auto h-full shadow-2xl">
+            <div className="pointer-events-auto h-full w-full">
               <PatrolStatusListPanel
                 locations={latestLocations}
                 selectedPatrolKey={selectedPatrolKey}
@@ -427,7 +427,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
         {selectedPatrol && !hasActiveCalls && (
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
-            <div className="pointer-events-auto h-full shadow-2xl">
+            <div className="pointer-events-auto h-full w-full">
               <PatrolDetailPanel
                 location={selectedPatrol}
                 showPatrolStatus={showPatrolStatus}
