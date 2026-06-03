@@ -305,7 +305,7 @@ export default function SystemSettings() {
                 selected={directionsProvider === "google"}
                 title="Google Directions API"
                 badge="Advanced"
-                description="Traffic-aware routing with turn-by-turn directions and live delay estimates (similar to Google Maps). Requires GOOGLE_MAPS_API_KEY in Vercel. Falls back to OSRM if Google is temporarily unavailable."
+                description="Traffic-aware routing with turn-by-turn directions and live delay estimates (similar to Google Maps). Requires GOOGLE_MAPS_API_KEY in Vercel with server-side access — do not use HTTP referrer restrictions on this key (use API restriction to Directions API only, or IP addresses). Falls back to OSRM if Google is temporarily unavailable."
                 disabled={!googleMapsConfigured}
                 onSelect={() => setDirectionsProvider("google")}
               />

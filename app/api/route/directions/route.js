@@ -77,7 +77,10 @@ async function fetchGoogleRoute(fromLat, fromLon, toLat, toLon, apiKey) {
   const data = await response.json();
 
   if (data.status !== "OK" || !data.routes?.[0]) {
-    throw new Error(data.error_message || "Google Directions failed");
+    const err = new Error(data.error_message || "Google Directions failed");
+    err.googleStatus = data.status;
+    err.googleMessage = data.error_message || null;
+    throw err;
   }
 
   const route = data.routes[0];
@@ -152,9 +155,13 @@ export async function POST(request) {
     if (useGoogle) {
       try {
         const fallback = await fetchOsrmRoute(fromLat, fromLon, toLat, toLon);
+        const googleHint = err?.googleMessage || err?.message;
+        const trafficNote = googleHint
+          ? `Google routing failed (${googleHint}). Showing OSRM route without live traffic.`
+          : "Google routing failed; showing road route without live traffic.";
         return NextResponse.json({
           ...fallback,
-          trafficNote: "Google routing failed; showing road route without live traffic.",
+          trafficNote,
         });
       } catch {
         /* continue */
