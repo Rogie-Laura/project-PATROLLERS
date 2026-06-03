@@ -10,6 +10,7 @@ import {
   formatStepDistance,
   formatStepDuration,
 } from "@/lib/formatRoute";
+import { CLOSURE_OUTCOMES } from "@/lib/callResponseOutcomes";
 
 const ZONE_STYLES = {
   "1km": "bg-red-500/20 text-red-300 border-red-500/40",
@@ -32,7 +33,7 @@ export default function CallResponsePanel({
   callResponses,
   selectedCallId,
   onSelectCall,
-  onRemoveCall,
+  onCloseCall,
   latestLocations,
   highlightedUnitKey,
   onHighlightUnit,
@@ -47,6 +48,20 @@ export default function CallResponsePanel({
   }, [selectedCall, latestLocations, dispatchMaxRadiusM]);
 
   const [routeByUnit, setRouteByUnit] = useState({});
+  const [showCloseForm, setShowCloseForm] = useState(false);
+  const [closureOutcome, setClosureOutcome] = useState(
+    CLOSURE_OUTCOMES[0].value
+  );
+  const [closureRemarks, setClosureRemarks] = useState("");
+  const [closing, setClosing] = useState(false);
+  const [closeError, setCloseError] = useState("");
+
+  useEffect(() => {
+    setShowCloseForm(false);
+    setClosureOutcome(CLOSURE_OUTCOMES[0].value);
+    setClosureRemarks("");
+    setCloseError("");
+  }, [selectedCallId]);
 
   useEffect(() => {
     setRouteByUnit({});
@@ -110,6 +125,24 @@ export default function CallResponsePanel({
     dispatchRoute.callId === selectedCallId &&
     dispatchRoute.steps?.length > 0;
 
+  async function handleConfirmClose() {
+    if (!selectedCall) return;
+    setClosing(true);
+    setCloseError("");
+
+    try {
+      await onCloseCall?.(selectedCall.id, {
+        outcome: closureOutcome,
+        remarks: closureRemarks.trim(),
+      });
+      setShowCloseForm(false);
+    } catch (err) {
+      setCloseError(err.message ?? "Could not close incident.");
+    } finally {
+      setClosing(false);
+    }
+  }
+
   return (
     <aside className="flex h-full w-full max-w-[380px] flex-col border-r border-border/60 bg-card/95 backdrop-blur-sm">
       <div className="border-b border-border/60 px-4 py-3">
@@ -151,13 +184,76 @@ export default function CallResponsePanel({
           <p className="line-clamp-2 text-[11px] font-medium text-foreground">
             {selectedCall.label}
           </p>
-          <button
-            type="button"
-            onClick={() => onRemoveCall(selectedCall.id)}
-            className="mt-1 text-[10px] text-muted underline hover:text-red-300"
-          >
-            Remove this incident
-          </button>
+
+          {!showCloseForm ? (
+            <button
+              type="button"
+              onClick={() => setShowCloseForm(true)}
+              className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-300 transition hover:bg-red-500/20"
+            >
+              End incident
+            </button>
+          ) : (
+            <div className="mt-2 space-y-2 rounded-lg border border-border/60 bg-background/50 p-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                Response outcome
+              </p>
+              <select
+                value={closureOutcome}
+                disabled={closing}
+                onChange={(e) => setClosureOutcome(e.target.value)}
+                className="w-full rounded-md border border-border/70 bg-background/80 px-2 py-1.5 text-[11px] text-foreground outline-none focus:border-accent"
+              >
+                {CLOSURE_OUTCOMES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              {closureOutcome === "other" && (
+                <div>
+                  <label className="mb-1 block text-[10px] text-muted">
+                    Please specify
+                  </label>
+                  <textarea
+                    value={closureRemarks}
+                    disabled={closing}
+                    onChange={(e) => setClosureRemarks(e.target.value)}
+                    rows={3}
+                    placeholder="Describe what happened and police response…"
+                    className="w-full resize-none rounded-md border border-border/70 bg-background/80 px-2 py-1.5 text-[11px] text-foreground outline-none focus:border-accent"
+                  />
+                </div>
+              )}
+
+              {closeError && (
+                <p className="text-[10px] text-red-400">{closeError}</p>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={closing}
+                  onClick={() => {
+                    setShowCloseForm(false);
+                    setCloseError("");
+                  }}
+                  className="flex-1 rounded-md border border-border/60 px-2 py-1.5 text-[10px] font-medium text-muted hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={closing}
+                  onClick={handleConfirmClose}
+                  className="flex-1 rounded-md bg-red-600 px-2 py-1.5 text-[10px] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {closing ? "Saving…" : "Close incident"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -9,9 +9,14 @@ import CallResponsePanel from "@/components/CallResponsePanel";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
-import { createCallResponse, getUnitKey } from "@/lib/dispatchUnits";
+import { getUnitKey } from "@/lib/dispatchUnits";
+import { callResponseFromRow } from "@/lib/callResponses";
 import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
+import {
+  clearCallResponseSession,
+  useCallResponseSession,
+} from "@/lib/useCallResponseSession";
 import { staleThresholdMs } from "@/lib/connectionState";
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
@@ -51,10 +56,17 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [callResponseOpen, setCallResponseOpen] = useState(false);
   const [callResponsePlace, setCallResponsePlace] = useState(null);
   const [callResponses, setCallResponses] = useState([]);
-  const [selectedCallId, setSelectedCallId] = useState(null);
+  const [callResponsesLoaded, setCallResponsesLoaded] = useState(false);
+  const {
+    selectedCallId,
+    setSelectedCallId,
+    dispatchRoute,
+    setDispatchRoute,
+    highlightedUnitKey,
+    setHighlightedUnitKey,
+    hydrated: callUiHydrated,
+  } = useCallResponseSession();
   const [flyToCallId, setFlyToCallId] = useState(null);
-  const [highlightedUnitKey, setHighlightedUnitKey] = useState(null);
-  const [dispatchRoute, setDispatchRoute] = useState(null);
   const [intervalSeconds, setIntervalSeconds] = useState(1800);
   const [mapRadiusSlots, setMapRadiusSlots] = useState(createDefaultRadiusRingSlots);
   const [dispatchMaxRadiusM, setDispatchMaxRadiusM] = useState(6000);
@@ -100,6 +112,86 @@ export default function MonitorDashboard({ user, onLogout }) {
     );
     if (updated) setSelectedPatrol(updated);
   }, [latestLocations, selectedPatrolKey]);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/call-responses?status=active")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data?.callResponses) return;
+        setCallResponses(data.callResponses);
+        setCallResponsesLoaded(true);
+      })
+      .catch(() => {
+        if (active) setCallResponsesLoaded(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!callResponsesLoaded || !callUiHydrated) return;
+
+    setSelectedCallId((prev) => {
+      if (prev && callResponses.some((c) => c.id === prev)) return prev;
+      return callResponses[0]?.id ?? null;
+    });
+  }, [callResponses, callResponsesLoaded, callUiHydrated, setSelectedCallId]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("call_responses_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "call_responses" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const row = callResponseFromRow(payload.new);
+            if (!row || row.status !== "active") return;
+            setCallResponses((prev) => {
+              if (prev.some((c) => c.id === row.id)) return prev;
+              return [...prev, row];
+            });
+            return;
+          }
+
+          if (payload.eventType === "UPDATE") {
+            const row = callResponseFromRow(payload.new);
+            if (!row) return;
+            if (row.status === "closed") {
+              setCallResponses((prev) => {
+                const next = prev.filter((c) => c.id !== row.id);
+                setSelectedCallId((current) => {
+                  if (current !== row.id) return current;
+                  return next[0]?.id ?? null;
+                });
+                return next;
+              });
+              setDispatchRoute((route) =>
+                route?.callId === row.id ? null : route
+              );
+              setHighlightedUnitKey(null);
+              return;
+            }
+            setCallResponses((prev) => {
+              const idx = prev.findIndex((c) => c.id === row.id);
+              if (idx === -1) return [...prev, row];
+              const next = [...prev];
+              next[idx] = row;
+              return next;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, setSelectedCallId, setDispatchRoute, setHighlightedUnitKey]);
 
   useEffect(() => {
     let active = true;
@@ -162,19 +254,55 @@ export default function MonitorDashboard({ user, onLogout }) {
     };
   }, [supabase]);
 
-  function handleAddCallResponse(place) {
-    const entry = createCallResponse(place);
-    setCallResponses((prev) => [...prev, entry]);
-    setSelectedCallId(entry.id);
-    setFlyToCallId(entry.id);
-    setCallResponseOpen(false);
-    setCallResponsePlace(null);
-    setSelectedPatrol(null);
-    setDispatchRoute(null);
-    setHighlightedUnitKey(null);
+  async function handleAddCallResponse(place) {
+    setError("");
+
+    try {
+      const res = await fetch("/api/call-responses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: place.latitude,
+          longitude: place.longitude,
+          label: place.displayName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save call response.");
+      }
+
+      const entry = data.callResponse;
+      setCallResponses((prev) => {
+        if (prev.some((c) => c.id === entry.id)) return prev;
+        return [...prev, entry];
+      });
+      setSelectedCallId(entry.id);
+      setFlyToCallId(entry.id);
+      setCallResponseOpen(false);
+      setCallResponsePlace(null);
+      setSelectedPatrol(null);
+      setDispatchRoute(null);
+      setHighlightedUnitKey(null);
+    } catch (err) {
+      setError(err.message ?? "Could not save call response.");
+    }
   }
 
-  function handleRemoveCall(callId) {
+  async function handleCloseCall(callId, { outcome, remarks }) {
+    setError("");
+
+    const res = await fetch(`/api/call-responses/${callId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "close", outcome, remarks }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error ?? "Could not close incident.");
+    }
+
     setCallResponses((prev) => {
       const next = prev.filter((c) => c.id !== callId);
       if (selectedCallId === callId) {
@@ -199,11 +327,13 @@ export default function MonitorDashboard({ user, onLogout }) {
 
   async function handleSignOut() {
     setSigningOut(true);
+    clearCallResponseSession();
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     onLogout();
   }
 
-  const hasActiveCalls = callResponses.length > 0;
+  const hasActiveCalls =
+    callResponsesLoaded && callUiHydrated && callResponses.length > 0;
 
   return (
     <main className="flex h-dvh flex-col bg-background">
@@ -269,7 +399,7 @@ export default function MonitorDashboard({ user, onLogout }) {
                   setFlyToCallId(id);
                   setDispatchRoute(null);
                 }}
-                onRemoveCall={handleRemoveCall}
+                onCloseCall={handleCloseCall}
                 latestLocations={latestLocations}
                 highlightedUnitKey={highlightedUnitKey}
                 onHighlightUnit={handleHighlightUnit}
