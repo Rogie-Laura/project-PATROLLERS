@@ -23,9 +23,44 @@ function ReadOnlyValue({ label, value }) {
   );
 }
 
+function DirectionsOption({ selected, title, badge, description, onSelect, disabled }) {
+  return (
+    <label
+      className={`flex cursor-pointer gap-3 rounded-lg border px-3 py-3 transition ${
+        selected
+          ? "border-accent/50 bg-accent/10"
+          : "border-border/50 bg-background/40 hover:border-border hover:bg-background/60"
+      } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
+    >
+      <input
+        type="radio"
+        name="directions_provider"
+        checked={selected}
+        disabled={disabled}
+        onChange={onSelect}
+        className="mt-1 shrink-0 accent-accent"
+      />
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-foreground">{title}</span>
+          {badge && (
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">
+              {badge}
+            </span>
+          )}
+        </span>
+        <span className="mt-1 block text-xs leading-relaxed text-muted">
+          {description}
+        </span>
+      </span>
+    </label>
+  );
+}
+
 export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingDirections, setSavingDirections] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -33,6 +68,8 @@ export default function SystemSettings() {
   const [intervalLabel, setIntervalLabel] = useState("");
   const [minSeconds, setMinSeconds] = useState(30);
   const [maxSeconds, setMaxSeconds] = useState(86400);
+  const [directionsProvider, setDirectionsProvider] = useState("osrm");
+  const [googleMapsConfigured, setGoogleMapsConfigured] = useState(false);
 
   const [value, setValue] = useState("30");
   const [unit, setUnit] = useState("minutes");
@@ -43,6 +80,8 @@ export default function SystemSettings() {
     setIntervalLabel(settings.interval_label ?? "");
     setMinSeconds(settings.min_seconds ?? 30);
     setMaxSeconds(settings.max_seconds ?? 86400);
+    setDirectionsProvider(settings.directions_provider ?? "osrm");
+    setGoogleMapsConfigured(Boolean(settings.google_maps_configured));
 
     if (seconds % 60 === 0 && seconds >= 60) {
       setUnit("minutes");
@@ -106,6 +145,39 @@ export default function SystemSettings() {
       setSaving(false);
     }
   }
+
+  async function handleSaveDirections(event) {
+    event.preventDefault();
+    setSavingDirections(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directions_provider: directionsProvider }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save routing settings.");
+      }
+
+      applySettings(data.settings);
+      setSuccess("Routing provider saved. New dispatch routes will use this engine.");
+    } catch (err) {
+      setError(err.message ?? "Could not save routing settings.");
+    } finally {
+      setSavingDirections(false);
+    }
+  }
+
+  const directionsLabel =
+    directionsProvider === "google"
+      ? "Google Directions API"
+      : "OSRM (OpenStreetMap)";
 
   const maxMinutes = Math.floor(maxSeconds / 60);
   const minMinutes = Math.max(1, Math.ceil(minSeconds / 60));
@@ -207,6 +279,53 @@ export default function SystemSettings() {
             phones already logged in may need to re-enter their token or restart live
             tracking to pick up a new interval.
           </p>
+        </SettingCard>
+
+        <SettingCard
+          title="Dispatch directions"
+          description="Choose which routing engine powers driving ETA and turn-by-turn routes in call response dispatch."
+        >
+          <ReadOnlyValue
+            label="Current provider"
+            value={loading ? "Loading..." : directionsLabel}
+          />
+
+          <form onSubmit={handleSaveDirections} className="mt-4 space-y-3">
+            <fieldset className="space-y-2" disabled={loading || savingDirections}>
+              <legend className="sr-only">Directions provider</legend>
+
+              <DirectionsOption
+                selected={directionsProvider === "osrm"}
+                title="OSRM"
+                description="Standard routing using OpenStreetMap road data. Free, no API key required, and works immediately. ETA is based on road distance and speed limits — no live traffic layer."
+                onSelect={() => setDirectionsProvider("osrm")}
+              />
+
+              <DirectionsOption
+                selected={directionsProvider === "google"}
+                title="Google Directions API"
+                badge="Advanced"
+                description="Traffic-aware routing with turn-by-turn directions and live delay estimates (similar to Google Maps). Requires GOOGLE_MAPS_API_KEY in Vercel. Falls back to OSRM if Google is temporarily unavailable."
+                disabled={!googleMapsConfigured}
+                onSelect={() => setDirectionsProvider("google")}
+              />
+            </fieldset>
+
+            {!googleMapsConfigured && (
+              <p className="text-[11px] leading-relaxed text-amber-400/90">
+                Google Directions is disabled until GOOGLE_MAPS_API_KEY is set in
+                Vercel environment variables.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || savingDirections}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+            >
+              {savingDirections ? "Saving..." : "Save routing provider"}
+            </button>
+          </form>
         </SettingCard>
 
         <SettingCard

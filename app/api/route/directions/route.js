@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { decodeGooglePolyline } from "@/lib/googlePolyline";
 import { stripHtml } from "@/lib/formatRoute";
+import {
+  DIRECTIONS_PROVIDER,
+  getDirectionsProvider,
+  isGoogleMapsConfigured,
+} from "@/lib/mobile/systemSettings";
 
 const OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
 
@@ -56,7 +61,7 @@ async function fetchOsrmRoute(fromLat, fromLon, toLat, toLon) {
     coordinates,
     steps,
     trafficNote:
-      "Route follows roads (no live traffic layer). Add GOOGLE_MAPS_API_KEY in Vercel for Google traffic ETA.",
+      "Route follows OpenStreetMap roads. No live traffic data — ETA is based on road distance and speed limits.",
   };
 }
 
@@ -132,15 +137,19 @@ export async function POST(request) {
   }
 
   const googleKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
+  const preferredProvider = await getDirectionsProvider();
+  const useGoogle =
+    preferredProvider === DIRECTIONS_PROVIDER.google &&
+    isGoogleMapsConfigured();
 
   try {
-    const result = googleKey
+    const result = useGoogle
       ? await fetchGoogleRoute(fromLat, fromLon, toLat, toLon, googleKey)
       : await fetchOsrmRoute(fromLat, fromLon, toLat, toLon);
 
     return NextResponse.json(result);
   } catch (err) {
-    if (googleKey) {
+    if (useGoogle) {
       try {
         const fallback = await fetchOsrmRoute(fromLat, fromLon, toLat, toLon);
         return NextResponse.json({

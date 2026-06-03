@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { ADMIN_ROLES } from "@/lib/mobile/adminRoles";
 import {
+  DIRECTIONS_PROVIDER,
   formatIntervalLabel,
-  getLocationIntervalSeconds,
+  getSystemSettings,
+  isGoogleMapsConfigured,
   MAX_LOCATION_INTERVAL_SECONDS,
   MIN_LOCATION_INTERVAL_SECONDS,
+  normalizeDirectionsProvider,
   parseIntervalInput,
+  updateDirectionsProvider,
   updateLocationIntervalSeconds,
 } from "@/lib/mobile/systemSettings";
 
@@ -20,14 +24,20 @@ function requireAdmin(user) {
   return null;
 }
 
-function settingsPayload(seconds) {
-  const clamped = Math.round(seconds);
+function settingsPayload(settings) {
+  const seconds = Math.round(settings.location_interval_seconds);
+  const directionsProvider = normalizeDirectionsProvider(
+    settings.directions_provider
+  );
+
   return {
-    location_interval_seconds: clamped,
-    location_interval_minutes: Math.max(1, Math.ceil(clamped / 60)),
-    interval_label: formatIntervalLabel(clamped),
+    location_interval_seconds: seconds,
+    location_interval_minutes: Math.max(1, Math.ceil(seconds / 60)),
+    interval_label: formatIntervalLabel(seconds),
     min_seconds: MIN_LOCATION_INTERVAL_SECONDS,
     max_seconds: MAX_LOCATION_INTERVAL_SECONDS,
+    directions_provider: directionsProvider,
+    google_maps_configured: isGoogleMapsConfigured(),
   };
 }
 
@@ -36,11 +46,11 @@ export async function GET() {
   const denied = requireAdmin(user);
   if (denied) return denied;
 
-  const seconds = await getLocationIntervalSeconds();
+  const settings = await getSystemSettings();
 
   return NextResponse.json({
     ok: true,
-    settings: settingsPayload(seconds),
+    settings: settingsPayload(settings),
   });
 }
 
@@ -56,33 +66,77 @@ export async function PATCH(request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  let seconds;
+  const hasInterval =
+    body?.location_interval_seconds != null ||
+    body?.value != null ||
+    body?.unit != null;
+  const hasDirections = body?.directions_provider != null;
 
-  if (body?.location_interval_seconds != null) {
-    const direct = parseIntervalInput(body.location_interval_seconds, "seconds");
-    if (direct.error) {
-      return NextResponse.json({ error: direct.error }, { status: 400 });
-    }
-    seconds = direct.seconds;
-  } else {
-    const unit = body?.unit === "minutes" ? "minutes" : "seconds";
-    const parsed = parseIntervalInput(body?.value, unit);
-    if (parsed.error) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
-    }
-    seconds = parsed.seconds;
-  }
-
-  try {
-    await updateLocationIntervalSeconds(seconds, user.id);
-  } catch (error) {
+  if (!hasInterval && !hasDirections) {
     return NextResponse.json(
-      { error: error.message ?? "Could not save settings." },
-      { status: 500 }
+      { error: "No settings to update." },
+      { status: 400 }
     );
   }
 
-  const saved = await getLocationIntervalSeconds();
+  if (hasInterval) {
+    let seconds;
+
+    if (body?.location_interval_seconds != null) {
+      const direct = parseIntervalInput(body.location_interval_seconds, "seconds");
+      if (direct.error) {
+        return NextResponse.json({ error: direct.error }, { status: 400 });
+      }
+      seconds = direct.seconds;
+    } else {
+      const unit = body?.unit === "minutes" ? "minutes" : "seconds";
+      const parsed = parseIntervalInput(body?.value, unit);
+      if (parsed.error) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
+      seconds = parsed.seconds;
+    }
+
+    try {
+      await updateLocationIntervalSeconds(seconds, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error.message ?? "Could not save interval." },
+        { status: 500 }
+      );
+    }
+  }
+
+  if (hasDirections) {
+    const provider = normalizeDirectionsProvider(body.directions_provider);
+    if (!Object.values(DIRECTIONS_PROVIDER).includes(provider)) {
+      return NextResponse.json(
+        { error: "Invalid directions provider." },
+        { status: 400 }
+      );
+    }
+
+    if (provider === DIRECTIONS_PROVIDER.google && !isGoogleMapsConfigured()) {
+      return NextResponse.json(
+        {
+          error:
+            "Google Directions requires GOOGLE_MAPS_API_KEY in Vercel environment variables.",
+        },
+        { status: 400 }
+      );
+    }
+
+    try {
+      await updateDirectionsProvider(provider, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error.message ?? "Could not save directions provider." },
+        { status: 500 }
+      );
+    }
+  }
+
+  const saved = await getSystemSettings();
 
   return NextResponse.json({
     ok: true,
