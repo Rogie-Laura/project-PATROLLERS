@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import AddCallResponsePopover from "@/components/AddCallResponsePopover";
 import { isAdminRole } from "@/lib/mobile/adminRoles";
@@ -121,6 +122,82 @@ function PhoneCallIcon() {
   );
 }
 
+function LayersIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden
+    >
+      <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" />
+      <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
+      <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
+    </svg>
+  );
+}
+
+function MapOverlayModal({ open, onClose }) {
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[800] flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-border/70 bg-card shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="map-overlay-title"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
+          <div>
+            <h2 id="map-overlay-title" className="text-base font-semibold text-foreground">
+              Map Overlay
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              Configure additional map layers and overlays.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted transition hover:bg-background/80 hover:text-foreground"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="px-5 py-6">
+          <div className="rounded-lg border border-dashed border-accent/30 bg-accent/5 px-4 py-8 text-center">
+            <p className="text-sm font-medium text-accent">Ongoing development</p>
+            <p className="mt-2 text-xs leading-relaxed text-muted">
+              Map overlay settings will be available here in a future update.
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end border-t border-border/60 px-5 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PatrolStatusToggle({ enabled, onChange }) {
   return (
     <button
@@ -183,9 +260,11 @@ export default function MapToolbar({
 }) {
   const isAdmin = isAdminRole(user?.role);
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const [mapOverlayOpen, setMapOverlayOpen] = useState(false);
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-card/90 px-3 py-1 sm:px-4">
+      <MapOverlayModal open={mapOverlayOpen} onClose={() => setMapOverlayOpen(false)} />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {
           const isActive = item.id === active;
@@ -278,6 +357,15 @@ export default function MapToolbar({
                 enabled={showPatrolStatus}
                 onChange={onShowPatrolStatusChange}
               />
+              <button
+                type="button"
+                onClick={() => setMapOverlayOpen(true)}
+                title="Map overlay settings"
+                className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[10px] font-medium text-muted transition hover:bg-background/80 hover:text-foreground sm:text-[11px]"
+              >
+                <LayersIcon />
+                <span className="whitespace-nowrap">Map Overlay</span>
+              </button>
             </>
           )}
         </>
