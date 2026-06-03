@@ -33,6 +33,53 @@ function CopyButton({ value }) {
   );
 }
 
+function TokenQrModal({ token, label, onClose }) {
+  if (!token) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="w-full max-w-sm rounded-xl border border-border/70 bg-card p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="token-qr-title"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 id="token-qr-title" className="text-sm font-semibold text-foreground">
+              Scan on mobile
+            </h3>
+            {label && <p className="mt-1 text-xs text-muted">{label}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted transition hover:bg-background/80 hover:text-foreground"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <TokenQrCode value={token} size={200} />
+        </div>
+        <p className="mt-4 text-center text-xs text-muted">
+          Open PATROLLERS on the phone and tap Scan QR Code.
+        </p>
+        <div className="mt-3 flex items-start justify-center gap-2">
+          <code className="break-all font-mono text-[11px] text-foreground">{token}</code>
+          <CopyButton value={token} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AccessTokensManager() {
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +88,7 @@ export default function AccessTokensManager() {
   const [creating, setCreating] = useState(false);
   const [createdToken, setCreatedToken] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [qrView, setQrView] = useState(null);
 
   const loadTokens = useCallback(async () => {
     setError("");
@@ -123,6 +171,12 @@ export default function AccessTokensManager() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <TokenQrModal
+        token={qrView?.token}
+        label={qrView?.label}
+        onClose={() => setQrView(null)}
+      />
+
       <div className="border-b border-border/60 bg-card/90 px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -158,18 +212,24 @@ export default function AccessTokensManager() {
           {createdToken && (
             <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-4 text-sm text-foreground">
               <p className="font-medium text-accent">New access token created</p>
-              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
-                <TokenQrCode value={createdToken.token} size={140} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-muted">
-                    Scan this QR code on the mobile app, or copy the token below.
-                  </p>
-                  <div className="mt-2 flex items-start gap-2">
-                    <code className="break-all font-mono text-xs sm:text-sm">{createdToken.token}</code>
-                    <CopyButton value={createdToken.token} />
-                  </div>
-                </div>
+              <p className="mt-1 text-xs text-muted">
+                Share this token with the mobile device via QR scan or copy.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setQrView({ token: createdToken.token, label: createdToken.label })
+                  }
+                  className="rounded-md border border-accent/30 bg-background/40 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/10"
+                >
+                  View QR Code
+                </button>
+                <CopyButton value={createdToken.token} />
               </div>
+              <code className="mt-2 block break-all font-mono text-xs sm:text-sm">
+                {createdToken.token}
+              </code>
             </div>
           )}
 
@@ -192,7 +252,7 @@ export default function AccessTokensManager() {
                   <thead className="border-b border-border/70 bg-background/40 text-xs uppercase tracking-wide text-muted">
                     <tr>
                       <th className="px-4 py-3 font-medium">Label</th>
-                      <th className="px-4 py-3 font-medium">QR / Token</th>
+                      <th className="px-4 py-3 font-medium">Access Token</th>
                       <th className="px-4 py-3 font-medium">Mobile User / Unit</th>
                       <th className="px-4 py-3 font-medium">Created By</th>
                       <th className="px-4 py-3 font-medium">Status</th>
@@ -207,20 +267,19 @@ export default function AccessTokensManager() {
                           <div className="mt-1 text-[11px] text-muted">{formatDate(row.created_at)}</div>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                            <TokenQrCode
-                              value={row.is_active ? row.token : undefined}
-                              size={96}
-                              className={row.is_active ? "" : "opacity-40"}
-                            />
-                            <div className="flex min-w-0 items-start gap-2">
-                              <code className="break-all font-mono text-[11px] sm:text-xs">{row.token}</code>
-                              <CopyButton value={row.token} />
-                            </div>
+                          <div className="flex flex-wrap items-start gap-2">
+                            <code className="break-all font-mono text-[11px] sm:text-xs">{row.token}</code>
+                            <CopyButton value={row.token} />
+                            {row.is_active && (
+                              <button
+                                type="button"
+                                onClick={() => setQrView({ token: row.token, label: row.label })}
+                                className="rounded-md border border-accent/30 px-2 py-1 text-[10px] font-medium text-accent transition hover:bg-accent/10 sm:text-[11px]"
+                              >
+                                View QR Code
+                              </button>
+                            )}
                           </div>
-                          {!row.is_active && (
-                            <p className="mt-1 text-[10px] text-muted">QR disabled while token is inactive.</p>
-                          )}
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div>{formatTokenUser(row.mobile_user)}</div>

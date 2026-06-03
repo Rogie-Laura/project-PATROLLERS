@@ -57,7 +57,9 @@ export default function PatrolDetailPanel({
   const connectionLabel =
     CONNECTION_LABEL[connectionState] || CONNECTION_LABEL.strong;
 
-  const personnel = normalizePersonnelOnBoard(location.personnel_on_board);
+  const personnel = normalizePersonnelOnBoard(location.personnel_on_board).filter(
+    (person) => person.onDuty
+  );
   const title =
     location.patrol_name ||
     location.mobile_plate ||
@@ -132,11 +134,6 @@ export default function PatrolDetailPanel({
                     <p className="text-xs font-medium text-foreground">
                       {person.rankName || "Unnamed"}
                     </p>
-                    {person.onDuty && (
-                      <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium text-accent">
-                        On duty
-                      </span>
-                    )}
                   </div>
                   <p className="mt-0.5 text-[11px] text-muted">
                     {person.mobileNumber || "No mobile number"}
