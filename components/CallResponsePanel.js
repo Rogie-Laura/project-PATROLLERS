@@ -11,6 +11,7 @@ import {
   formatStepDuration,
 } from "@/lib/formatRoute";
 import { CLOSURE_OUTCOMES } from "@/lib/callResponseOutcomes";
+import { getDispatchResultLabel } from "@/lib/callResponseDispatches";
 
 const ZONE_STYLES = {
   "1km": "bg-red-500/20 text-red-300 border-red-500/40",
@@ -77,9 +78,11 @@ export default function CallResponsePanel({
 
   const dispatchByRole = useMemo(() => {
     const map = new Map();
+    // dispatches arrive newest-first; keep the newest entry per unit+role.
     for (const entry of dispatches) {
       if (!entry?.accessTokenId || !entry?.role) continue;
-      map.set(`${entry.accessTokenId}:${entry.role}`, entry);
+      const key = `${entry.accessTokenId}:${entry.role}`;
+      if (!map.has(key)) map.set(key, entry);
     }
     return map;
   }, [dispatches]);
@@ -412,15 +415,29 @@ export default function CallResponsePanel({
                     </div>
 
                     {[primaryDispatch, cordonDispatch]
-                      .filter((entry) => isActiveDispatch(entry))
+                      .filter(
+                        (entry) =>
+                          isActiveDispatch(entry) ||
+                          entry?.status === "completed"
+                      )
                       .map((entry) => {
                         const ackTime = formatDispatchTime(entry.acknowledgedAt);
                         const arrivedTime = formatDispatchTime(entry.arrivedAt);
+                        const closedTime = formatDispatchTime(entry.closedAt);
                         const arrivedLabel =
                           entry.role === "primary"
                             ? "Arrived at crime scene"
                             : "Arrived at position";
-                        if (!ackTime && !arrivedTime) return null;
+                        const resultLabel =
+                          entry.status === "completed"
+                            ? getDispatchResultLabel(
+                                entry.result,
+                                entry.resultNote
+                              )
+                            : null;
+                        if (!ackTime && !arrivedTime && !resultLabel) {
+                          return null;
+                        }
                         return (
                           <div
                             key={entry.id}
@@ -436,6 +453,17 @@ export default function CallResponsePanel({
                               <div className="flex items-center gap-1 text-sky-300">
                                 <span className="font-semibold">{arrivedLabel}</span>
                                 <span className="text-muted">· {arrivedTime}</span>
+                              </div>
+                            )}
+                            {resultLabel && (
+                              <div className="flex items-start gap-1 text-amber-300">
+                                <span className="shrink-0 font-semibold">
+                                  Resolved
+                                </span>
+                                <span className="text-muted">
+                                  · {resultLabel}
+                                  {closedTime ? ` (${closedTime})` : ""}
+                                </span>
                               </div>
                             )}
                           </div>

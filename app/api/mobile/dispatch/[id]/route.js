@@ -45,14 +45,49 @@ export async function PATCH(request, { params }) {
   }
 
   const action = String(body?.action ?? "").trim().toLowerCase();
+  const admin = createAdminClient();
+
+  if (action === "close") {
+    const result = String(body?.result ?? "").trim();
+    if (!result) {
+      return NextResponse.json(
+        { error: "A result is required to close the dispatch." },
+        { status: 400 }
+      );
+    }
+    const note = String(body?.note ?? "").trim();
+
+    const { data, error } = await admin.rpc("close_mobile_dispatch", {
+      p_token: auth.token,
+      p_dispatch_id: id,
+      p_result: result,
+      p_note: note || null,
+    });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (data?.ok === false) {
+      return NextResponse.json(
+        { error: data.error ?? "Could not close dispatch alert." },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      dispatchId: data.dispatch_id,
+      status: data.status,
+    });
+  }
+
   if (action !== "accept" && action !== "decline" && action !== "arrive") {
     return NextResponse.json(
-      { error: "action must be accept, decline, or arrive." },
+      { error: "action must be accept, decline, arrive, or close." },
       { status: 400 }
     );
   }
 
-  const admin = createAdminClient();
   const { data, error } = await admin.rpc("respond_mobile_dispatch", {
     p_token: auth.token,
     p_dispatch_id: id,
