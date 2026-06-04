@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -22,7 +22,10 @@ import {
   MAX_BOUNDS_VISCOSITY,
   PHILIPPINES_BOUNDS,
 } from "@/lib/mapBounds";
-import { createPatrolMarkerIcon } from "@/lib/patrolMarker";
+import {
+  createPatrolMarkerIcon,
+  getPatrolMarkerSizePx,
+} from "@/lib/patrolMarker";
 import { getConnectionState } from "@/lib/connectionState";
 
 function patrolKey(location) {
@@ -202,26 +205,80 @@ function SyncBasemapZoom({ maxZoom }) {
   return null;
 }
 
+/** Keeps patrol marker icons in sync when the user zooms the map. */
+function useMapZoomLevel() {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  useEffect(() => {
+    const sync = () => setZoom(map.getZoom());
+    map.on("zoom zoomend", sync);
+    return () => {
+      map.off("zoom zoomend", sync);
+    };
+  }, [map]);
+
+  return zoom;
+}
+
+function PatrolMarkersLayer({
+  locations,
+  showPatrolStatus,
+  selectedPatrolKey,
+  highlightedUnitKey,
+  nowMs,
+  staleMs,
+  onSelectPatrol,
+}) {
+  const mapZoom = useMapZoomLevel();
+
+  return (
+    <>
+      {locations.map((loc, index) => {
+        const key = patrolKey(loc) ?? index;
+        const connectionState = getConnectionState(loc, nowMs, staleMs);
+        return (
+          <PatrolMarker
+            key={key}
+            location={loc}
+            showPatrolStatus={showPatrolStatus}
+            connectionState={connectionState}
+            mapZoom={mapZoom}
+            isSelected={selectedPatrolKey != null && selectedPatrolKey === key}
+            isDispatchHighlight={
+              highlightedUnitKey != null && highlightedUnitKey === key
+            }
+            onSelect={onSelectPatrol}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 function PatrolMarker({
   location,
   showPatrolStatus,
   isSelected,
   isDispatchHighlight,
   connectionState,
+  mapZoom,
   onSelect,
 }) {
   const markerRef = useRef(null);
   const latitude = toNumber(location.latitude);
   const longitude = toNumber(location.longitude);
   const position = [latitude, longitude];
+  const markerSizePx = getPatrolMarkerSizePx(mapZoom);
   const icon = useMemo(
     () =>
       createPatrolMarkerIcon(
         location.patrol_status,
         showPatrolStatus,
-        connectionState
+        connectionState,
+        markerSizePx
       ),
-    [location.patrol_status, showPatrolStatus, connectionState]
+    [location.patrol_status, showPatrolStatus, connectionState, markerSizePx]
   );
 
   useEffect(() => {
@@ -307,23 +364,15 @@ export default function PatrolMap({
         />
         <DispatchRouteLayer dispatchRoute={dispatchRoute} />
 
-        {parsedLocations.map((loc, index) => {
-          const key = patrolKey(loc) ?? index;
-          const connectionState = getConnectionState(loc, nowMs, staleMs);
-          return (
-            <PatrolMarker
-              key={key}
-              location={loc}
-              showPatrolStatus={showPatrolStatus}
-              connectionState={connectionState}
-              isSelected={selectedPatrolKey != null && selectedPatrolKey === key}
-              isDispatchHighlight={
-                highlightedUnitKey != null && highlightedUnitKey === key
-              }
-              onSelect={onSelectPatrol}
-            />
-          );
-        })}
+        <PatrolMarkersLayer
+          locations={parsedLocations}
+          showPatrolStatus={showPatrolStatus}
+          selectedPatrolKey={selectedPatrolKey}
+          highlightedUnitKey={highlightedUnitKey}
+          nowMs={nowMs}
+          staleMs={staleMs}
+          onSelectPatrol={onSelectPatrol}
+        />
       </MapContainer>
     </div>
   );

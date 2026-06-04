@@ -143,7 +143,7 @@ export default function SystemSettings() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [intervalSeconds, setIntervalSeconds] = useState(1800);
+  const [intervalSeconds, setIntervalSeconds] = useState(180);
   const [intervalLabel, setIntervalLabel] = useState("");
   const [minSeconds, setMinSeconds] = useState(30);
   const [maxSeconds, setMaxSeconds] = useState(86400);
@@ -156,7 +156,7 @@ export default function SystemSettings() {
   const [unit, setUnit] = useState("minutes");
 
   const applySettings = useCallback((settings) => {
-    const seconds = settings.location_interval_seconds ?? 1800;
+    const seconds = settings.location_interval_seconds ?? 180;
     setIntervalSeconds(seconds);
     setIntervalLabel(settings.interval_label ?? "");
     setMinSeconds(settings.min_seconds ?? 30);

@@ -1,6 +1,30 @@
--- Mobile devices insert location via Supabase RPC (anon key + token validation).
--- Replaces per-ping Vercel /api/mobile/location for scale.
+-- 3-minute mobile location interval + latest-per-unit query for map polling.
 
+update public.system_settings
+set
+  location_interval_seconds = 180,
+  updated_at = now()
+where id = 'default';
+
+-- Latest row per patrol unit (for monitoring map refresh without Realtime per insert).
+create or replace function public.get_latest_patrol_locations()
+returns setof public.location_updates
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select distinct on (access_token_id) *
+  from public.location_updates
+  where access_token_id is not null
+    and coalesce(tracking_active, true) = true
+  order by access_token_id, created_at desc;
+$$;
+
+revoke all on function public.get_latest_patrol_locations() from public;
+grant execute on function public.get_latest_patrol_locations() to anon, authenticated;
+
+-- Align RPC fallback interval with 3 minutes.
 create or replace function public.insert_mobile_location(
   p_token text,
   p_latitude double precision,

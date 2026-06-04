@@ -42,7 +42,7 @@ export default function PatrolDetailPanel({
   location,
   showPatrolStatus = true,
   nowMs = Date.now(),
-  intervalSeconds = 1800,
+  intervalSeconds = 180,
   onClose,
 }) {
   if (!location) return null;

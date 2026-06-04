@@ -221,12 +221,16 @@ export default function MonitorDashboard({ user, onLogout }) {
   }, []);
 
   useEffect(() => {
+    let active = true;
+
     async function loadLocations() {
       const { data, error: fetchError } = await supabase
         .from("location_updates")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(500);
+
+      if (!active) return;
 
       if (fetchError) {
         setError(fetchError.message);
@@ -244,12 +248,26 @@ export default function MonitorDashboard({ user, onLogout }) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "location_updates" },
         (payload) => {
-          setLocations((prev) => [payload.new, ...prev]);
+          const row = payload.new;
+          if (!row) return;
+
+          setLocations((prev) => [row, ...prev]);
+
+          // Stop-tracking beacon: hide marker as soon as the INSERT arrives.
+          if (row.tracking_active === false) {
+            const unitKey = row.access_token_id || row.user_id;
+            setSelectedPatrol((current) => {
+              if (!current || !unitKey) return current;
+              const currentKey = current.access_token_id || current.user_id;
+              return currentKey === unitKey ? null : current;
+            });
+          }
         }
       )
       .subscribe();
 
     return () => {
+      active = false;
       supabase.removeChannel(channel);
     };
   }, [supabase]);

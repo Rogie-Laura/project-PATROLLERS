@@ -107,7 +107,7 @@ export default function PatrolStatusListPanel({
   selectedPatrolKey,
   onSelectPatrol,
   nowMs = Date.now(),
-  intervalSeconds = 1800,
+  intervalSeconds = 180,
 }) {
   const staleMs = staleThresholdMs(intervalSeconds);
   const visibility = locations.filter(
