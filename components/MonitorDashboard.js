@@ -321,6 +321,11 @@ export default function MonitorDashboard({ user, onLogout }) {
   useEffect(() => {
     if (!selectedCallId) return;
     loadDispatchesForCall(selectedCallId);
+    const id = setInterval(
+      () => loadDispatchesForCall(selectedCallId),
+      8000
+    );
+    return () => clearInterval(id);
   }, [selectedCallId]);
 
   async function handleAddCallResponse(place) {

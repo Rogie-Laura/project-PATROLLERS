@@ -18,6 +18,18 @@ const ZONE_STYLES = {
   "6km": "bg-slate-500/15 text-slate-300 border-slate-500/40",
 };
 
+function formatDispatchTime(iso) {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 async function fetchDrivingRoute(fromLat, fromLon, toLat, toLon) {
   const res = await fetch("/api/route/directions", {
     method: "POST",
@@ -398,6 +410,37 @@ export default function CallResponsePanel({
                             : "Conduct dragnet"}
                       </button>
                     </div>
+
+                    {[primaryDispatch, cordonDispatch]
+                      .filter((entry) => isActiveDispatch(entry))
+                      .map((entry) => {
+                        const ackTime = formatDispatchTime(entry.acknowledgedAt);
+                        const arrivedTime = formatDispatchTime(entry.arrivedAt);
+                        const arrivedLabel =
+                          entry.role === "primary"
+                            ? "Arrived at crime scene"
+                            : "Arrived at position";
+                        if (!ackTime && !arrivedTime) return null;
+                        return (
+                          <div
+                            key={entry.id}
+                            className="mt-1.5 space-y-0.5 rounded border border-border/50 bg-background/40 px-2 py-1 text-[9px]"
+                          >
+                            {ackTime && (
+                              <div className="flex items-center gap-1 text-emerald-300">
+                                <span className="font-semibold">Acknowledged</span>
+                                <span className="text-muted">· {ackTime}</span>
+                              </div>
+                            )}
+                            {arrivedTime && (
+                              <div className="flex items-center gap-1 text-sky-300">
+                                <span className="font-semibold">{arrivedLabel}</span>
+                                <span className="text-muted">· {arrivedTime}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
 
                     <dl className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
                       <dt className="text-muted">Distance</dt>
