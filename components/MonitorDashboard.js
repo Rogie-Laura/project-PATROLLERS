@@ -363,6 +363,39 @@ export default function MonitorDashboard({ user, onLogout }) {
     }
   }
 
+  async function handleCancelCall(callId) {
+    setError("");
+
+    const res = await fetch(`/api/call-responses/${callId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel" }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error ?? "Could not cancel response.");
+    }
+
+    setCallResponses((prev) => {
+      const next = prev.filter((c) => c.id !== callId);
+      if (selectedCallId === callId) {
+        const fallback = next[0]?.id ?? null;
+        setSelectedCallId(fallback);
+        setFlyToCallId(fallback);
+      }
+      return next;
+    });
+    setDispatchRoute((route) => (route?.callId === callId ? null : route));
+    setHighlightedUnitKey(null);
+    setDispatchByCallId((prev) => {
+      const next = { ...prev };
+      delete next[callId];
+      return next;
+    });
+    setDispatchNotice("Response cancelled. Mobile units notified.");
+  }
+
   async function handleCloseCall(callId, { outcome, remarks }) {
     setError("");
 
@@ -483,6 +516,7 @@ export default function MonitorDashboard({ user, onLogout }) {
                   setDispatchNotice("");
                 }}
                 onCloseCall={handleCloseCall}
+                onCancelCall={handleCancelCall}
                 latestLocations={latestLocations}
                 highlightedUnitKey={highlightedUnitKey}
                 onHighlightUnit={handleHighlightUnit}

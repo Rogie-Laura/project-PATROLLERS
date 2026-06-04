@@ -51,5 +51,6 @@ export async function GET(request) {
   return NextResponse.json({
     ok: true,
     dispatches: data?.dispatches ?? [],
+    terminations: data?.terminations ?? [],
   });
 }

@@ -47,6 +47,7 @@ export default function CallResponsePanel({
   selectedCallId,
   onSelectCall,
   onCloseCall,
+  onCancelCall,
   latestLocations,
   highlightedUnitKey,
   onHighlightUnit,
@@ -187,6 +188,28 @@ export default function CallResponsePanel({
     dispatchRoute.callId === selectedCallId &&
     dispatchRoute.steps?.length > 0;
 
+  const hasResolved = dispatches.some((entry) => entry?.status === "completed");
+
+  async function handleCancelResponse() {
+    if (!selectedCall) return;
+    const confirmed = window.confirm(
+      "Cancel this response? All alerted mobile units will be notified and their alarms will stop."
+    );
+    if (!confirmed) return;
+
+    setClosing(true);
+    setCloseError("");
+
+    try {
+      await onCancelCall?.(selectedCall.id);
+      setShowCloseForm(false);
+    } catch (err) {
+      setCloseError(err.message ?? "Could not cancel response.");
+    } finally {
+      setClosing(false);
+    }
+  }
+
   async function handleConfirmClose() {
     if (!selectedCall) return;
     setClosing(true);
@@ -252,17 +275,33 @@ export default function CallResponsePanel({
           )}
 
           {!showCloseForm ? (
-            <button
-              type="button"
-              onClick={() => setShowCloseForm(true)}
-              className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-300 transition hover:bg-red-500/20"
-            >
-              End incident
-            </button>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                disabled={closing}
+                onClick={handleCancelResponse}
+                className="rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                {closing ? "Cancelling…" : "Cancel Response"}
+              </button>
+              {hasResolved && (
+                <button
+                  type="button"
+                  disabled={closing}
+                  onClick={() => {
+                    setShowCloseForm(true);
+                    setCloseError("");
+                  }}
+                  className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                >
+                  Mark as Completed
+                </button>
+              )}
+            </div>
           ) : (
             <div className="mt-2 space-y-2 rounded-lg border border-border/60 bg-background/50 p-2.5">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                Response outcome
+                Mark as completed — outcome
               </p>
               <select
                 value={closureOutcome}
@@ -315,7 +354,7 @@ export default function CallResponsePanel({
                   onClick={handleConfirmClose}
                   className="flex-1 rounded-md bg-red-600 px-2 py-1.5 text-[10px] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                 >
-                  {closing ? "Saving…" : "Close incident"}
+                  {closing ? "Saving…" : "Confirm completed"}
                 </button>
               </div>
             </div>
