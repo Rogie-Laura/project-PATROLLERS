@@ -70,6 +70,8 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [intervalSeconds, setIntervalSeconds] = useState(1800);
   const [mapRadiusSlots, setMapRadiusSlots] = useState(createDefaultRadiusRingSlots);
   const [dispatchMaxRadiusM, setDispatchMaxRadiusM] = useState(6000);
+  const [dispatchByCallId, setDispatchByCallId] = useState({});
+  const [dispatchNotice, setDispatchNotice] = useState("");
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const incidentRadiusRings = useMemo(
@@ -272,6 +274,49 @@ export default function MonitorDashboard({ user, onLogout }) {
     };
   }, [supabase]);
 
+  async function loadDispatchesForCall(callId) {
+    if (!callId) return;
+
+    try {
+      const res = await fetch(`/api/call-responses/${callId}/dispatch`);
+      const data = await res.json();
+      if (!res.ok) return;
+
+      setDispatchByCallId((prev) => ({
+        ...prev,
+        [callId]: data.dispatches ?? [],
+      }));
+    } catch {
+      // Non-blocking refresh for dispatch badges.
+    }
+  }
+
+  async function alertNearbyUnits(callId) {
+    setDispatchNotice("");
+
+    const res = await fetch(`/api/call-responses/${callId}/dispatch`, {
+      method: "POST",
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error ?? "Could not alert mobile units.");
+    }
+
+    setDispatchByCallId((prev) => ({
+      ...prev,
+      [callId]: data.dispatches ?? [],
+    }));
+    setDispatchNotice(data.message ?? "Mobile units alerted.");
+
+    return data;
+  }
+
+  useEffect(() => {
+    if (!selectedCallId) return;
+    loadDispatchesForCall(selectedCallId);
+  }, [selectedCallId]);
+
   async function handleAddCallResponse(place) {
     setError("");
 
@@ -302,6 +347,15 @@ export default function MonitorDashboard({ user, onLogout }) {
       setSelectedPatrol(null);
       setDispatchRoute(null);
       setHighlightedUnitKey(null);
+
+      try {
+        await alertNearbyUnits(entry.id);
+      } catch (alertErr) {
+        setError(
+          alertErr.message ??
+            "Incident saved, but nearby mobile units could not be alerted."
+        );
+      }
     } catch (err) {
       setError(err.message ?? "Could not save call response.");
     }
@@ -332,6 +386,11 @@ export default function MonitorDashboard({ user, onLogout }) {
     });
     setDispatchRoute((route) => (route?.callId === callId ? null : route));
     setHighlightedUnitKey(null);
+    setDispatchByCallId((prev) => {
+      const next = { ...prev };
+      delete next[callId];
+      return next;
+    });
   }
 
   function handleHighlightUnit(unitKey) {
@@ -352,6 +411,9 @@ export default function MonitorDashboard({ user, onLogout }) {
 
   const hasActiveCalls =
     callResponsesLoaded && callUiHydrated && callResponses.length > 0;
+
+  const activeCallId = selectedCallId ?? callResponses[0]?.id ?? null;
+  const activeDispatches = activeCallId ? dispatchByCallId[activeCallId] ?? [] : [];
 
   return (
     <main className="flex h-dvh flex-col bg-background">
@@ -411,11 +473,12 @@ export default function MonitorDashboard({ user, onLogout }) {
             <div className="pointer-events-auto h-full w-full">
               <CallResponsePanel
                 callResponses={callResponses}
-                selectedCallId={selectedCallId ?? callResponses[0]?.id}
+                selectedCallId={activeCallId}
                 onSelectCall={(id) => {
                   setSelectedCallId(id);
                   setFlyToCallId(id);
                   setDispatchRoute(null);
+                  setDispatchNotice("");
                 }}
                 onCloseCall={handleCloseCall}
                 latestLocations={latestLocations}
@@ -424,6 +487,16 @@ export default function MonitorDashboard({ user, onLogout }) {
                 onShowRoute={handleShowRoute}
                 dispatchRoute={dispatchRoute}
                 dispatchMaxRadiusM={dispatchMaxRadiusM}
+                dispatches={activeDispatches}
+                dispatchNotice={dispatchNotice}
+                onAlertNearbyUnits={async () => {
+                  if (!activeCallId) return;
+                  try {
+                    await alertNearbyUnits(activeCallId);
+                  } catch (err) {
+                    setError(err.message ?? "Could not alert mobile units.");
+                  }
+                }}
               />
             </div>
           </div>

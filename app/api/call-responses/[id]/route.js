@@ -5,6 +5,7 @@ import {
   getClosureOutcomeLabel,
 } from "@/lib/callResponseOutcomes";
 import { callResponseFromRow } from "@/lib/callResponses";
+import { cancelPendingDispatches } from "@/lib/createCallResponseDispatches";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +84,12 @@ export async function PATCH(request, { params }) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  try {
+    await cancelPendingDispatches(admin, id);
+  } catch (cancelError) {
+    console.error("cancel dispatch alerts failed:", cancelError);
   }
 
   return NextResponse.json({

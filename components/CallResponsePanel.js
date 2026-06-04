@@ -40,6 +40,9 @@ export default function CallResponsePanel({
   onShowRoute,
   dispatchRoute,
   dispatchMaxRadiusM = 6000,
+  dispatches = [],
+  dispatchNotice = "",
+  onAlertNearbyUnits,
 }) {
   const selectedCall = callResponses.find((c) => c.id === selectedCallId);
   const nearbyUnits = useMemo(() => {
@@ -55,6 +58,16 @@ export default function CallResponsePanel({
   const [closureRemarks, setClosureRemarks] = useState("");
   const [closing, setClosing] = useState(false);
   const [closeError, setCloseError] = useState("");
+  const [alerting, setAlerting] = useState(false);
+
+  const dispatchByTokenId = useMemo(() => {
+    const map = new Map();
+    for (const entry of dispatches) {
+      if (!entry?.accessTokenId) continue;
+      map.set(entry.accessTokenId, entry);
+    }
+    return map;
+  }, [dispatches]);
 
   useEffect(() => {
     setShowCloseForm(false);
@@ -143,6 +156,16 @@ export default function CallResponsePanel({
     }
   }
 
+  async function handleAlertNearbyUnits() {
+    if (!onAlertNearbyUnits) return;
+    setAlerting(true);
+    try {
+      await onAlertNearbyUnits();
+    } finally {
+      setAlerting(false);
+    }
+  }
+
   return (
     <aside className="flex h-full w-full max-w-[380px] flex-col border-r border-border/60 bg-card/95 backdrop-blur-sm">
       <div className="border-b border-border/60 px-4 py-3">
@@ -153,7 +176,7 @@ export default function CallResponsePanel({
           Active incidents ({callResponses.length})
         </h2>
         <p className="mt-1 text-[10px] text-muted">
-          Left panel: nearest units, driving route &amp; turn-by-turn (Google-style).
+          Nearest mobile gets proceed alert; other nearby units get dragnet alert.
         </p>
       </div>
 
@@ -184,6 +207,20 @@ export default function CallResponsePanel({
           <p className="line-clamp-2 text-[11px] font-medium text-foreground">
             {selectedCall.label}
           </p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={alerting || nearbyUnits.length === 0}
+              onClick={handleAlertNearbyUnits}
+              className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+            >
+              {alerting ? "Alerting…" : "Alert nearby units"}
+            </button>
+            {dispatchNotice && (
+              <span className="text-[10px] text-accent">{dispatchNotice}</span>
+            )}
+          </div>
 
           {!showCloseForm ? (
             <button
@@ -284,6 +321,15 @@ export default function CallResponsePanel({
               const drivingDistance = route?.distanceLabel ?? unit.distanceLabel;
               const eta =
                 route?.etaLabel ?? `~${unit.etaMinutesEstimate} min (est.)`;
+              const dispatchEntry = dispatchByTokenId.get(
+                unit.location.access_token_id
+              );
+              const dispatchBadge =
+                dispatchEntry?.role === "primary"
+                  ? "Proceed alert"
+                  : dispatchEntry?.role === "cordon"
+                    ? "Dragnet alert"
+                    : null;
 
               return (
                 <li key={unit.key}>
@@ -314,6 +360,20 @@ export default function CallResponsePanel({
                         {unit.zone}
                       </span>
                     </div>
+
+                    {dispatchBadge && (
+                      <p
+                        className={`mt-1 text-[9px] font-semibold uppercase tracking-wide ${
+                          dispatchEntry.role === "primary"
+                            ? "text-red-300"
+                            : "text-amber-200"
+                        }`}
+                      >
+                        {dispatchBadge}
+                        {dispatchEntry.status === "accepted" ? " · Responded" : ""}
+                        {dispatchEntry.status === "pending" ? " · Sent" : ""}
+                      </p>
+                    )}
 
                     <dl className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
                       <dt className="text-muted">Distance</dt>
