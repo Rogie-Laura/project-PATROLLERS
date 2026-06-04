@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { callResponseFromRow } from "@/lib/callResponses";
+import { DISPATCH_ROLE } from "@/lib/callResponseDispatches";
 import {
-  createCallResponseDispatches,
+  createSingleUnitDispatch,
   listCallResponseDispatches,
 } from "@/lib/createCallResponseDispatches";
-import { maxEnabledRadiusMeters } from "@/lib/incidentRadiusRings";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSystemSettings } from "@/lib/mobile/systemSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +42,24 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Missing incident id." }, { status: 400 });
   }
 
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+
+  const accessTokenId = String(body?.access_token_id ?? "").trim();
+  const role = body?.role === DISPATCH_ROLE.cordon ? DISPATCH_ROLE.cordon : DISPATCH_ROLE.primary;
+  const distanceMeters = Number(body?.distance_meters);
+
+  if (!accessTokenId) {
+    return NextResponse.json(
+      { error: "access_token_id is required." },
+      { status: 400 }
+    );
+  }
+
   const admin = createAdminClient();
   const { data: callResponse, error: fetchError } = await admin
     .from("call_responses")
@@ -62,20 +79,26 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Incident is not active." }, { status: 409 });
   }
 
-  const settings = await getSystemSettings();
-  const maxRadiusM = maxEnabledRadiusMeters(settings.incident_radius_rings) ?? 6000;
-
   try {
-    const result = await createCallResponseDispatches(
+    const result = await createSingleUnitDispatch(
       admin,
       callResponseFromRow(callResponse),
-      { maxRadiusM, replacePending: true }
+      {
+        accessTokenId,
+        role,
+        distanceMeters: Number.isFinite(distanceMeters) ? distanceMeters : null,
+      }
     );
 
-    return NextResponse.json(result);
+    const dispatches = await listCallResponseDispatches(admin, id);
+
+    return NextResponse.json({
+      ...result,
+      dispatches,
+    });
   } catch (err) {
     return NextResponse.json(
-      { error: err.message ?? "Could not alert mobile units." },
+      { error: err.message ?? "Could not alert mobile unit." },
       { status: 500 }
     );
   }

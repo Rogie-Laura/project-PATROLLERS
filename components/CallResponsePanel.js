@@ -42,13 +42,16 @@ export default function CallResponsePanel({
   dispatchMaxRadiusM = 6000,
   dispatches = [],
   dispatchNotice = "",
-  onAlertNearbyUnits,
+  onDispatchUnit,
 }) {
   const selectedCall = callResponses.find((c) => c.id === selectedCallId);
-  const nearbyUnits = useMemo(() => {
+  const availableUnits = useMemo(() => {
     if (!selectedCall) return [];
-    return rankNearbyUnits(selectedCall, latestLocations, dispatchMaxRadiusM);
-  }, [selectedCall, latestLocations, dispatchMaxRadiusM]);
+    const units = latestLocations.filter(
+      (loc) => loc.access_token_id && loc.tracking_active !== false
+    );
+    return rankNearbyUnits(selectedCall, units, Number.MAX_SAFE_INTEGER);
+  }, [selectedCall, latestLocations]);
 
   const [routeByUnit, setRouteByUnit] = useState({});
   const [showCloseForm, setShowCloseForm] = useState(false);
@@ -58,13 +61,13 @@ export default function CallResponsePanel({
   const [closureRemarks, setClosureRemarks] = useState("");
   const [closing, setClosing] = useState(false);
   const [closeError, setCloseError] = useState("");
-  const [alerting, setAlerting] = useState(false);
+  const [dispatchingKey, setDispatchingKey] = useState(null);
 
-  const dispatchByTokenId = useMemo(() => {
+  const dispatchByRole = useMemo(() => {
     const map = new Map();
     for (const entry of dispatches) {
-      if (!entry?.accessTokenId) continue;
-      map.set(entry.accessTokenId, entry);
+      if (!entry?.accessTokenId || !entry?.role) continue;
+      map.set(`${entry.accessTokenId}:${entry.role}`, entry);
     }
     return map;
   }, [dispatches]);
@@ -83,11 +86,7 @@ export default function CallResponsePanel({
   useEffect(() => {
     if (!selectedCall) return;
 
-    const topUnits = rankNearbyUnits(
-      selectedCall,
-      latestLocations,
-      dispatchMaxRadiusM
-    ).slice(0, 6);
+    const topUnits = availableUnits.slice(0, 8);
     if (topUnits.length === 0) return;
 
     let cancelled = false;
@@ -131,7 +130,32 @@ export default function CallResponsePanel({
     return () => {
       cancelled = true;
     };
-  }, [selectedCallId, latestLocations, selectedCall, dispatchMaxRadiusM]);
+  }, [selectedCallId, latestLocations, selectedCall, availableUnits]);
+
+  function dispatchStatusLabel(entry) {
+    if (!entry) return null;
+    if (entry.status === "accepted") return "Responded";
+    if (entry.status === "pending") return "Sent";
+    return null;
+  }
+
+  async function handleDispatchUnit(unit, role) {
+    if (!onDispatchUnit || !selectedCall || !unit.location.access_token_id) return;
+
+    const dispatchKey = `${unit.location.access_token_id}:${role}`;
+    setDispatchingKey(dispatchKey);
+
+    try {
+      await onDispatchUnit(
+        selectedCall.id,
+        unit.location.access_token_id,
+        role,
+        unit.distanceMeters
+      );
+    } finally {
+      setDispatchingKey(null);
+    }
+  }
 
   const showDirections =
     dispatchRoute &&
@@ -156,16 +180,6 @@ export default function CallResponsePanel({
     }
   }
 
-  async function handleAlertNearbyUnits() {
-    if (!onAlertNearbyUnits) return;
-    setAlerting(true);
-    try {
-      await onAlertNearbyUnits();
-    } finally {
-      setAlerting(false);
-    }
-  }
-
   return (
     <aside className="flex h-full w-full max-w-[380px] flex-col border-r border-border/60 bg-card/95 backdrop-blur-sm">
       <div className="border-b border-border/60 px-4 py-3">
@@ -176,7 +190,7 @@ export default function CallResponsePanel({
           Active incidents ({callResponses.length})
         </h2>
         <p className="mt-1 text-[10px] text-muted">
-          Nearest mobile gets proceed alert; other nearby units get dragnet alert.
+          Available mobile units — send respond or dragnet alert per unit.
         </p>
       </div>
 
@@ -208,19 +222,9 @@ export default function CallResponsePanel({
             {selectedCall.label}
           </p>
 
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={alerting || nearbyUnits.length === 0}
-              onClick={handleAlertNearbyUnits}
-              className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
-            >
-              {alerting ? "Alerting…" : "Alert nearby units"}
-            </button>
-            {dispatchNotice && (
-              <span className="text-[10px] text-accent">{dispatchNotice}</span>
-            )}
-          </div>
+          {dispatchNotice && (
+            <p className="mt-2 text-[10px] text-accent">{dispatchNotice}</p>
+          )}
 
           {!showCloseForm ? (
             <button
@@ -301,18 +305,15 @@ export default function CallResponsePanel({
           </p>
         )}
 
-        {selectedCall && nearbyUnits.length === 0 && (
+        {selectedCall && availableUnits.length === 0 && (
           <p className="py-4 text-center text-xs text-muted">
-            No mobile units within {(dispatchMaxRadiusM / 1000).toFixed(
-              dispatchMaxRadiusM % 1000 === 0 ? 0 : 1
-            )}{" "}
-            km of this incident.
+            No mobile units are currently tracking on the map.
           </p>
         )}
 
-        {selectedCall && nearbyUnits.length > 0 && (
+        {selectedCall && availableUnits.length > 0 && (
           <ul className="space-y-2">
-            {nearbyUnits.map((unit, index) => {
+            {availableUnits.map((unit, index) => {
               const route = routeByUnit[unit.key];
               const isHighlighted = highlightedUnitKey === unit.key;
               const isRouteActive =
@@ -321,15 +322,13 @@ export default function CallResponsePanel({
               const drivingDistance = route?.distanceLabel ?? unit.distanceLabel;
               const eta =
                 route?.etaLabel ?? `~${unit.etaMinutesEstimate} min (est.)`;
-              const dispatchEntry = dispatchByTokenId.get(
-                unit.location.access_token_id
-              );
-              const dispatchBadge =
-                dispatchEntry?.role === "primary"
-                  ? "Proceed alert"
-                  : dispatchEntry?.role === "cordon"
-                    ? "Dragnet alert"
-                    : null;
+              const tokenId = unit.location.access_token_id;
+              const primaryDispatch = dispatchByRole.get(`${tokenId}:primary`);
+              const cordonDispatch = dispatchByRole.get(`${tokenId}:cordon`);
+              const primaryStatus = dispatchStatusLabel(primaryDispatch);
+              const cordonStatus = dispatchStatusLabel(cordonDispatch);
+              const dispatchingPrimary = dispatchingKey === `${tokenId}:primary`;
+              const dispatchingCordon = dispatchingKey === `${tokenId}:cordon`;
 
               return (
                 <li key={unit.key}>
@@ -361,19 +360,32 @@ export default function CallResponsePanel({
                       </span>
                     </div>
 
-                    {dispatchBadge && (
-                      <p
-                        className={`mt-1 text-[9px] font-semibold uppercase tracking-wide ${
-                          dispatchEntry.role === "primary"
-                            ? "text-red-300"
-                            : "text-amber-200"
-                        }`}
+                    <div className="mt-2 grid grid-cols-2 gap-1">
+                      <button
+                        type="button"
+                        disabled={dispatchingPrimary}
+                        onClick={() => handleDispatchUnit(unit, "primary")}
+                        className="rounded border border-red-500/50 bg-red-500/10 px-2 py-1.5 text-[9px] font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
                       >
-                        {dispatchBadge}
-                        {dispatchEntry.status === "accepted" ? " · Responded" : ""}
-                        {dispatchEntry.status === "pending" ? " · Sent" : ""}
-                      </p>
-                    )}
+                        {dispatchingPrimary
+                          ? "Sending…"
+                          : primaryStatus
+                            ? `Respond · ${primaryStatus}`
+                            : "Respond to incident"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={dispatchingCordon}
+                        onClick={() => handleDispatchUnit(unit, "cordon")}
+                        className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-[9px] font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
+                      >
+                        {dispatchingCordon
+                          ? "Sending…"
+                          : cordonStatus
+                            ? `Dragnet · ${cordonStatus}`
+                            : "Conduct dragnet"}
+                      </button>
+                    </div>
 
                     <dl className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
                       <dt className="text-muted">Distance</dt>

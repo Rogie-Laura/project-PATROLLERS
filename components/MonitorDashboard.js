@@ -291,23 +291,29 @@ export default function MonitorDashboard({ user, onLogout }) {
     }
   }
 
-  async function alertNearbyUnits(callId) {
+  async function dispatchUnit(callId, accessTokenId, role, distanceMeters) {
     setDispatchNotice("");
 
     const res = await fetch(`/api/call-responses/${callId}/dispatch`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        access_token_id: accessTokenId,
+        role,
+        distance_meters: distanceMeters,
+      }),
     });
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error ?? "Could not alert mobile units.");
+      throw new Error(data.error ?? "Could not alert mobile unit.");
     }
 
     setDispatchByCallId((prev) => ({
       ...prev,
       [callId]: data.dispatches ?? [],
     }));
-    setDispatchNotice(data.message ?? "Mobile units alerted.");
+    setDispatchNotice(data.message ?? "Mobile unit alerted.");
 
     return data;
   }
@@ -347,15 +353,6 @@ export default function MonitorDashboard({ user, onLogout }) {
       setSelectedPatrol(null);
       setDispatchRoute(null);
       setHighlightedUnitKey(null);
-
-      try {
-        await alertNearbyUnits(entry.id);
-      } catch (alertErr) {
-        setError(
-          alertErr.message ??
-            "Incident saved, but nearby mobile units could not be alerted."
-        );
-      }
     } catch (err) {
       setError(err.message ?? "Could not save call response.");
     }
@@ -489,12 +486,11 @@ export default function MonitorDashboard({ user, onLogout }) {
                 dispatchMaxRadiusM={dispatchMaxRadiusM}
                 dispatches={activeDispatches}
                 dispatchNotice={dispatchNotice}
-                onAlertNearbyUnits={async () => {
-                  if (!activeCallId) return;
+                onDispatchUnit={async (callId, accessTokenId, role, distanceMeters) => {
                   try {
-                    await alertNearbyUnits(activeCallId);
+                    await dispatchUnit(callId, accessTokenId, role, distanceMeters);
                   } catch (err) {
-                    setError(err.message ?? "Could not alert mobile units.");
+                    setError(err.message ?? "Could not alert mobile unit.");
                   }
                 }}
               />
