@@ -517,7 +517,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           </div>
         )}
 
-        {selectedPatrol && !hasActiveCalls && (
+        {selectedPatrol && (
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
             <div className="pointer-events-auto h-full w-full">
               <PatrolDetailPanel
