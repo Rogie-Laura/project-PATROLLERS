@@ -45,9 +45,9 @@ export async function PATCH(request, { params }) {
   }
 
   const action = String(body?.action ?? "").trim().toLowerCase();
-  if (action !== "accept" && action !== "decline") {
+  if (action !== "accept" && action !== "decline" && action !== "arrive") {
     return NextResponse.json(
-      { error: "action must be accept or decline." },
+      { error: "action must be accept, decline, or arrive." },
       { status: 400 }
     );
   }

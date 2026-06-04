@@ -134,9 +134,19 @@ export default function CallResponsePanel({
 
   function dispatchStatusLabel(entry) {
     if (!entry) return null;
-    if (entry.status === "accepted") return "Responded";
+    if (entry.status === "arrived") return "Arrived";
+    if (entry.status === "accepted") return "Acknowledged";
     if (entry.status === "pending") return "Sent";
     return null;
+  }
+
+  function isActiveDispatch(entry) {
+    return (
+      entry &&
+      (entry.status === "pending" ||
+        entry.status === "accepted" ||
+        entry.status === "arrived")
+    );
   }
 
   async function handleDispatchUnit(unit, role) {
@@ -329,6 +339,8 @@ export default function CallResponsePanel({
               const cordonStatus = dispatchStatusLabel(cordonDispatch);
               const dispatchingPrimary = dispatchingKey === `${tokenId}:primary`;
               const dispatchingCordon = dispatchingKey === `${tokenId}:cordon`;
+              const hasActivePrimary = isActiveDispatch(primaryDispatch);
+              const hasActiveCordon = isActiveDispatch(cordonDispatch);
 
               return (
                 <li key={unit.key}>
@@ -363,9 +375,9 @@ export default function CallResponsePanel({
                     <div className="mt-2 grid grid-cols-2 gap-1">
                       <button
                         type="button"
-                        disabled={dispatchingPrimary}
+                        disabled={dispatchingPrimary || hasActiveCordon}
                         onClick={() => handleDispatchUnit(unit, "primary")}
-                        className="rounded border border-red-500/50 bg-red-500/10 px-2 py-1.5 text-[9px] font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                        className="rounded border border-red-500/50 bg-red-500/10 px-2 py-1.5 text-[9px] font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
                       >
                         {dispatchingPrimary
                           ? "Sending…"
@@ -375,9 +387,9 @@ export default function CallResponsePanel({
                       </button>
                       <button
                         type="button"
-                        disabled={dispatchingCordon}
+                        disabled={dispatchingCordon || hasActivePrimary}
                         onClick={() => handleDispatchUnit(unit, "cordon")}
-                        className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-[9px] font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-50"
+                        className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1.5 text-[9px] font-semibold text-amber-200 transition hover:bg-amber-500/20 disabled:opacity-40"
                       >
                         {dispatchingCordon
                           ? "Sending…"
