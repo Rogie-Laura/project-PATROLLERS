@@ -280,7 +280,7 @@ function BasemapPicker({ basemapId, onBasemapChange }) {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="flex min-w-0 shrink-0 items-center gap-1">
+    <div ref={rootRef} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -305,7 +305,7 @@ function BasemapPicker({ basemapId, onBasemapChange }) {
           id="basemap-options"
           role="group"
           aria-label="Map types"
-          className="flex shrink-0 items-center gap-0.5 rounded-md border border-border/60 bg-card/95 px-0.5 py-0.5 shadow-sm"
+          className="absolute left-0 top-full z-[750] mt-1 flex items-center gap-0.5 rounded-md border border-border/60 bg-card/95 px-0.5 py-0.5 shadow-lg"
         >
           {BASEMAPS.map((basemap) => {
             const isActive = basemap.id === basemapId;
@@ -352,7 +352,7 @@ export default function MapToolbar({
   const [mapOverlayOpen, setMapOverlayOpen] = useState(false);
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-card/90 px-3 py-1 sm:px-4">
+    <div className="relative z-[600] flex shrink-0 items-center gap-2 overflow-visible border-b border-border/60 bg-card/90 px-3 py-1 sm:px-4">
       <MapOverlayModal open={mapOverlayOpen} onClose={() => setMapOverlayOpen(false)} />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {
@@ -382,7 +382,7 @@ export default function MapToolbar({
         <>
           <ToolbarSeparator />
           <div
-            className="flex min-w-0 shrink-0 items-center gap-1"
+            className="flex min-w-0 shrink-0 items-center gap-1 overflow-visible"
             role="group"
             aria-label="Map basemap and call response"
           >
