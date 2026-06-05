@@ -541,7 +541,9 @@ export default function MonitorDashboard({ user, onLogout }) {
                   intervalSeconds={intervalSeconds}
                 />
               )}
-              {showLegend && <MapLegendOverlay />}
+              {showLegend && (
+                <MapLegendOverlay locations={latestLocations} />
+              )}
             </div>
           )}
         </div>

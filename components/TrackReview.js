@@ -230,7 +230,7 @@ export default function TrackReview({
                 {showStatistics && (
                   <MapStatisticsOverlay locations={points} nowMs={Date.now()} />
                 )}
-                {showLegend && <MapLegendOverlay />}
+                {showLegend && <MapLegendOverlay locations={points} />}
               </div>
             )}
           </>
