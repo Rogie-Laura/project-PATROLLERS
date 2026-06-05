@@ -198,37 +198,117 @@ function MapOverlayModal({ open, onClose }) {
   );
 }
 
-function PatrolStatusToggle({ enabled, onChange }) {
+function ViewIcon() {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      aria-label="View patrol status on map"
-      title="Show patrol status colors and labels on markers"
-      onClick={() => onChange(!enabled)}
-      className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1 transition hover:bg-background/80"
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0 opacity-80"
+      aria-hidden
     >
-      <span
-        className={`relative inline-flex h-4 w-7 shrink-0 rounded-full transition ${
-          enabled ? "bg-accent" : "bg-muted/50"
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function MapViewPicker({
+  showPatrolStatus,
+  onShowPatrolStatusChange,
+  showLegend,
+  onShowLegendChange,
+  showStatistics,
+  onShowStatisticsChange,
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  const activeCount = [showPatrolStatus, showLegend, showStatistics].filter(Boolean)
+    .length;
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function handlePointerDown(event) {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [open]);
+
+  const items = [
+    {
+      id: "patrolStatus",
+      label: "Patrol Status",
+      checked: showPatrolStatus,
+      onChange: onShowPatrolStatusChange,
+    },
+    {
+      id: "legend",
+      label: "Legend",
+      checked: showLegend,
+      onChange: onShowLegendChange,
+    },
+    {
+      id: "statistics",
+      label: "Statistics",
+      checked: showStatistics,
+      onChange: onShowStatisticsChange,
+    },
+  ];
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        aria-controls="map-view-options"
+        aria-label={`View map layers. ${activeCount} visible`}
+        title="View — patrol status, legend, statistics"
+        className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium leading-none transition sm:text-[11px] ${
+          open || activeCount > 0
+            ? "border-accent/50 bg-accent/15 text-accent"
+            : "border-border/60 bg-background/50 text-foreground hover:bg-background/80"
         }`}
-        aria-hidden
       >
-        <span
-          className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition ${
-            enabled ? "left-3.5" : "left-0.5"
-          }`}
-        />
-      </span>
-      <span
-        className={`whitespace-nowrap text-[10px] font-medium sm:text-[11px] ${
-          enabled ? "text-accent" : "text-muted"
-        }`}
-      >
-        Patrol Status
-      </span>
-    </button>
+        <ViewIcon />
+        <span className="whitespace-nowrap">View</span>
+        <ChevronDownIcon open={open} />
+      </button>
+
+      {open && (
+        <div
+          id="map-view-options"
+          role="group"
+          aria-label="Map view options"
+          className="absolute left-0 top-full z-[750] mt-1 min-w-[11rem] rounded-md border border-border/70 bg-card py-1 shadow-lg"
+        >
+          {items.map((item) => (
+            <label
+              key={item.id}
+              className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-[10px] font-medium text-foreground transition hover:bg-background/80 sm:text-[11px]"
+            >
+              <input
+                type="checkbox"
+                checked={item.checked}
+                onChange={(e) => item.onChange(e.target.checked)}
+                className="h-3.5 w-3.5 shrink-0 rounded border-border/80 accent-accent"
+              />
+              <span>{item.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -346,6 +426,10 @@ export default function MapToolbar({
   onAddIncidentMarker,
   showPatrolStatus = true,
   onShowPatrolStatusChange,
+  showLegend = true,
+  onShowLegendChange,
+  showStatistics = false,
+  onShowStatisticsChange,
 }) {
   const isAdmin = isAdminRole(user?.role);
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
@@ -419,12 +503,18 @@ export default function MapToolbar({
             )}
           </div>
 
-          {onShowPatrolStatusChange && (
+          {onShowPatrolStatusChange &&
+            onShowLegendChange &&
+            onShowStatisticsChange && (
             <>
               <ToolbarSeparator />
-              <PatrolStatusToggle
-                enabled={showPatrolStatus}
-                onChange={onShowPatrolStatusChange}
+              <MapViewPicker
+                showPatrolStatus={showPatrolStatus}
+                onShowPatrolStatusChange={onShowPatrolStatusChange}
+                showLegend={showLegend}
+                onShowLegendChange={onShowLegendChange}
+                showStatistics={showStatistics}
+                onShowStatisticsChange={onShowStatisticsChange}
               />
               <button
                 type="button"

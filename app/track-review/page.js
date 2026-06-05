@@ -6,7 +6,7 @@ import MonitorHeader from "@/components/MonitorHeader";
 import MapToolbar from "@/components/MapToolbar";
 import TrackReview from "@/components/TrackReview";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
-import { useShowPatrolStatus } from "@/lib/useShowPatrolStatus";
+import { useMapViewOptions } from "@/lib/useMapViewOptions";
 
 export default function TrackReviewPage() {
   const router = useRouter();
@@ -14,7 +14,14 @@ export default function TrackReviewPage() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
-  const [showPatrolStatus, setShowPatrolStatus] = useShowPatrolStatus();
+  const {
+    showPatrolStatus,
+    setShowPatrolStatus,
+    showLegend,
+    setShowLegend,
+    showStatistics,
+    setShowStatistics,
+  } = useMapViewOptions();
 
   useEffect(() => {
     let active = true;
@@ -75,8 +82,17 @@ export default function TrackReviewPage() {
         onBasemapChange={setBasemapId}
         showPatrolStatus={showPatrolStatus}
         onShowPatrolStatusChange={setShowPatrolStatus}
+        showLegend={showLegend}
+        onShowLegendChange={setShowLegend}
+        showStatistics={showStatistics}
+        onShowStatisticsChange={setShowStatistics}
       />
-      <TrackReview basemapId={basemapId} showPatrolStatus={showPatrolStatus} />
+      <TrackReview
+        basemapId={basemapId}
+        showPatrolStatus={showPatrolStatus}
+        showLegend={showLegend}
+        showStatistics={showStatistics}
+      />
     </main>
   );
 }

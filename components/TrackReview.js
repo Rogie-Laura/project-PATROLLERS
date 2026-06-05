@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
+import MapLegendOverlay from "@/components/MapLegendOverlay";
+import MapStatisticsOverlay from "@/components/MapStatisticsOverlay";
 
 const TrackReviewMap = dynamic(() => import("@/components/TrackReviewMap"), {
   ssr: false,
@@ -34,7 +36,12 @@ function deviceLabel(row) {
   );
 }
 
-export default function TrackReview({ basemapId, showPatrolStatus = true }) {
+export default function TrackReview({
+  basemapId,
+  showPatrolStatus = true,
+  showLegend = true,
+  showStatistics = false,
+}) {
   const supabase = useMemo(() => createClient(), []);
 
   const [devices, setDevices] = useState([]);
@@ -212,11 +219,21 @@ export default function TrackReview({ basemapId, showPatrolStatus = true }) {
             No location history for this unit in the selected time range.
           </div>
         ) : (
-          <TrackReviewMap
-            points={points}
-            basemapId={basemapId}
-            showPatrolStatus={showPatrolStatus}
-          />
+          <>
+            <TrackReviewMap
+              points={points}
+              basemapId={basemapId}
+              showPatrolStatus={showPatrolStatus}
+            />
+            {(showLegend || showStatistics) && (
+              <div className="pointer-events-none absolute bottom-4 left-4 z-[500] flex max-w-[min(100%,260px)] flex-col gap-2">
+                {showStatistics && (
+                  <MapStatisticsOverlay locations={points} nowMs={Date.now()} />
+                )}
+                {showLegend && <MapLegendOverlay />}
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
