@@ -25,6 +25,26 @@ function patrolKey(location) {
   return location.access_token_id || location.user_id || location.id;
 }
 
+function DetachPanelIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden
+    >
+      <path d="M15 3h6v6" />
+      <path d="M10 14 21 3" />
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    </svg>
+  );
+}
+
 function StatusGroup({
   title,
   color,
@@ -110,6 +130,8 @@ export default function PatrolStatusListPanel({
   intervalSeconds = 180,
   showHeader = true,
   embedded = false,
+  onDetach,
+  detachBlocked = false,
 }) {
   const staleMs = staleThresholdMs(intervalSeconds);
   const visibility = locations.filter(
@@ -127,13 +149,36 @@ export default function PatrolStatusListPanel({
     >
       {showHeader && (
         <div className="border-b border-border/60 px-4 py-3">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
-            Live overview
-          </p>
-          <h2 className="text-sm font-semibold text-foreground">Patrol Status</h2>
-          <p className="mt-1 text-[11px] text-muted">
-            {locations.length} active unit{locations.length === 1 ? "" : "s"} on map
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
+                Live overview
+              </p>
+              <h2 className="text-sm font-semibold text-foreground">Patrol Status</h2>
+              <p className="mt-1 text-[11px] text-muted">
+                {locations.length} active unit{locations.length === 1 ? "" : "s"} on map
+              </p>
+            </div>
+            {onDetach && (
+              <button
+                type="button"
+                onClick={onDetach}
+                title={
+                  detachBlocked
+                    ? "Allow pop-ups for this site to use a separate window from the detached panel"
+                    : "Detach to a movable panel (lock/unlock and Dock in the panel title bar)"
+                }
+                className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition ${
+                  detachBlocked
+                    ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                    : "border-border/60 text-muted hover:bg-background/80 hover:text-foreground"
+                }`}
+              >
+                <DetachPanelIcon />
+                <span className="whitespace-nowrap">Detach</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 

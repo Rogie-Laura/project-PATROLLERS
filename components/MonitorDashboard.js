@@ -93,7 +93,7 @@ export default function MonitorDashboard({ user, onLogout }) {
     externalOpen: patrolStatusExternalOpen,
     popoutActive: patrolStatusPopoutActive,
     popoutBlocked: patrolStatusPopoutBlocked,
-    togglePopout: togglePatrolStatusPopout,
+    openDetach: openPatrolStatusDetach,
     openExternal: openPatrolStatusExternal,
     closeDetach: closePatrolStatusDetach,
   } = usePatrolStatusPopout({
@@ -484,9 +484,6 @@ export default function MonitorDashboard({ user, onLogout }) {
           setShowPatrolStatus(value);
           if (!value) setSelectedPatrol(null);
         }}
-        patrolStatusPopoutActive={patrolStatusPopoutActive}
-        onPatrolStatusPopoutToggle={togglePatrolStatusPopout}
-        patrolStatusPopoutBlocked={patrolStatusPopoutBlocked}
       />
 
       <section className="relative min-h-0 flex-1">
@@ -565,8 +562,8 @@ export default function MonitorDashboard({ user, onLogout }) {
         {patrolStatusExternalOpen && showPatrolStatus && (
           <div className="pointer-events-none absolute bottom-4 right-4 z-[500] max-w-[240px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 text-[11px] text-muted shadow-lg backdrop-blur-sm">
             Patrol status is in a separate window. Use{" "}
-            <span className="font-medium text-foreground">Dock status</span> or close that
-            window.
+            <span className="font-medium text-foreground">Dock</span> in that window&apos;s title
+            bar, or close the window.
           </div>
         )}
 
@@ -582,6 +579,8 @@ export default function MonitorDashboard({ user, onLogout }) {
                 onSelectPatrol={setSelectedPatrol}
                 nowMs={nowMs}
                 intervalSeconds={intervalSeconds}
+                onDetach={openPatrolStatusDetach}
+                detachBlocked={patrolStatusPopoutBlocked}
               />
             </div>
           </div>
