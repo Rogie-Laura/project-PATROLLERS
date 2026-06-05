@@ -108,6 +108,8 @@ export default function PatrolStatusListPanel({
   onSelectPatrol,
   nowMs = Date.now(),
   intervalSeconds = 180,
+  showHeader = true,
+  embedded = false,
 }) {
   const staleMs = staleThresholdMs(intervalSeconds);
   const visibility = locations.filter(
@@ -118,16 +120,22 @@ export default function PatrolStatusListPanel({
   );
 
   return (
-    <aside className="flex h-full w-full flex-col border-l border-border/60 bg-card">
-      <div className="border-b border-border/60 px-4 py-3">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
-          Live overview
-        </p>
-        <h2 className="text-sm font-semibold text-foreground">Patrol Status</h2>
-        <p className="mt-1 text-[11px] text-muted">
-          {locations.length} active unit{locations.length === 1 ? "" : "s"} on map
-        </p>
-      </div>
+    <aside
+      className={`flex h-full w-full flex-col bg-card ${
+        embedded ? "" : "border-l border-border/60"
+      }`}
+    >
+      {showHeader && (
+        <div className="border-b border-border/60 px-4 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
+            Live overview
+          </p>
+          <h2 className="text-sm font-semibold text-foreground">Patrol Status</h2>
+          <p className="mt-1 text-[11px] text-muted">
+            {locations.length} active unit{locations.length === 1 ? "" : "s"} on map
+          </p>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <StatusGroup

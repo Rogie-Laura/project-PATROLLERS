@@ -3,8 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import PatrolStatusDetachFrame from "@/components/PatrolStatusDetachFrame";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
+import {
+  readDetachLocked,
+  writeDetachLocked,
+} from "@/lib/patrolStatusDetachStorage";
+import { useWindowDrag } from "@/lib/useWindowDrag";
 import {
   createPatrolStatusPopoutChannel,
   patrolUnitKey,
@@ -23,11 +29,23 @@ export default function PatrolStatusPopoutView() {
   const [intervalSeconds, setIntervalSeconds] = useState(180);
   const [selectedPatrolKey, setSelectedPatrolKey] = useState(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [locked, setLocked] = useState(false);
 
   const latestLocations = useMemo(
     () => locations.filter((loc) => loc.tracking_active !== false),
     [locations]
   );
+
+  const { onTitleBarPointerDown, moveBlocked } = useWindowDrag({ locked });
+
+  useEffect(() => {
+    setLocked(readDetachLocked());
+  }, []);
+
+  const handleLockedChange = useCallback((next) => {
+    setLocked(next);
+    writeDetachLocked(next);
+  }, []);
 
   const handleSelectPatrol = useCallback((location) => {
     const key = patrolUnitKey(location);
@@ -149,9 +167,9 @@ export default function PatrolStatusPopoutView() {
     };
   }, []);
 
-  function handleDockBack() {
-    window.close();
-  }
+  const subtitle = `${latestLocations.length} active unit${
+    latestLocations.length === 1 ? "" : "s"
+  } · separate window`;
 
   if (loading) {
     return (
@@ -165,43 +183,37 @@ export default function PatrolStatusPopoutView() {
   }
 
   return (
-    <main className="flex h-dvh flex-col bg-background">
-      <header className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-card px-3 py-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
-            Pop-out window
+    <main className="h-dvh overflow-hidden bg-background p-1.5">
+      <PatrolStatusDetachFrame
+        className="h-full w-full"
+        locked={locked}
+        onLockedChange={handleLockedChange}
+        onDock={() => window.close()}
+        onTitleBarPointerDown={onTitleBarPointerDown}
+        subtitle={subtitle}
+        dragHint={
+          locked
+            ? null
+            : moveBlocked
+              ? "Unlock, then drag — or move using the browser window frame"
+              : "Drag title bar to move this window"
+        }
+      >
+        {error && (
+          <p className="shrink-0 border-b border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+            {error}
           </p>
-          <h1 className="truncate text-sm font-semibold text-foreground">Patrol Status</h1>
-        </div>
-        <button
-          type="button"
-          onClick={handleDockBack}
-          title="Close this window and show the list on the main map again"
-          className="shrink-0 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[10px] font-medium text-foreground transition hover:bg-background/80 sm:text-[11px]"
-        >
-          Dock to map
-        </button>
-      </header>
-
-      {error && (
-        <p className="shrink-0 border-b border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
-          {error}
-        </p>
-      )}
-
-      <div className="min-h-0 flex-1">
+        )}
         <PatrolStatusListPanel
           locations={latestLocations}
           selectedPatrolKey={selectedPatrolKey}
           onSelectPatrol={handleSelectPatrol}
           nowMs={nowMs}
           intervalSeconds={intervalSeconds}
+          showHeader={false}
+          embedded
         />
-      </div>
-
-      <p className="shrink-0 border-t border-border/60 px-3 py-1.5 text-center text-[10px] text-muted">
-        Click a unit to highlight it on the main map.
-      </p>
+      </PatrolStatusDetachFrame>
     </main>
   );
 }

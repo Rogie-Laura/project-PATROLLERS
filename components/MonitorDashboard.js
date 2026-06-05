@@ -8,6 +8,7 @@ import MonitorHeader from "@/components/MonitorHeader";
 import CallResponsePanel from "@/components/CallResponsePanel";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
+import PatrolStatusFloatingPanel from "@/components/PatrolStatusFloatingPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 import { getUnitKey } from "@/lib/dispatchUnits";
 import { callResponseFromRow } from "@/lib/callResponses";
@@ -88,9 +89,13 @@ export default function MonitorDashboard({ user, onLogout }) {
   }, []);
 
   const {
+    detached: patrolStatusDetached,
+    externalOpen: patrolStatusExternalOpen,
     popoutActive: patrolStatusPopoutActive,
     popoutBlocked: patrolStatusPopoutBlocked,
     togglePopout: togglePatrolStatusPopout,
+    openExternal: openPatrolStatusExternal,
+    closeDetach: closePatrolStatusDetach,
   } = usePatrolStatusPopout({
     enabled: showPatrolStatus,
     selectedPatrolKey,
@@ -544,10 +549,24 @@ export default function MonitorDashboard({ user, onLogout }) {
           </div>
         )}
 
-        {patrolStatusPopoutActive && showPatrolStatus && (
-          <div className="pointer-events-none absolute bottom-4 right-4 z-[500] max-w-[220px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 text-[11px] text-muted shadow-lg backdrop-blur-sm">
-            Patrol status is in the pop-out window. Use{" "}
-            <span className="font-medium text-foreground">Dock status</span> to bring it back.
+        {patrolStatusDetached && !patrolStatusExternalOpen && showPatrolStatus && (
+          <PatrolStatusFloatingPanel
+            locations={latestLocations}
+            selectedPatrolKey={selectedPatrolKey}
+            onSelectPatrol={setSelectedPatrol}
+            nowMs={nowMs}
+            intervalSeconds={intervalSeconds}
+            onDock={closePatrolStatusDetach}
+            onOpenWindow={openPatrolStatusExternal}
+            externalWindowActive={patrolStatusExternalOpen}
+          />
+        )}
+
+        {patrolStatusExternalOpen && showPatrolStatus && (
+          <div className="pointer-events-none absolute bottom-4 right-4 z-[500] max-w-[240px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 text-[11px] text-muted shadow-lg backdrop-blur-sm">
+            Patrol status is in a separate window. Use{" "}
+            <span className="font-medium text-foreground">Dock status</span> or close that
+            window.
           </div>
         )}
 

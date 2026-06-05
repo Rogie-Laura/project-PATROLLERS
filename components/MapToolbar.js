@@ -455,10 +455,10 @@ export default function MapToolbar({
                   onClick={onPatrolStatusPopoutToggle}
                   title={
                     patrolStatusPopoutBlocked
-                      ? "Allow pop-ups for this site, then try again"
+                      ? "Allow pop-ups for this site, then use the window button in the panel"
                       : patrolStatusPopoutActive
-                        ? "Close pop-out window and show status on map"
-                        : "Open patrol status in a separate window (e.g. second monitor)"
+                        ? "Dock panel back to the map sidebar"
+                        : "Detach patrol status — movable panel with lock/unlock"
                   }
                   className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition sm:text-[11px] ${
                     patrolStatusPopoutActive
@@ -470,7 +470,7 @@ export default function MapToolbar({
                 >
                   <PopOutIcon />
                   <span className="whitespace-nowrap">
-                    {patrolStatusPopoutActive ? "Dock status" : "Pop out status"}
+                    {patrolStatusPopoutActive ? "Dock status" : "Detach status"}
                   </span>
                 </button>
               )}
