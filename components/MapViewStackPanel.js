@@ -24,11 +24,25 @@ const STACK_SECTION_HEIGHT = {
   signalStats: 200,
 };
 
+const VIEW_BAR_HEIGHT = 28;
+const MAP_EDGE_PADDING = 8;
+
 function estimateStackHeight(layerIds) {
   return layerIds.reduce(
     (total, id) => total + (STACK_SECTION_HEIGHT[id] ?? 96),
     0
   );
+}
+
+function getMaxPanelHeight(bounds, positionY) {
+  if (!bounds?.height) return null;
+  return Math.max(120, bounds.height - positionY - MAP_EDGE_PADDING);
+}
+
+function getPanelOuterHeight(bounds, positionY, contentHeight) {
+  const maxPanelHeight = getMaxPanelHeight(bounds, positionY);
+  if (!maxPanelHeight) return contentHeight + VIEW_BAR_HEIGHT;
+  return Math.min(contentHeight + VIEW_BAR_HEIGHT, maxPanelHeight);
 }
 
 function renderStackSection(id, props) {
@@ -91,14 +105,36 @@ export default function MapViewStackPanel({
     [visibleLayers]
   );
 
+  const panelOuterHeight = useMemo(
+    () => getPanelOuterHeight(bounds, position.y, stackHeight),
+    [bounds, position.y, stackHeight]
+  );
+
+  const maxPanelHeight = useMemo(
+    () => getMaxPanelHeight(bounds, position.y),
+    [bounds, position.y]
+  );
+
   useEffect(() => {
     const stored = readLegendPosition();
-    setPosition(clampLegendPosition(stored.x, stored.y, bounds, stackHeight));
-  }, [bounds?.width, bounds?.height, stackHeight]);
+    setPosition(
+      clampLegendPosition(stored.x, stored.y, bounds, panelOuterHeight)
+    );
+  }, [bounds?.width, bounds?.height, panelOuterHeight]);
 
   const handlePositionChange = useCallback(
     (next) => {
-      const clamped = clampLegendPosition(next.x, next.y, bounds, stackHeight);
+      const nextOuterHeight = getPanelOuterHeight(
+        bounds,
+        next.y,
+        stackHeight
+      );
+      const clamped = clampLegendPosition(
+        next.x,
+        next.y,
+        bounds,
+        nextOuterHeight
+      );
       setPosition(clamped);
       writeLegendPosition(clamped);
     },
@@ -127,14 +163,15 @@ export default function MapViewStackPanel({
       }}
     >
       <div
-        className={`overflow-hidden border border-zinc-600/45 bg-zinc-800/88 shadow-lg shadow-black/25 backdrop-blur-sm ${
+        className={`flex flex-col overflow-hidden border border-zinc-600/45 bg-zinc-800/88 shadow-lg shadow-black/25 backdrop-blur-sm ${
           flushTopLeft ? "rounded-br-xl rounded-tr-xl" : "rounded-xl"
         }`}
+        style={maxPanelHeight ? { maxHeight: maxPanelHeight } : undefined}
       >
         <div
           role="presentation"
           onPointerDown={onTitleBarPointerDown}
-          className="flex cursor-grab select-none items-center border-b border-zinc-600/40 bg-zinc-900/50 px-3.5 py-1.5 active:cursor-grabbing"
+          className="flex shrink-0 cursor-grab select-none items-center border-b border-zinc-600/40 bg-zinc-900/50 px-3.5 py-1.5 active:cursor-grabbing"
           title="Drag to move view panel"
         >
           <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
@@ -142,18 +179,20 @@ export default function MapViewStackPanel({
           </p>
         </div>
 
-        {visibleLayers.map((layer, index) => (
-          <div key={layer.id}>
-            {index > 0 && (
-              <div className="border-t border-zinc-600/50" aria-hidden />
-            )}
-            {renderStackSection(layer.id, {
-              locations,
-              nowMs,
-              intervalSeconds,
-            })}
-          </div>
-        ))}
+        <div className="view-stack-scroll min-h-0 overflow-y-auto overscroll-contain">
+          {visibleLayers.map((layer, index) => (
+            <div key={layer.id}>
+              {index > 0 && (
+                <div className="border-t border-zinc-600/50" aria-hidden />
+              )}
+              {renderStackSection(layer.id, {
+                locations,
+                nowMs,
+                intervalSeconds,
+              })}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

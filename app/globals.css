@@ -59,3 +59,25 @@ body {
   background: transparent !important;
   border: none !important;
 }
+
+.view-stack-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(113, 113, 122, 0.75) transparent;
+}
+
+.view-stack-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.view-stack-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.view-stack-scroll::-webkit-scrollbar-thumb {
+  background: rgba(113, 113, 122, 0.75);
+  border-radius: 9999px;
+}
+
+.view-stack-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.85);
+}

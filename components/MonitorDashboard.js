@@ -496,7 +496,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const activeDispatches = activeCallId ? dispatchByCallId[activeCallId] ?? [] : [];
 
   return (
-    <main className="flex h-dvh flex-col bg-background">
+    <main className="flex h-dvh flex-col overflow-hidden bg-background">
       <MonitorHeader
         user={user}
         onSignOut={handleSignOut}
@@ -519,8 +519,8 @@ export default function MonitorDashboard({ user, onLogout }) {
         onMapViewLayerChange={handleMapViewLayerChange}
       />
 
-      <section className="relative min-h-0 flex-1">
-        <div ref={mapAreaRef} className="absolute inset-0">
+      <section className="relative min-h-0 flex-1 overflow-hidden">
+        <div ref={mapAreaRef} className="absolute inset-0 overflow-hidden">
           <PatrolMap
             locations={latestLocations}
             basemapId={basemapId}

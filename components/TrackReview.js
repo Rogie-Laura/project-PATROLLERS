@@ -227,13 +227,13 @@ export default function TrackReview({
         )}
       </aside>
 
-      <section className="relative min-h-[400px] flex-1">
+      <section className="relative min-h-0 flex-1 overflow-hidden">
         {points.length === 0 && !loadingTrack ? (
           <div className="flex h-full items-center justify-center bg-card text-sm text-muted">
             No location history for this unit in the selected time range.
           </div>
         ) : (
-          <div ref={mapAreaRef} className="absolute inset-0">
+          <div ref={mapAreaRef} className="absolute inset-0 overflow-hidden">
             <TrackReviewMap
               points={points}
               basemapId={basemapId}
