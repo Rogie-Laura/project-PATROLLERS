@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { getConnectionState, staleThresholdMs } from "@/lib/connectionState";
+import { getConnectionState } from "@/lib/connectionState";
 import {
   getPatrolStatusLabel,
   PATROL_STATUS,
@@ -28,12 +28,11 @@ export default function MapSignalStatsContent({
   intervalSeconds = 180,
 }) {
   const stats = useMemo(() => {
-    const staleMs = staleThresholdMs(intervalSeconds);
-
     let visibility = 0;
     let incident = 0;
     let strong = 0;
     let weak = 0;
+    let delayed = 0;
     let stale = 0;
 
     for (const loc of locations) {
@@ -43,9 +42,10 @@ export default function MapSignalStatsContent({
         visibility += 1;
       }
 
-      const state = getConnectionState(loc, nowMs, staleMs);
+      const state = getConnectionState(loc, nowMs, intervalSeconds);
       if (state === "strong") strong += 1;
       else if (state === "weak") weak += 1;
+      else if (state === "delayed") delayed += 1;
       else stale += 1;
     }
 
@@ -55,6 +55,7 @@ export default function MapSignalStatsContent({
       incident,
       strong,
       weak,
+      delayed,
       stale,
     };
   }, [locations, nowMs, intervalSeconds]);
@@ -71,9 +72,10 @@ export default function MapSignalStatsContent({
         value={stats.incident}
       />
       <div className="my-1 border-t border-zinc-600/40" aria-hidden />
-      <StatRow label="Strong signal" value={stats.strong} />
-      <StatRow label="Weak signal" value={stats.weak} />
-      <StatRow label="Disconnected / stale" value={stats.stale} />
+      <StatRow label="Online" value={stats.strong} />
+      <StatRow label="Online · weak signal" value={stats.weak} />
+      <StatRow label="Update delayed" value={stats.delayed} />
+      <StatRow label="No recent update" value={stats.stale} />
     </div>
   );
 }

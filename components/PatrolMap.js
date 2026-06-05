@@ -242,7 +242,7 @@ function PatrolMarkersLayer({
   selectedPatrolKey,
   highlightedUnitKey,
   nowMs,
-  staleMs,
+  intervalSeconds,
   onSelectPatrol,
 }) {
   const mapZoom = useMapZoomLevel();
@@ -251,7 +251,7 @@ function PatrolMarkersLayer({
     <>
       {locations.map((loc, index) => {
         const key = patrolKey(loc) ?? index;
-        const connectionState = getConnectionState(loc, nowMs, staleMs);
+        const connectionState = getConnectionState(loc, nowMs, intervalSeconds);
         return (
           <PatrolMarker
             key={key}
@@ -331,7 +331,7 @@ export default function PatrolMap({
   dispatchRoute = null,
   incidentRadiusRings = INCIDENT_RADIUS_RINGS,
   nowMs = Date.now(),
-  staleThresholdMs: staleMs = 120000,
+  locationIntervalSeconds = 180,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -387,7 +387,7 @@ export default function PatrolMap({
           selectedPatrolKey={selectedPatrolKey}
           highlightedUnitKey={highlightedUnitKey}
           nowMs={nowMs}
-          staleMs={staleMs}
+          intervalSeconds={locationIntervalSeconds}
           onSelectPatrol={onSelectPatrol}
         />
       </MapContainer>

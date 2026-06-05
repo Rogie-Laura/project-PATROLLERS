@@ -4,19 +4,11 @@ import { normalizePersonnelOnBoard } from "@/lib/personnelOnBoard";
 import { getPatrolStatusLabel } from "@/lib/patrolStatusLabels";
 import {
   CONNECTION_BORDER_COLOR,
-  CONNECTION_LABEL,
-  CONNECTION_STATE,
+  formatSignalStrength,
+  formatLastUpdateAge,
   getConnectionState,
-  staleThresholdMs,
+  LIVE_STATUS_LABEL,
 } from "@/lib/connectionState";
-
-function signalText(location, connectionState) {
-  if (connectionState === CONNECTION_STATE.stale) return "No signal (stale)";
-  const level = String(location.signal_level ?? "").toLowerCase();
-  if (level === "weak") return "Weak";
-  if (level === "strong") return "Strong";
-  return location.signal_label || "—";
-}
 
 function DetailRow({ label, value }) {
   return (
@@ -50,12 +42,12 @@ export default function PatrolDetailPanel({
   const connectionState = getConnectionState(
     location,
     nowMs,
-    staleThresholdMs(intervalSeconds)
+    intervalSeconds
   );
   const connectionColor =
     CONNECTION_BORDER_COLOR[connectionState] || CONNECTION_BORDER_COLOR.strong;
-  const connectionLabel =
-    CONNECTION_LABEL[connectionState] || CONNECTION_LABEL.strong;
+  const liveStatusLabel =
+    LIVE_STATUS_LABEL[connectionState] || LIVE_STATUS_LABEL.strong;
 
   const personnel = normalizePersonnelOnBoard(location.personnel_on_board).filter(
     (person) => person.onDuty
@@ -117,6 +109,10 @@ export default function PatrolDetailPanel({
             />
           )}
           <DetailRow label="Last Update" value={lastUpdate} />
+          <DetailRow
+            label="Last heard"
+            value={formatLastUpdateAge(location, nowMs)}
+          />
           <DetailRow label="GPS Accuracy" value={accuracy} />
         </Section>
 
@@ -146,20 +142,17 @@ export default function PatrolDetailPanel({
 
         <Section title="Connection">
           <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="shrink-0 text-muted">Live status</span>
+            <span className="shrink-0 text-muted">Monitor link</span>
             <span className="flex items-center gap-1.5 font-medium text-foreground">
               <span
                 className="h-2.5 w-2.5 rounded-full"
                 style={{ backgroundColor: connectionColor }}
                 aria-hidden
               />
-              {connectionLabel}
+              {liveStatusLabel}
             </span>
           </div>
-          <DetailRow
-            label="Signal Strength"
-            value={signalText(location, connectionState)}
-          />
+          <DetailRow label="Signal" value={formatSignalStrength(location)} />
         </Section>
 
         <Section title="Phone Status">

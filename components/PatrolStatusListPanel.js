@@ -7,8 +7,8 @@ import {
 import {
   CONNECTION_BORDER_COLOR,
   CONNECTION_LABEL,
+  formatLastUpdateAge,
   getConnectionState,
-  staleThresholdMs,
 } from "@/lib/connectionState";
 
 function patrolLabel(location) {
@@ -52,7 +52,7 @@ function StatusGroup({
   selectedPatrolKey,
   onSelect,
   nowMs,
-  staleMs,
+  intervalSeconds,
 }) {
   return (
     <section className="border-b border-border/60 px-4 py-3 last:border-b-0">
@@ -77,7 +77,11 @@ function StatusGroup({
           {items.map((location) => {
             const key = patrolKey(location);
             const selected = key != null && key === selectedPatrolKey;
-            const connectionState = getConnectionState(location, nowMs, staleMs);
+            const connectionState = getConnectionState(
+              location,
+              nowMs,
+              intervalSeconds
+            );
             const connectionColor =
               CONNECTION_BORDER_COLOR[connectionState] ||
               CONNECTION_BORDER_COLOR.strong;
@@ -108,9 +112,7 @@ function StatusGroup({
                     </p>
                   )}
                   <p className="mt-0.5 text-[10px] text-muted">
-                    {location.created_at
-                      ? new Date(location.created_at).toLocaleString()
-                      : "—"}
+                    Updated {formatLastUpdateAge(location, nowMs)}
                   </p>
                 </button>
               </li>
@@ -133,7 +135,6 @@ export default function PatrolStatusListPanel({
   onDetach,
   detachBlocked = false,
 }) {
-  const staleMs = staleThresholdMs(intervalSeconds);
   const visibility = locations.filter(
     (loc) => loc.patrol_status !== PATROL_STATUS.incidentResponse
   );
@@ -190,7 +191,7 @@ export default function PatrolStatusListPanel({
           selectedPatrolKey={selectedPatrolKey}
           onSelect={onSelectPatrol}
           nowMs={nowMs}
-          staleMs={staleMs}
+          intervalSeconds={intervalSeconds}
         />
         <StatusGroup
           title={getPatrolStatusLabel(PATROL_STATUS.incidentResponse)}
@@ -199,7 +200,7 @@ export default function PatrolStatusListPanel({
           selectedPatrolKey={selectedPatrolKey}
           onSelect={onSelectPatrol}
           nowMs={nowMs}
-          staleMs={staleMs}
+          intervalSeconds={intervalSeconds}
         />
       </div>
     </aside>

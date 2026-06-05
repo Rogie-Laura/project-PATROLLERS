@@ -19,7 +19,6 @@ import {
   clearCallResponseSession,
   useCallResponseSession,
 } from "@/lib/useCallResponseSession";
-import { staleThresholdMs } from "@/lib/connectionState";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 
@@ -85,11 +84,6 @@ export default function MonitorDashboard({ user, onLogout }) {
   const latestLocations = useMemo(
     () => locations.filter((loc) => loc.tracking_active !== false),
     [locations]
-  );
-
-  const staleMs = useMemo(
-    () => staleThresholdMs(intervalSeconds),
-    [intervalSeconds]
   );
 
   const selectedPatrolKey = selectedPatrol
@@ -547,7 +541,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             dispatchRoute={dispatchRoute}
             incidentRadiusRings={incidentRadiusRings}
             nowMs={nowMs}
-            staleThresholdMs={staleMs}
+            locationIntervalSeconds={intervalSeconds}
           />
 
           {error && (
