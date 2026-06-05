@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
@@ -112,12 +112,28 @@ export default function MonitorDashboard({ user, onLogout }) {
   });
 
   const [externalWindowHintDismissed, setExternalWindowHintDismissed] = useState(false);
+  const mapAreaRef = useRef(null);
+  const [mapAreaSize, setMapAreaSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     if (!patrolStatusExternalOpen) {
       setExternalWindowHintDismissed(false);
     }
   }, [patrolStatusExternalOpen]);
+
+  useEffect(() => {
+    const el = mapAreaRef.current;
+    if (!el) return undefined;
+
+    const update = () => {
+      setMapAreaSize({ width: el.clientWidth, height: el.clientHeight });
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const flyToCall = callResponses.find((c) => c.id === flyToCallId);
 
@@ -508,7 +524,7 @@ export default function MonitorDashboard({ user, onLogout }) {
       />
 
       <section className="relative min-h-0 flex-1">
-        <div className="absolute inset-0">
+        <div ref={mapAreaRef} className="absolute inset-0">
           <PatrolMap
             locations={latestLocations}
             basemapId={basemapId}
@@ -532,19 +548,23 @@ export default function MonitorDashboard({ user, onLogout }) {
             </div>
           )}
 
-          {(showLegend || showStatistics) && (
-            <div className="pointer-events-none absolute left-4 top-4 z-[500] flex max-w-[min(100%,300px)] flex-col gap-2">
-              {showStatistics && (
+          {showStatistics && (
+            <div className="pointer-events-none absolute right-0 top-0 z-[500]">
+              <div className="pointer-events-auto">
                 <MapStatisticsOverlay
                   locations={latestLocations}
                   nowMs={nowMs}
                   intervalSeconds={intervalSeconds}
                 />
-              )}
-              {showLegend && (
-                <MapLegendOverlay locations={latestLocations} />
-              )}
+              </div>
             </div>
+          )}
+
+          {showLegend && (
+            <MapLegendOverlay
+              locations={latestLocations}
+              bounds={mapAreaSize}
+            />
           )}
         </div>
 

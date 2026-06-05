@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import MapLegendOverlay from "@/components/MapLegendOverlay";
@@ -50,7 +50,23 @@ export default function TrackReview({
   const [points, setPoints] = useState([]);
   const [loadingDevices, setLoadingDevices] = useState(true);
   const [loadingTrack, setLoadingTrack] = useState(false);
+  const mapAreaRef = useRef(null);
+  const [mapAreaSize, setMapAreaSize] = useState({ width: 0, height: 0 });
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const el = mapAreaRef.current;
+    if (!el) return undefined;
+
+    const update = () => {
+      setMapAreaSize({ width: el.clientWidth, height: el.clientHeight });
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [points.length, loadingTrack]);
 
   useEffect(() => {
     async function loadDevices() {
@@ -219,21 +235,23 @@ export default function TrackReview({
             No location history for this unit in the selected time range.
           </div>
         ) : (
-          <>
+          <div ref={mapAreaRef} className="absolute inset-0">
             <TrackReviewMap
               points={points}
               basemapId={basemapId}
               showPatrolStatus={showPatrolStatus}
             />
-            {(showLegend || showStatistics) && (
-              <div className="pointer-events-none absolute left-4 top-4 z-[500] flex max-w-[min(100%,300px)] flex-col gap-2">
-                {showStatistics && (
+            {showStatistics && (
+              <div className="pointer-events-none absolute right-0 top-0 z-[500]">
+                <div className="pointer-events-auto">
                   <MapStatisticsOverlay locations={points} nowMs={Date.now()} />
-                )}
-                {showLegend && <MapLegendOverlay locations={points} />}
+                </div>
               </div>
             )}
-          </>
+            {showLegend && (
+              <MapLegendOverlay locations={points} bounds={mapAreaSize} />
+            )}
+          </div>
         )}
       </section>
     </div>
