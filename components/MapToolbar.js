@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AddCallResponsePopover from "@/components/AddCallResponsePopover";
 import { isAdminRole } from "@/lib/mobile/adminRoles";
-import { BASEMAPS } from "@/lib/mapBasemaps";
+import { BASEMAPS, getBasemapById } from "@/lib/mapBasemaps";
 
 function MapIcon() {
   return (
@@ -243,6 +243,98 @@ function ToolbarSeparator({ spacious = false }) {
   );
 }
 
+function ChevronDownIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3 w-3 shrink-0 opacity-70"
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function BasemapPicker({ basemapId, onBasemapChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const current = getBasemapById(basemapId);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function handlePointerDown(event) {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-label={`Map type: ${current.label}. Choose basemap`}
+        title="Choose map type"
+        className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium leading-none transition sm:text-[11px] ${
+          open
+            ? "border-accent/50 bg-accent/15 text-accent"
+            : "border-border/60 bg-background/50 text-foreground hover:bg-background/80"
+        }`}
+      >
+        <span className="whitespace-nowrap">
+          Map: <span className="font-semibold">{current.label}</span>
+        </span>
+        <ChevronDownIcon />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Map types"
+          className="absolute left-0 top-full z-[750] mt-1 min-w-[9.5rem] overflow-hidden rounded-md border border-border/70 bg-card py-0.5 shadow-lg"
+        >
+          {BASEMAPS.map((basemap) => {
+            const isActive = basemap.id === basemapId;
+
+            return (
+              <button
+                key={basemap.id}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                onClick={() => {
+                  onBasemapChange(basemap.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center px-2.5 py-1.5 text-left text-[10px] font-medium transition sm:text-[11px] ${
+                  isActive
+                    ? "bg-accent/15 text-accent"
+                    : "text-foreground hover:bg-background/80"
+                }`}
+              >
+                {basemap.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MapToolbar({
   active = "map",
   user,
@@ -297,27 +389,7 @@ export default function MapToolbar({
             role="group"
             aria-label="Map basemap and call response"
           >
-            <div className="flex items-center gap-1 overflow-x-auto">
-              {BASEMAPS.map((basemap) => {
-                const isActive = basemap.id === basemapId;
-
-                return (
-                  <button
-                    key={basemap.id}
-                    type="button"
-                    onClick={() => onBasemapChange(basemap.id)}
-                    aria-pressed={isActive}
-                    className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-medium leading-none transition sm:px-2 sm:text-[11px] ${
-                      isActive
-                        ? "bg-accent text-background shadow-sm"
-                        : "text-muted hover:bg-background/80 hover:text-foreground"
-                    }`}
-                  >
-                    {basemap.label}
-                  </button>
-                );
-              })}
-            </div>
+            <BasemapPicker basemapId={basemapId} onBasemapChange={onBasemapChange} />
 
             {showAddCallResponse && onCallResponseOpenChange && (
               <>
