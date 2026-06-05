@@ -243,7 +243,7 @@ function ToolbarSeparator({ spacious = false }) {
   );
 }
 
-function ChevronDownIcon() {
+function ChevronDownIcon({ open }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -253,7 +253,7 @@ function ChevronDownIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-3 w-3 shrink-0 opacity-70"
+      className={`h-3 w-3 shrink-0 opacity-70 transition-transform ${open ? "rotate-180" : ""}`}
       aria-hidden
     >
       <path d="m6 9 6 6 6-6" />
@@ -280,15 +280,15 @@ function BasemapPicker({ basemapId, onBasemapChange }) {
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative shrink-0">
+    <div ref={rootRef} className="flex min-w-0 shrink-0 items-center gap-1">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-label={`Map type: ${current.label}. Choose basemap`}
-        title="Choose map type"
-        className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium leading-none transition sm:text-[11px] ${
+        aria-controls="basemap-options"
+        aria-label={`Map type: ${current.label}. ${open ? "Hide" : "Show"} map types`}
+        title="Toggle map type options"
+        className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium leading-none transition sm:text-[11px] ${
           open
             ? "border-accent/50 bg-accent/15 text-accent"
             : "border-border/60 bg-background/50 text-foreground hover:bg-background/80"
@@ -297,14 +297,15 @@ function BasemapPicker({ basemapId, onBasemapChange }) {
         <span className="whitespace-nowrap">
           Map: <span className="font-semibold">{current.label}</span>
         </span>
-        <ChevronDownIcon />
+        <ChevronDownIcon open={open} />
       </button>
 
       {open && (
         <div
-          role="listbox"
+          id="basemap-options"
+          role="group"
           aria-label="Map types"
-          className="absolute left-0 top-full z-[750] mt-1 min-w-[9.5rem] overflow-hidden rounded-md border border-border/70 bg-card py-0.5 shadow-lg"
+          className="flex shrink-0 items-center gap-0.5 rounded-md border border-border/60 bg-card/95 px-0.5 py-0.5 shadow-sm"
         >
           {BASEMAPS.map((basemap) => {
             const isActive = basemap.id === basemapId;
@@ -313,16 +314,12 @@ function BasemapPicker({ basemapId, onBasemapChange }) {
               <button
                 key={basemap.id}
                 type="button"
-                role="option"
-                aria-selected={isActive}
-                onClick={() => {
-                  onBasemapChange(basemap.id);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center px-2.5 py-1.5 text-left text-[10px] font-medium transition sm:text-[11px] ${
+                aria-pressed={isActive}
+                onClick={() => onBasemapChange(basemap.id)}
+                className={`shrink-0 whitespace-nowrap rounded px-1.5 py-1 text-[10px] font-medium leading-none transition sm:px-2 sm:text-[11px] ${
                   isActive
-                    ? "bg-accent/15 text-accent"
-                    : "text-foreground hover:bg-background/80"
+                    ? "bg-accent text-background shadow-sm"
+                    : "text-muted hover:bg-background/80 hover:text-foreground"
                 }`}
               >
                 {basemap.label}
