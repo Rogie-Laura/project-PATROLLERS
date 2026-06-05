@@ -15,6 +15,7 @@ import { callResponseFromRow } from "@/lib/callResponses";
 import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
 import MapViewOverlays from "@/components/MapViewOverlays";
+import MapConnectionLegend from "@/components/MapConnectionLegend";
 import {
   clearCallResponseSession,
   useCallResponseSession,
@@ -68,7 +69,7 @@ export default function MonitorDashboard({ user, onLogout }) {
     hydrated: callUiHydrated,
   } = useCallResponseSession();
   const [flyToCallId, setFlyToCallId] = useState(null);
-  const [intervalSeconds, setIntervalSeconds] = useState(1800);
+  const [intervalSeconds, setIntervalSeconds] = useState(180);
   const [mapRadiusSlots, setMapRadiusSlots] = useState(createDefaultRadiusRingSlots);
   const [dispatchMaxRadiusM, setDispatchMaxRadiusM] = useState(6000);
   const [dispatchByCallId, setDispatchByCallId] = useState({});
@@ -557,6 +558,8 @@ export default function MonitorDashboard({ user, onLogout }) {
             intervalSeconds={intervalSeconds}
             mapAreaSize={mapAreaSize}
           />
+
+          <MapConnectionLegend />
         </div>
 
         {hasActiveCalls && (

@@ -7,6 +7,7 @@ import {
   Marker,
   Circle,
   Polyline,
+  Tooltip,
   useMap,
 } from "react-leaflet";
 import {
@@ -26,7 +27,10 @@ import {
   createPatrolMarkerIcon,
   getPatrolMarkerSizePx,
 } from "@/lib/patrolMarker";
-import { getConnectionState } from "@/lib/connectionState";
+import {
+  formatMonitorLinkSummary,
+  getConnectionState,
+} from "@/lib/connectionState";
 
 function patrolKey(location) {
   return location.access_token_id || location.user_id || location.id;
@@ -263,6 +267,8 @@ function PatrolMarkersLayer({
             isDispatchHighlight={
               highlightedUnitKey != null && highlightedUnitKey === key
             }
+            nowMs={nowMs}
+            intervalSeconds={intervalSeconds}
             onSelect={onSelectPatrol}
           />
         );
@@ -278,6 +284,8 @@ function PatrolMarker({
   isDispatchHighlight,
   connectionState,
   mapZoom,
+  nowMs,
+  intervalSeconds,
   onSelect,
 }) {
   const markerRef = useRef(null);
@@ -285,6 +293,7 @@ function PatrolMarker({
   const longitude = toNumber(location.longitude);
   const position = [latitude, longitude];
   const markerSizePx = getPatrolMarkerSizePx(mapZoom);
+  const tooltip = formatMonitorLinkSummary(location, nowMs, intervalSeconds);
   const icon = useMemo(
     () =>
       createPatrolMarkerIcon(
@@ -312,7 +321,11 @@ function PatrolMarker({
       eventHandlers={{
         click: () => onSelect?.(location),
       }}
-    />
+    >
+      <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
+        <span className="text-xs">{tooltip}</span>
+      </Tooltip>
+    </Marker>
   );
 }
 
