@@ -19,13 +19,13 @@ function LegendRow({ image, label, value }) {
   return (
     <li className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/92 shadow-sm ring-1 ring-white/30">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center">
           <Image
             src={image}
             alt=""
-            width={36}
-            height={36}
-            className="h-8 w-8 object-contain"
+            width={44}
+            height={44}
+            className="h-11 w-11 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
             aria-hidden
           />
         </span>
