@@ -60,7 +60,7 @@ export default function MapStatisticsOverlay({
   return (
     <div className="pointer-events-auto w-[min(100%,240px)] rounded-lg border border-border/60 bg-card/95 px-3 py-2.5 shadow-lg backdrop-blur-sm">
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-        Statistics
+        Signal Stats
       </p>
       <div className="space-y-1.5">
         <StatRow label="Active units on map" value={stats.total} accent />

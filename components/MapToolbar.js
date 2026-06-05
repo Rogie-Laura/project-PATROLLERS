@@ -5,6 +5,7 @@ import Link from "next/link";
 import AddCallResponsePopover from "@/components/AddCallResponsePopover";
 import { isAdminRole } from "@/lib/mobile/adminRoles";
 import { BASEMAPS, getBasemapById } from "@/lib/mapBasemaps";
+import { MAP_VIEW_LAYERS } from "@/lib/mapViewLayers";
 
 function MapIcon() {
   return (
@@ -217,19 +218,11 @@ function ViewIcon() {
   );
 }
 
-function MapViewPicker({
-  showPatrolStatus,
-  onShowPatrolStatusChange,
-  showLegend,
-  onShowLegendChange,
-  showStatistics,
-  onShowStatisticsChange,
-}) {
+function MapViewPicker({ layers, onLayerChange }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
-  const activeCount = [showPatrolStatus, showLegend, showStatistics].filter(Boolean)
-    .length;
+  const activeCount = MAP_VIEW_LAYERS.filter(({ id }) => layers[id]).length;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -244,27 +237,6 @@ function MapViewPicker({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [open]);
 
-  const items = [
-    {
-      id: "patrolStatus",
-      label: "Patrol Status",
-      checked: showPatrolStatus,
-      onChange: onShowPatrolStatusChange,
-    },
-    {
-      id: "legend",
-      label: "Legend",
-      checked: showLegend,
-      onChange: onShowLegendChange,
-    },
-    {
-      id: "statistics",
-      label: "Statistics",
-      checked: showStatistics,
-      onChange: onShowStatisticsChange,
-    },
-  ];
-
   return (
     <div ref={rootRef} className="relative shrink-0">
       <button
@@ -273,7 +245,7 @@ function MapViewPicker({
         aria-expanded={open}
         aria-controls="map-view-options"
         aria-label={`View map layers. ${activeCount} visible`}
-        title="View — patrol status, legend, statistics"
+        title="View map layers"
         className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium leading-none transition sm:text-[11px] ${
           open || activeCount > 0
             ? "border-accent/50 bg-accent/15 text-accent"
@@ -290,10 +262,10 @@ function MapViewPicker({
           id="map-view-options"
           role="group"
           aria-label="Map view options"
-          className="absolute left-0 top-full z-[750] mt-1 flex items-center rounded-md border border-border/70 bg-card/95 px-0.5 py-0.5 shadow-lg"
+          className="absolute left-0 top-full z-[750] mt-1 flex max-w-[min(calc(100vw-2rem),52rem)] items-center overflow-x-auto rounded-md border border-border/70 bg-card/95 px-0.5 py-0.5 shadow-lg"
         >
-          {items.map((item, index) => (
-            <span key={item.id} className="flex items-center">
+          {MAP_VIEW_LAYERS.map((layer, index) => (
+            <span key={layer.id} className="flex shrink-0 items-center">
               {index > 0 && (
                 <span
                   className="mx-0.5 h-5 w-px shrink-0 bg-border/70"
@@ -303,11 +275,11 @@ function MapViewPicker({
               <label className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-1.5 py-1 text-[10px] font-medium text-foreground transition hover:bg-background/80 sm:px-2 sm:text-[11px]">
                 <input
                   type="checkbox"
-                  checked={item.checked}
-                  onChange={(e) => item.onChange(e.target.checked)}
+                  checked={Boolean(layers[layer.id])}
+                  onChange={(e) => onLayerChange(layer.id, e.target.checked)}
                   className="h-3.5 w-3.5 shrink-0 rounded border-border/80 accent-accent"
                 />
-                <span>{item.label}</span>
+                <span>{layer.label}</span>
               </label>
             </span>
           ))}
@@ -429,12 +401,8 @@ export default function MapToolbar({
   callResponsePlace = null,
   onCallResponsePlaceChange,
   onAddIncidentMarker,
-  showPatrolStatus = false,
-  onShowPatrolStatusChange,
-  showLegend = false,
-  onShowLegendChange,
-  showStatistics = false,
-  onShowStatisticsChange,
+  mapViewLayers,
+  onMapViewLayerChange,
 }) {
   const isAdmin = isAdminRole(user?.role);
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
@@ -508,18 +476,12 @@ export default function MapToolbar({
             )}
           </div>
 
-          {onShowPatrolStatusChange &&
-            onShowLegendChange &&
-            onShowStatisticsChange && (
+          {mapViewLayers && onMapViewLayerChange && (
             <>
               <ToolbarSeparator />
               <MapViewPicker
-                showPatrolStatus={showPatrolStatus}
-                onShowPatrolStatusChange={onShowPatrolStatusChange}
-                showLegend={showLegend}
-                onShowLegendChange={onShowLegendChange}
-                showStatistics={showStatistics}
-                onShowStatisticsChange={onShowStatisticsChange}
+                layers={mapViewLayers}
+                onLayerChange={onMapViewLayerChange}
               />
               <button
                 type="button"

@@ -14,8 +14,7 @@ import { getUnitKey } from "@/lib/dispatchUnits";
 import { callResponseFromRow } from "@/lib/callResponses";
 import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
-import MapLegendOverlay from "@/components/MapLegendOverlay";
-import MapStatisticsOverlay from "@/components/MapStatisticsOverlay";
+import MapViewOverlays from "@/components/MapViewOverlays";
 import {
   clearCallResponseSession,
   useCallResponseSession,
@@ -43,15 +42,19 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
-  const {
-    showPatrolStatus,
-    setShowPatrolStatus,
-    showLegend,
-    setShowLegend,
-    showStatistics,
-    setShowStatistics,
-  } = useMapViewOptions();
+  const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
+  const showPatrolStatus = mapViewLayers.patrolStatus;
   const [selectedPatrol, setSelectedPatrol] = useState(null);
+
+  const handleMapViewLayerChange = useCallback(
+    (id, value) => {
+      setMapViewLayer(id, value);
+      if (id === "patrolStatus" && !value) {
+        setSelectedPatrol(null);
+      }
+    },
+    [setMapViewLayer]
+  );
   const [callResponseOpen, setCallResponseOpen] = useState(false);
   const [callResponsePlace, setCallResponsePlace] = useState(null);
   const [callResponses, setCallResponses] = useState([]);
@@ -512,15 +515,8 @@ export default function MonitorDashboard({ user, onLogout }) {
         callResponsePlace={callResponsePlace}
         onCallResponsePlaceChange={setCallResponsePlace}
         onAddIncidentMarker={handleAddCallResponse}
-        showPatrolStatus={showPatrolStatus}
-        onShowPatrolStatusChange={(value) => {
-          setShowPatrolStatus(value);
-          if (!value) setSelectedPatrol(null);
-        }}
-        showLegend={showLegend}
-        onShowLegendChange={setShowLegend}
-        showStatistics={showStatistics}
-        onShowStatisticsChange={setShowStatistics}
+        mapViewLayers={mapViewLayers}
+        onMapViewLayerChange={handleMapViewLayerChange}
       />
 
       <section className="relative min-h-0 flex-1">
@@ -548,24 +544,13 @@ export default function MonitorDashboard({ user, onLogout }) {
             </div>
           )}
 
-          {showStatistics && (
-            <div className="pointer-events-none absolute right-0 top-0 z-[500]">
-              <div className="pointer-events-auto">
-                <MapStatisticsOverlay
-                  locations={latestLocations}
-                  nowMs={nowMs}
-                  intervalSeconds={intervalSeconds}
-                />
-              </div>
-            </div>
-          )}
-
-          {showLegend && (
-            <MapLegendOverlay
-              locations={latestLocations}
-              bounds={mapAreaSize}
-            />
-          )}
+          <MapViewOverlays
+            layers={mapViewLayers}
+            locations={latestLocations}
+            nowMs={nowMs}
+            intervalSeconds={intervalSeconds}
+            mapAreaSize={mapAreaSize}
+          />
         </div>
 
         {hasActiveCalls && (

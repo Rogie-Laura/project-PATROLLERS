@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
-import MapLegendOverlay from "@/components/MapLegendOverlay";
-import MapStatisticsOverlay from "@/components/MapStatisticsOverlay";
+import MapViewOverlays from "@/components/MapViewOverlays";
 
 const TrackReviewMap = dynamic(() => import("@/components/TrackReviewMap"), {
   ssr: false,
@@ -39,8 +38,7 @@ function deviceLabel(row) {
 export default function TrackReview({
   basemapId,
   showPatrolStatus = false,
-  showLegend = false,
-  showStatistics = false,
+  mapViewLayers,
 }) {
   const supabase = useMemo(() => createClient(), []);
 
@@ -241,16 +239,11 @@ export default function TrackReview({
               basemapId={basemapId}
               showPatrolStatus={showPatrolStatus}
             />
-            {showStatistics && (
-              <div className="pointer-events-none absolute right-0 top-0 z-[500]">
-                <div className="pointer-events-auto">
-                  <MapStatisticsOverlay locations={points} nowMs={Date.now()} />
-                </div>
-              </div>
-            )}
-            {showLegend && (
-              <MapLegendOverlay locations={points} bounds={mapAreaSize} />
-            )}
+            <MapViewOverlays
+              layers={mapViewLayers ?? {}}
+              locations={points}
+              mapAreaSize={mapAreaSize}
+            />
           </div>
         )}
       </section>

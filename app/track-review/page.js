@@ -14,14 +14,7 @@ export default function TrackReviewPage() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
-  const {
-    showPatrolStatus,
-    setShowPatrolStatus,
-    showLegend,
-    setShowLegend,
-    showStatistics,
-    setShowStatistics,
-  } = useMapViewOptions();
+  const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
 
   useEffect(() => {
     let active = true;
@@ -80,18 +73,13 @@ export default function TrackReviewPage() {
         showBasemap
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
-        showPatrolStatus={showPatrolStatus}
-        onShowPatrolStatusChange={setShowPatrolStatus}
-        showLegend={showLegend}
-        onShowLegendChange={setShowLegend}
-        showStatistics={showStatistics}
-        onShowStatisticsChange={setShowStatistics}
+        mapViewLayers={mapViewLayers}
+        onMapViewLayerChange={setMapViewLayer}
       />
       <TrackReview
         basemapId={basemapId}
-        showPatrolStatus={showPatrolStatus}
-        showLegend={showLegend}
-        showStatistics={showStatistics}
+        showPatrolStatus={mapViewLayers.patrolStatus}
+        mapViewLayers={mapViewLayers}
       />
     </main>
   );
