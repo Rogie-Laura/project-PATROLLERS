@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import MapToolbar from "@/components/MapToolbar";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/useCallResponseSession";
 import { staleThresholdMs } from "@/lib/connectionState";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
+import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 
 /** Full map refresh interval (backup if a Realtime message is missed). */
 const MONITOR_LOCATIONS_REFRESH_MS = 90_000;
@@ -81,6 +82,20 @@ export default function MonitorDashboard({ user, onLogout }) {
   const selectedPatrolKey = selectedPatrol
     ? selectedPatrol.access_token_id || selectedPatrol.user_id
     : null;
+
+  const handleSelectLocationFromPopout = useCallback((location) => {
+    setSelectedPatrol(location);
+  }, []);
+
+  const {
+    popoutActive: patrolStatusPopoutActive,
+    popoutBlocked: patrolStatusPopoutBlocked,
+    togglePopout: togglePatrolStatusPopout,
+  } = usePatrolStatusPopout({
+    enabled: showPatrolStatus,
+    selectedPatrolKey,
+    onSelectLocation: handleSelectLocationFromPopout,
+  });
 
   const flyToCall = callResponses.find((c) => c.id === flyToCallId);
 
@@ -464,6 +479,9 @@ export default function MonitorDashboard({ user, onLogout }) {
           setShowPatrolStatus(value);
           if (!value) setSelectedPatrol(null);
         }}
+        patrolStatusPopoutActive={patrolStatusPopoutActive}
+        onPatrolStatusPopoutToggle={togglePatrolStatusPopout}
+        patrolStatusPopoutBlocked={patrolStatusPopoutBlocked}
       />
 
       <section className="relative min-h-0 flex-1">
@@ -526,7 +544,17 @@ export default function MonitorDashboard({ user, onLogout }) {
           </div>
         )}
 
-        {showPatrolStatus && !selectedPatrol && !hasActiveCalls && (
+        {patrolStatusPopoutActive && showPatrolStatus && (
+          <div className="pointer-events-none absolute bottom-4 right-4 z-[500] max-w-[220px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 text-[11px] text-muted shadow-lg backdrop-blur-sm">
+            Patrol status is in the pop-out window. Use{" "}
+            <span className="font-medium text-foreground">Dock status</span> to bring it back.
+          </div>
+        )}
+
+        {showPatrolStatus &&
+          !patrolStatusPopoutActive &&
+          !selectedPatrol &&
+          !hasActiveCalls && (
           <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
             <div className="pointer-events-auto h-full w-full">
               <PatrolStatusListPanel
