@@ -19,21 +19,21 @@ function LegendRow({ image, label, value }) {
   return (
     <li className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/92 shadow-sm ring-1 ring-white/30">
           <Image
             src={image}
             alt=""
             width={36}
             height={36}
-            className="h-9 w-9 object-contain"
+            className="h-8 w-8 object-contain"
             aria-hidden
           />
         </span>
-        <span className="truncate text-xs font-medium text-zinc-800 sm:text-[13px]">
+        <span className="truncate text-xs font-medium text-zinc-100 sm:text-[13px]">
           {label}
         </span>
       </div>
-      <span className="shrink-0 tabular-nums text-base font-semibold text-emerald-600">
+      <span className="shrink-0 tabular-nums text-base font-semibold text-emerald-400">
         {value}
       </span>
     </li>
@@ -85,7 +85,7 @@ export default function MapLegendOverlay({
       }}
     >
       <div
-        className={`overflow-hidden border border-zinc-200/90 bg-white/[0.97] shadow-lg shadow-black/10 ${
+        className={`overflow-hidden border border-zinc-600/45 bg-zinc-800/88 shadow-lg shadow-black/25 backdrop-blur-sm ${
           flushTopLeft
             ? "rounded-br-xl rounded-tr-xl"
             : "rounded-xl"
@@ -94,10 +94,10 @@ export default function MapLegendOverlay({
         <div
           role="presentation"
           onPointerDown={onTitleBarPointerDown}
-          className="flex cursor-grab select-none items-center border-b border-zinc-200/80 bg-zinc-50/95 px-3.5 py-2 active:cursor-grabbing"
+          className="flex cursor-grab select-none items-center border-b border-zinc-600/40 bg-zinc-900/35 px-3.5 py-2 active:cursor-grabbing"
           title="Drag to move legend"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
             Legend
           </p>
         </div>
