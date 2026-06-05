@@ -14,7 +14,20 @@ Do not implement during pilot unless explicitly approved (stable APK + Supabase/
 
 ---
 
-## P1 — Force location (monitor → mobile, silent)
+## P1 — Online presence (heartbeat + Realtime)
+
+While **Live Tracking ON**, monitor must show **🟢 Online** separately from **📍 map position** (3 min GPS).
+
+- **Heartbeat ~60 sec** → `last_seen_at` update (implements “handshake”; not the same as GPS).
+- **Supabase Realtime** on mobile → live line + instant dispatch/force-location commands.
+- **Monitor:** `Monitor link` from `last_seen`; map pin from last GPS row.
+- **Do not** use GPS row age alone as “disconnected” once heartbeat exists.
+
+See also **P0** (Realtime/FCM for alarm) — same WebSocket stack where possible.
+
+---
+
+## P2 — Force location (monitor → mobile, silent)
 
 Remote **fresh GPS send** from command center. **No alarm / no siren.** Patroller does not press anything on the phone.
 
@@ -58,15 +71,43 @@ Phones respond **in parallel, staggered** (not sequential server fetch). DB load
 
 ---
 
-## P2 — Mobile tracking reliability
+## P3 — Mobile tracking reliability & GPS/data loss
 
-- Auto-send location on network reconnect after call/outage.
-- Reset interval timer after manual send.
-- Retry failed timer sends (today: silent `catch`).
+### Pilot behavior today (documented)
+
+| Scenario | Logged in | Map icon | Monitor |
+|----------|-----------|----------|---------|
+| **Stop tracking** (beacon OK) | Yes | **Removed** | Unit off map |
+| **Stop tracking** (beacon fail) | Yes | Stays | Stale / grey |
+| **GPS off** or **no mobile data** while tracking ON | Yes | Stays | Stale / grey (no fresh GPS) |
+| **Resume** GPS/data | Yes | Stays | Next 3 min timer only (no instant send yet) |
+
+Timer send failures today: **silent** (`catch (_) {}`) — patroller may not notice; monitor sees stale.
+
+### v2 mobile UX (recommended — **no auto logout**)
+
+**Do not** auto-logout when GPS or mobile data is turned off. Patrollers may lose signal briefly (airplane mode, tunnel, dead zone).
+
+Instead:
+
+1. **Warning banner** on dashboard while tracking is ON but GPS is off, permission denied, or no network:
+   - e.g. *“Location or data unavailable — command center cannot see your updates.”*
+2. **Auto `sendNow()` on resume** when GPS or connectivity returns (do not wait for next 3 min tick).
+3. **Retry** failed timer sends (with backoff), not silent discard.
+4. **Reset interval timer** after manual send (optional polish).
+
+### Stop tracking vs GPS off
+
+- **Stop tracking** → send `tracking_active: false` beacon → **remove from map** (keep current design).
+- **GPS/data off** → stay logged in, stay “tracking” in app, **warn patroller**, monitor shows **No recent update** until resume send succeeds.
+
+### Requires
+
+- New APK (connectivity/GPS listeners, banner UI, reconnect hook).
 
 ---
 
-## P3 — Monitor / ops polish
+## P4 — Monitor / ops polish
 
 - Fix sticky “Could not load patrol locations” banner (clear on successful refresh).
 - Schedule Supabase retention cron for `prune_old_location_updates(90)`.
