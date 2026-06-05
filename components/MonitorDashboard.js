@@ -102,6 +102,14 @@ export default function MonitorDashboard({ user, onLogout }) {
     onSelectLocation: handleSelectLocationFromPopout,
   });
 
+  const [externalWindowHintDismissed, setExternalWindowHintDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!patrolStatusExternalOpen) {
+      setExternalWindowHintDismissed(false);
+    }
+  }, [patrolStatusExternalOpen]);
+
   const flyToCall = callResponses.find((c) => c.id === flyToCallId);
 
   const highlightedUnitLocation = useMemo(() => {
@@ -559,11 +567,26 @@ export default function MonitorDashboard({ user, onLogout }) {
           />
         )}
 
-        {patrolStatusExternalOpen && showPatrolStatus && (
-          <div className="pointer-events-none absolute bottom-4 right-4 z-[500] max-w-[240px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 text-[11px] text-muted shadow-lg backdrop-blur-sm">
-            Patrol status is in a separate window. Use{" "}
-            <span className="font-medium text-foreground">Dock</span> in that window&apos;s title
-            bar, or close the window.
+        {patrolStatusExternalOpen &&
+          showPatrolStatus &&
+          !externalWindowHintDismissed && (
+          <div className="pointer-events-auto absolute bottom-4 right-4 z-[500] max-w-[260px] rounded-lg border border-border/60 bg-card/95 pr-1 shadow-lg backdrop-blur-sm">
+            <div className="flex items-start gap-1 px-3 py-2">
+              <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted">
+                Patrol status is in a separate window. Use{" "}
+                <span className="font-medium text-foreground">Dock</span> in that window&apos;s
+                title bar, or close the window.
+              </p>
+              <button
+                type="button"
+                onClick={() => setExternalWindowHintDismissed(true)}
+                className="shrink-0 rounded p-0.5 text-muted transition hover:bg-background/80 hover:text-foreground"
+                aria-label="Dismiss reminder"
+                title="Close reminder"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         )}
 
