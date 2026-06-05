@@ -96,8 +96,19 @@ export default function MonitorDashboard({ user, onLogout }) {
     ? selectedPatrol.access_token_id || selectedPatrol.user_id
     : null;
 
-  const handleSelectLocationFromPopout = useCallback((location) => {
+  const [flyToPatrolTarget, setFlyToPatrolTarget] = useState(null);
+
+  const handleSelectPatrol = useCallback((location) => {
     setSelectedPatrol(location);
+    if (!location) {
+      setFlyToPatrolTarget(null);
+      return;
+    }
+    setFlyToPatrolTarget({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      at: Date.now(),
+    });
   }, []);
 
   const {
@@ -111,7 +122,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   } = usePatrolStatusPopout({
     enabled: showPatrolStatus,
     selectedPatrolKey,
-    onSelectLocation: handleSelectLocationFromPopout,
+    onSelectLocation: handleSelectPatrol,
   });
 
   const [externalWindowHintDismissed, setExternalWindowHintDismissed] = useState(false);
@@ -526,10 +537,11 @@ export default function MonitorDashboard({ user, onLogout }) {
             basemapId={basemapId}
             showPatrolStatus={showPatrolStatus}
             selectedPatrolKey={selectedPatrolKey}
-            onSelectPatrol={setSelectedPatrol}
+            onSelectPatrol={handleSelectPatrol}
             callResponses={callResponses}
             selectedCallId={selectedCallId}
             flyToCall={flyToCall}
+            flyToPatrol={flyToPatrolTarget}
             highlightedUnitKey={highlightedUnitKey}
             highlightedUnitLocation={highlightedUnitLocation}
             dispatchRoute={dispatchRoute}
@@ -591,7 +603,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           <PatrolStatusFloatingPanel
             locations={latestLocations}
             selectedPatrolKey={selectedPatrolKey}
-            onSelectPatrol={setSelectedPatrol}
+            onSelectPatrol={handleSelectPatrol}
             nowMs={nowMs}
             intervalSeconds={intervalSeconds}
             onDock={closePatrolStatusDetach}
@@ -632,7 +644,7 @@ export default function MonitorDashboard({ user, onLogout }) {
               <PatrolStatusListPanel
                 locations={latestLocations}
                 selectedPatrolKey={selectedPatrolKey}
-                onSelectPatrol={setSelectedPatrol}
+                onSelectPatrol={handleSelectPatrol}
                 nowMs={nowMs}
                 intervalSeconds={intervalSeconds}
                 onDetach={openPatrolStatusDetach}

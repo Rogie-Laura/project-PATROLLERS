@@ -116,6 +116,21 @@ function FlyToUnit({ location }) {
   return null;
 }
 
+/** Pans map when a patrol is chosen from the status list (not on every GPS tick). */
+function FlyToPatrol({ target }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!target) return;
+    const lat = toNumber(target.latitude);
+    const lng = toNumber(target.longitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+    map.flyTo([lat, lng], 14, { duration: 0.8 });
+  }, [map, target?.at]);
+
+  return null;
+}
+
 function CallResponsesLayer({
   callResponses,
   selectedCallId,
@@ -310,6 +325,7 @@ export default function PatrolMap({
   callResponses = [],
   selectedCallId = null,
   flyToCall = null,
+  flyToPatrol = null,
   highlightedUnitKey = null,
   highlightedUnitLocation = null,
   dispatchRoute = null,
@@ -356,6 +372,7 @@ export default function PatrolMap({
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />
         <InvalidateOnResize />
         <FlyToCallResponse callResponse={flyToCall} />
+        <FlyToPatrol target={flyToPatrol} />
         <FlyToUnit location={highlightedUnitLocation} />
         <CallResponsesLayer
           callResponses={callResponses}
