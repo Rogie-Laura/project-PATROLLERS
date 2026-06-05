@@ -38,8 +38,8 @@ function deviceLabel(row) {
 
 export default function TrackReview({
   basemapId,
-  showPatrolStatus = true,
-  showLegend = true,
+  showPatrolStatus = false,
+  showLegend = false,
   showStatistics = false,
 }) {
   const supabase = useMemo(() => createClient(), []);
