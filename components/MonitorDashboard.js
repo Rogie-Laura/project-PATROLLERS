@@ -533,7 +533,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           )}
 
           {(showLegend || showStatistics) && (
-            <div className="pointer-events-none absolute bottom-4 left-4 z-[500] flex max-w-[min(100%,260px)] flex-col gap-2">
+            <div className="pointer-events-none absolute left-4 top-4 z-[500] flex max-w-[min(100%,300px)] flex-col gap-2">
               {showStatistics && (
                 <MapStatisticsOverlay
                   locations={latestLocations}
