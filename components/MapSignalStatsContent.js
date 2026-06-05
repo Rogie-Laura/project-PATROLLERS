@@ -10,9 +10,11 @@ import {
 function StatRow({ label, value, accent }) {
   return (
     <div className="flex items-center justify-between gap-3 text-[11px]">
-      <span className="text-muted">{label}</span>
+      <span className="text-zinc-400">{label}</span>
       <span
-        className={`tabular-nums font-semibold ${accent ? "text-accent" : "text-foreground"}`}
+        className={`tabular-nums font-semibold ${
+          accent ? "text-emerald-400" : "text-zinc-100"
+        }`}
       >
         {value}
       </span>
@@ -20,9 +22,9 @@ function StatRow({ label, value, accent }) {
   );
 }
 
-export default function MapStatisticsOverlay({
-  locations,
-  nowMs,
+export default function MapSignalStatsContent({
+  locations = [],
+  nowMs = Date.now(),
   intervalSeconds = 180,
 }) {
   const stats = useMemo(() => {
@@ -58,25 +60,20 @@ export default function MapStatisticsOverlay({
   }, [locations, nowMs, intervalSeconds]);
 
   return (
-    <div className="pointer-events-auto w-[min(100%,240px)] rounded-lg border border-border/60 bg-card/95 px-3 py-2.5 shadow-lg backdrop-blur-sm">
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-        Signal Stats
-      </p>
-      <div className="space-y-1.5">
-        <StatRow label="Active units on map" value={stats.total} accent />
-        <StatRow
-          label={getPatrolStatusLabel(PATROL_STATUS.policeVisibility)}
-          value={stats.visibility}
-        />
-        <StatRow
-          label={getPatrolStatusLabel(PATROL_STATUS.incidentResponse)}
-          value={stats.incident}
-        />
-        <div className="my-1 border-t border-border/50" aria-hidden />
-        <StatRow label="Strong signal" value={stats.strong} />
-        <StatRow label="Weak signal" value={stats.weak} />
-        <StatRow label="Disconnected / stale" value={stats.stale} />
-      </div>
+    <div className="space-y-1.5">
+      <StatRow label="Active units on map" value={stats.total} accent />
+      <StatRow
+        label={getPatrolStatusLabel(PATROL_STATUS.policeVisibility)}
+        value={stats.visibility}
+      />
+      <StatRow
+        label={getPatrolStatusLabel(PATROL_STATUS.incidentResponse)}
+        value={stats.incident}
+      />
+      <div className="my-1 border-t border-zinc-600/40" aria-hidden />
+      <StatRow label="Strong signal" value={stats.strong} />
+      <StatRow label="Weak signal" value={stats.weak} />
+      <StatRow label="Disconnected / stale" value={stats.stale} />
     </div>
   );
 }
