@@ -14,11 +14,14 @@ stable
 security definer
 set search_path = public
 as $$
-  select distinct on (access_token_id) *
-  from public.location_updates
-  where access_token_id is not null
-    and coalesce(tracking_active, true) = true
-  order by access_token_id, created_at desc;
+  select latest.*
+  from (
+    select distinct on (access_token_id) *
+    from public.location_updates
+    where access_token_id is not null
+    order by access_token_id, created_at desc
+  ) as latest
+  where coalesce(latest.tracking_active, true) = true;
 $$;
 
 revoke all on function public.get_latest_patrol_locations() from public;
