@@ -18,6 +18,10 @@ import {
   useCallResponseSession,
 } from "@/lib/useCallResponseSession";
 import { staleThresholdMs } from "@/lib/connectionState";
+import { upsertLatestLocationRow } from "@/lib/monitorLocations";
+
+/** Full map refresh interval (backup if a Realtime message is missed). */
+const MONITOR_LOCATIONS_REFRESH_MS = 90_000;
 
 const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
   ssr: false,
@@ -27,22 +31,6 @@ const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
     </div>
   ),
 });
-
-function getLatestByPatrol(locations) {
-  const latest = new Map();
-
-  for (const loc of locations) {
-    const key = loc.access_token_id || loc.user_id;
-    if (!key) continue;
-
-    const existing = latest.get(key);
-    if (!existing || new Date(loc.created_at) > new Date(existing.created_at)) {
-      latest.set(key, loc);
-    }
-  }
-
-  return Array.from(latest.values());
-}
 
 export default function MonitorDashboard({ user, onLogout }) {
   const supabase = createClient();
@@ -79,12 +67,9 @@ export default function MonitorDashboard({ user, onLogout }) {
     [mapRadiusSlots]
   );
 
-  // Units that pressed "Stop Tracking" disappear from the map and panels.
+  // One row per unit from get_latest_patrol_locations; hide stop-tracking beacons.
   const latestLocations = useMemo(
-    () =>
-      getLatestByPatrol(locations).filter(
-        (loc) => loc.tracking_active !== false
-      ),
+    () => locations.filter((loc) => loc.tracking_active !== false),
     [locations]
   );
 
@@ -226,23 +211,27 @@ export default function MonitorDashboard({ user, onLogout }) {
     let active = true;
 
     async function loadLocations() {
-      const { data, error: fetchError } = await supabase
-        .from("location_updates")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
+      try {
+        const res = await fetch("/api/monitor/locations");
+        const data = await res.json();
+        if (!active) return;
 
-      if (!active) return;
+        if (!res.ok) {
+          setError(data.error ?? "Could not load patrol locations.");
+          return;
+        }
 
-      if (fetchError) {
-        setError(fetchError.message);
-      } else {
-        setLocations(data || []);
+        setLocations(data.locations ?? []);
+      } catch {
+        if (active) setError("Could not load patrol locations.");
+      } finally {
+        if (active) setLoading(false);
       }
-      setLoading(false);
     }
 
     loadLocations();
+
+    const refreshId = setInterval(loadLocations, MONITOR_LOCATIONS_REFRESH_MS);
 
     const channel = supabase
       .channel("location_updates_realtime")
@@ -253,9 +242,8 @@ export default function MonitorDashboard({ user, onLogout }) {
           const row = payload.new;
           if (!row) return;
 
-          setLocations((prev) => [row, ...prev]);
+          setLocations((prev) => upsertLatestLocationRow(prev, row));
 
-          // Stop-tracking beacon: hide marker as soon as the INSERT arrives.
           if (row.tracking_active === false) {
             const unitKey = row.access_token_id || row.user_id;
             setSelectedPatrol((current) => {
@@ -270,6 +258,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
     return () => {
       active = false;
+      clearInterval(refreshId);
       supabase.removeChannel(channel);
     };
   }, [supabase]);
