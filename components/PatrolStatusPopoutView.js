@@ -109,6 +109,7 @@ export default function PatrolStatusPopoutView() {
           return;
         }
 
+        setError("");
         setLocations(data.locations ?? []);
       } catch {
         if (active) setError("Could not load patrol locations.");
@@ -121,7 +122,7 @@ export default function PatrolStatusPopoutView() {
 
     const refreshId = setInterval(loadLocations, MONITOR_LOCATIONS_REFRESH_MS);
 
-    const channel = supabase
+    const locationChannel = supabase
       .channel("patrol_status_popout_locations")
       .on(
         "postgres_changes",
@@ -134,10 +135,31 @@ export default function PatrolStatusPopoutView() {
       )
       .subscribe();
 
+    const presenceChannel = supabase
+      .channel("patrol_status_popout_presence")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "mobile_device_profiles" },
+        (payload) => {
+          const row = payload.new;
+          if (!row?.access_token_id || !row.last_seen_at) return;
+
+          setLocations((prev) =>
+            prev.map((loc) =>
+              loc.access_token_id === row.access_token_id
+                ? { ...loc, last_seen_at: row.last_seen_at }
+                : loc
+            )
+          );
+        }
+      )
+      .subscribe();
+
     return () => {
       active = false;
       clearInterval(refreshId);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(locationChannel);
+      supabase.removeChannel(presenceChannel);
     };
   }, [supabase]);
 

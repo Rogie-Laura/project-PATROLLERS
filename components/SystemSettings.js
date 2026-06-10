@@ -140,6 +140,7 @@ export default function SystemSettings() {
   const [saving, setSaving] = useState(false);
   const [savingDirections, setSavingDirections] = useState(false);
   const [savingRadius, setSavingRadius] = useState(false);
+  const [savingMobileRelease, setSavingMobileRelease] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -151,6 +152,13 @@ export default function SystemSettings() {
   const [googleMapsConfigured, setGoogleMapsConfigured] = useState(false);
   const [radiusRingSlots, setRadiusRingSlots] = useState(createDefaultRadiusRingSlots);
   const [radiusSummary, setRadiusSummary] = useState("");
+
+  const [mobileLatestVersionCode, setMobileLatestVersionCode] = useState("1");
+  const [mobileMinVersionCode, setMobileMinVersionCode] = useState("1");
+  const [mobileLatestVersionName, setMobileLatestVersionName] = useState("1.0.0");
+  const [mobileApkDownloadUrl, setMobileApkDownloadUrl] = useState("");
+  const [mobileUpdateRequired, setMobileUpdateRequired] = useState(false);
+  const [mobileReleaseNotes, setMobileReleaseNotes] = useState("");
 
   const [value, setValue] = useState("30");
   const [unit, setUnit] = useState("minutes");
@@ -167,6 +175,14 @@ export default function SystemSettings() {
       setRadiusRingSlots(settings.incident_radius_rings);
     }
     setRadiusSummary(settings.incident_radius_summary ?? "");
+    setMobileLatestVersionCode(
+      String(settings.mobile_latest_version_code ?? 1)
+    );
+    setMobileMinVersionCode(String(settings.mobile_min_version_code ?? 1));
+    setMobileLatestVersionName(settings.mobile_latest_version_name ?? "1.0.0");
+    setMobileApkDownloadUrl(settings.mobile_apk_download_url ?? "");
+    setMobileUpdateRequired(Boolean(settings.mobile_update_required));
+    setMobileReleaseNotes(settings.mobile_release_notes ?? "");
 
     if (seconds % 60 === 0 && seconds >= 60) {
       setUnit("minutes");
@@ -286,6 +302,43 @@ export default function SystemSettings() {
       setError(err.message ?? "Could not save radius circles.");
     } finally {
       setSavingRadius(false);
+    }
+  }
+
+  async function handleSaveMobileRelease(event) {
+    event.preventDefault();
+    setSavingMobileRelease(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mobile_latest_version_code: Number(mobileLatestVersionCode),
+          mobile_min_version_code: Number(mobileMinVersionCode),
+          mobile_latest_version_name: mobileLatestVersionName.trim(),
+          mobile_apk_download_url: mobileApkDownloadUrl.trim(),
+          mobile_update_required: mobileUpdateRequired,
+          mobile_release_notes: mobileReleaseNotes.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save mobile release settings.");
+      }
+
+      applySettings(data.settings);
+      setSuccess(
+        "Mobile release saved. Patrol phones will see an update prompt when their installed version is lower than the latest version code."
+      );
+    } catch (err) {
+      setError(err.message ?? "Could not save mobile release settings.");
+    } finally {
+      setSavingMobileRelease(false);
     }
   }
 
@@ -483,6 +536,123 @@ export default function SystemSettings() {
               {savingDirections ? "Saving..." : "Save routing provider"}
             </button>
           </form>
+        </SettingCard>
+
+        <SettingCard
+          title="Mobile app update (OTA)"
+          description="After you build a new Android APK, upload it to HTTPS storage (e.g. Supabase Storage) and publish the version here. Phones show an Update button and install in place — same app ID, higher version code."
+        >
+          <form onSubmit={handleSaveMobileRelease} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  Latest version code
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  disabled={loading || savingMobileRelease}
+                  value={mobileLatestVersionCode}
+                  onChange={(e) => setMobileLatestVersionCode(e.target.value)}
+                  className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                />
+                <p className="mt-1 text-[11px] text-muted">
+                  Must match <code className="text-foreground">version: x.y.z+CODE</code> in Flutter pubspec.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  Minimum required version code
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  required
+                  disabled={loading || savingMobileRelease}
+                  value={mobileMinVersionCode}
+                  onChange={(e) => setMobileMinVersionCode(e.target.value)}
+                  className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                />
+                <p className="mt-1 text-[11px] text-muted">
+                  Phones below this code must update before continuing.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted">
+                Latest version name
+              </label>
+              <input
+                type="text"
+                required
+                disabled={loading || savingMobileRelease}
+                value={mobileLatestVersionName}
+                onChange={(e) => setMobileLatestVersionName(e.target.value)}
+                placeholder="1.1.0"
+                className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted">
+                APK download URL (HTTPS)
+              </label>
+              <input
+                type="url"
+                required
+                disabled={loading || savingMobileRelease}
+                value={mobileApkDownloadUrl}
+                onChange={(e) => setMobileApkDownloadUrl(e.target.value)}
+                placeholder="https://your-project.supabase.co/storage/v1/object/public/app-releases/patrollers-1.1.0.apk"
+                className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted">
+                Release notes (optional)
+              </label>
+              <textarea
+                rows={3}
+                disabled={loading || savingMobileRelease}
+                value={mobileReleaseNotes}
+                onChange={(e) => setMobileReleaseNotes(e.target.value)}
+                placeholder="Instant dispatch, heartbeat, bug fixes..."
+                className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              />
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={mobileUpdateRequired}
+                disabled={loading || savingMobileRelease}
+                onChange={(e) => setMobileUpdateRequired(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-accent"
+              />
+              <span className="text-xs leading-relaxed text-muted">
+                <strong className="text-foreground">Force update</strong> — block the app until
+                patrol installs the latest APK (when an update is available).
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading || savingMobileRelease}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+            >
+              {savingMobileRelease ? "Saving..." : "Save mobile release"}
+            </button>
+          </form>
+
+          <p className="mt-3 text-[11px] leading-relaxed text-muted">
+            Rollout steps: (1) bump <code className="text-foreground">version: x.y.z+CODE</code> in
+            Flutter, (2) build signed release APK, (3) upload to HTTPS, (4) save settings here.
+            First APK with this feature must be installed manually once; later updates are one-tap.
+          </p>
         </SettingCard>
 
         <SettingCard

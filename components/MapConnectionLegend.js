@@ -31,8 +31,8 @@ export default function MapConnectionLegend() {
         ))}
       </ul>
       <p className="mt-1.5 text-[9px] leading-snug text-muted">
-        Based on last GPS received — not live handshake yet. Hover a unit for
-        details.
+        Monitor link uses mobile heartbeat when available; map pin uses last GPS.
+        Hover a unit for details.
       </p>
     </div>
   );

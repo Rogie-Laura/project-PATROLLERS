@@ -6,6 +6,7 @@ import {
   CONNECTION_BORDER_COLOR,
   formatSignalStrength,
   formatLastUpdateAge,
+  formatLastSeenAge,
   getConnectionState,
   LIVE_STATUS_LABEL,
 } from "@/lib/connectionState";
@@ -36,6 +37,7 @@ export default function PatrolDetailPanel({
   nowMs = Date.now(),
   intervalSeconds = 180,
   onClose,
+  onForceLocation,
 }) {
   if (!location) return null;
 
@@ -110,7 +112,15 @@ export default function PatrolDetailPanel({
           )}
           <DetailRow label="Last Update" value={lastUpdate} />
           <DetailRow
-            label="Last heard"
+            label="Monitor link"
+            value={
+              location.last_seen_at
+                ? formatLastSeenAge(location, nowMs)
+                : "No heartbeat yet"
+            }
+          />
+          <DetailRow
+            label="Last GPS"
             value={formatLastUpdateAge(location, nowMs)}
           />
           <DetailRow label="GPS Accuracy" value={accuracy} />
@@ -154,6 +164,18 @@ export default function PatrolDetailPanel({
           </div>
           <DetailRow label="Signal" value={formatSignalStrength(location)} />
         </Section>
+
+        {onForceLocation && (
+          <section className="border-b border-border/60 px-4 py-3">
+            <button
+              type="button"
+              onClick={onForceLocation}
+              className="w-full rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-medium text-foreground transition hover:bg-accent/20"
+            >
+              Force fresh GPS (silent)
+            </button>
+          </section>
+        )}
 
         <Section title="Phone Status">
           <DetailRow label="Mobile Phone" value={location.mobile_phone} />

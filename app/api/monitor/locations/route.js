@@ -12,15 +12,17 @@ export async function GET(request) {
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("get_latest_patrol_locations");
+  const { data, error } = await admin.rpc("get_monitor_patrol_snapshot");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const locations = Array.isArray(data) ? data : [];
+
   return NextResponse.json({
     ok: true,
-    locations: Array.isArray(data) ? data : [],
-    count: Array.isArray(data) ? data.length : 0,
+    locations,
+    count: locations.length,
   });
 }

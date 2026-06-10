@@ -107,6 +107,37 @@ Instead:
 
 ---
 
+## P5 — Mobile in-app update (OTA)
+
+One-tap Android APK update from inside the app (no Play Store required).
+
+### How it works
+
+1. Admin builds release APK with higher `versionCode` in `pubspec.yaml` (`version: 1.1.0+2`).
+2. Upload APK to **HTTPS** storage (Supabase Storage public bucket recommended).
+3. **System Settings → Mobile app update (OTA)** — set version code, name, download URL, optional release notes.
+4. Mobile checks `GET /api/mobile/app-update?version_code=N` on dashboard load.
+5. If server latest > installed → **Update now** button → download + Android install prompt.
+6. If below **minimum version code** (or force update checked) → blocking dialog until updated.
+
+### Admin rollout checklist
+
+- [ ] Bump `version: x.y.z+CODE` in Flutter (`+CODE` must increase every release)
+- [ ] Build signed release APK (`flutter build apk --release`)
+- [ ] Upload APK to HTTPS (verify link opens/download in browser)
+- [ ] Save version + URL in System Settings
+- [ ] Test on 1–2 phones before fleet rollout
+- [ ] Keep previous APK URL/version for rollback if needed
+
+### Requires
+
+- Migration `027_mobile_app_release.sql`
+- Web: `/api/mobile/app-update`, System Settings UI
+- Mobile: `package_info_plus`, `ota_update`, `REQUEST_INSTALL_PACKAGES` (new APK)
+- **First install** of OTA-capable APK is still manual; after that, one-tap updates work
+
+---
+
 ## P4 — Monitor / ops polish
 
 - Fix sticky “Could not load patrol locations” banner (clear on successful refresh).
@@ -127,3 +158,20 @@ Instead:
 - **1 access token = 1 phone.**
 - No breaking Supabase/API changes during pilot.
 - No new APK unless explicitly requested.
+
+---
+
+## Web/API implementation status (this repo)
+
+| Item | Web/API | Mobile APK (Flutter, separate repo) |
+|------|---------|-------------------------------------|
+| **P4** | Sticky banner fix; cron migration `031` | — |
+| **P5** | `027`, `/api/mobile/app-update`, System Settings OTA card | `package_info_plus`, `ota_update`, install prompt |
+| **P1** | `028` heartbeat, `/api/mobile/heartbeat`, monitor presence Realtime | ~60s heartbeat POST; Supabase Realtime subscribe |
+| **P0** | Dispatch Realtime on monitor; FCM send on dispatch (`030`, `/api/mobile/fcm-token`) | Realtime on `call_response_dispatches`; FCM handler; instant respond UX |
+| **P2** | `029`, force-location APIs, `ForceLocationPanel` | Realtime/FCM listener → `sendNow()` |
+| **P3** | — (server RPC unchanged) | GPS/data banner, reconnect `sendNow()`, retry backoff |
+
+**Apply migrations `027`–`031` on Supabase before testing.**
+
+**FCM (optional):** set `FIREBASE_*` in Vercel. Without them, Realtime still delivers signals when the app is foregrounded.

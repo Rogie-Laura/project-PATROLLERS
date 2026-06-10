@@ -22,6 +22,8 @@ import {
 } from "@/lib/useCallResponseSession";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
+import { dispatchFromRow } from "@/lib/callResponseDispatches";
+import ForceLocationPanel from "@/components/ForceLocationPanel";
 
 /** Full map refresh interval (backup if a Realtime message is missed). */
 const MONITOR_LOCATIONS_REFRESH_MS = 90_000;
@@ -74,6 +76,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [dispatchMaxRadiusM, setDispatchMaxRadiusM] = useState(6000);
   const [dispatchByCallId, setDispatchByCallId] = useState({});
   const [dispatchNotice, setDispatchNotice] = useState("");
+  const [forceLocationOpen, setForceLocationOpen] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const incidentRadiusRings = useMemo(
@@ -94,6 +97,10 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [flyToPatrolTarget, setFlyToPatrolTarget] = useState(null);
 
   const handleSelectPatrol = useCallback((location) => {
+    setSelectedPatrol(location);
+  }, []);
+
+  const handleSelectPatrolFromList = useCallback((location) => {
     setSelectedPatrol(location);
     if (!location) {
       setFlyToPatrolTarget(null);
@@ -117,7 +124,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   } = usePatrolStatusPopout({
     enabled: showPatrolStatus,
     selectedPatrolKey,
-    onSelectLocation: handleSelectPatrol,
+    onSelectLocation: handleSelectPatrolFromList,
   });
 
   const [externalWindowHintDismissed, setExternalWindowHintDismissed] = useState(false);
@@ -283,6 +290,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           return;
         }
 
+        setError("");
         setLocations(data.locations ?? []);
       } catch {
         if (active) setError("Could not load patrol locations.");
@@ -295,7 +303,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
     const refreshId = setInterval(loadLocations, MONITOR_LOCATIONS_REFRESH_MS);
 
-    const channel = supabase
+    const locationChannel = supabase
       .channel("location_updates_realtime")
       .on(
         "postgres_changes",
@@ -318,10 +326,31 @@ export default function MonitorDashboard({ user, onLogout }) {
       )
       .subscribe();
 
+    const presenceChannel = supabase
+      .channel("mobile_presence_realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "mobile_device_profiles" },
+        (payload) => {
+          const row = payload.new;
+          if (!row?.access_token_id || !row.last_seen_at) return;
+
+          setLocations((prev) =>
+            prev.map((loc) =>
+              loc.access_token_id === row.access_token_id
+                ? { ...loc, last_seen_at: row.last_seen_at }
+                : loc
+            )
+          );
+        }
+      )
+      .subscribe();
+
     return () => {
       active = false;
       clearInterval(refreshId);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(locationChannel);
+      supabase.removeChannel(presenceChannel);
     };
   }, [supabase]);
 
@@ -374,10 +403,53 @@ export default function MonitorDashboard({ user, onLogout }) {
     loadDispatchesForCall(selectedCallId);
     const id = setInterval(
       () => loadDispatchesForCall(selectedCallId),
-      8000
+      90_000
     );
     return () => clearInterval(id);
   }, [selectedCallId]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("call_response_dispatches_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "call_response_dispatches" },
+        (payload) => {
+          const row = payload.new ?? payload.old;
+          const callId = row?.call_response_id;
+          if (!callId) return;
+
+          if (payload.eventType === "DELETE") {
+            setDispatchByCallId((prev) => {
+              const current = prev[callId] ?? [];
+              return {
+                ...prev,
+                [callId]: current.filter((entry) => entry.id !== row.id),
+              };
+            });
+            return;
+          }
+
+          const dispatch = dispatchFromRow(row);
+          if (!dispatch) return;
+
+          setDispatchByCallId((prev) => {
+            const current = prev[callId] ?? [];
+            const idx = current.findIndex((entry) => entry.id === dispatch.id);
+            const next =
+              idx === -1
+                ? [dispatch, ...current]
+                : current.map((entry, i) => (i === idx ? dispatch : entry));
+            return { ...prev, [callId]: next };
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   async function handleAddCallResponse(place) {
     setError("");
@@ -560,6 +632,24 @@ export default function MonitorDashboard({ user, onLogout }) {
           />
 
           <MapConnectionLegend />
+
+          <div className="pointer-events-auto absolute bottom-3 right-3 z-[400] flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setForceLocationOpen((open) => !open)}
+              className="rounded-lg border border-border/60 bg-card/92 px-3 py-2 text-[11px] font-medium text-foreground shadow-lg backdrop-blur-sm transition hover:bg-background/80"
+            >
+              {forceLocationOpen ? "Hide force location" : "Force location"}
+            </button>
+          </div>
+
+          {forceLocationOpen && (
+            <ForceLocationPanel
+              locations={latestLocations}
+              selectedLocation={selectedPatrol}
+              onClose={() => setForceLocationOpen(false)}
+            />
+          )}
         </div>
 
         {hasActiveCalls && (
@@ -600,7 +690,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           <PatrolStatusFloatingPanel
             locations={latestLocations}
             selectedPatrolKey={selectedPatrolKey}
-            onSelectPatrol={handleSelectPatrol}
+            onSelectPatrol={handleSelectPatrolFromList}
             nowMs={nowMs}
             intervalSeconds={intervalSeconds}
             onDock={closePatrolStatusDetach}
@@ -641,7 +731,7 @@ export default function MonitorDashboard({ user, onLogout }) {
               <PatrolStatusListPanel
                 locations={latestLocations}
                 selectedPatrolKey={selectedPatrolKey}
-                onSelectPatrol={handleSelectPatrol}
+                onSelectPatrol={handleSelectPatrolFromList}
                 nowMs={nowMs}
                 intervalSeconds={intervalSeconds}
                 onDetach={openPatrolStatusDetach}
@@ -659,6 +749,7 @@ export default function MonitorDashboard({ user, onLogout }) {
                 showPatrolStatus={showPatrolStatus}
                 nowMs={nowMs}
                 intervalSeconds={intervalSeconds}
+                onForceLocation={() => setForceLocationOpen(true)}
                 onClose={() => {
                   setSelectedPatrol(null);
                 }}

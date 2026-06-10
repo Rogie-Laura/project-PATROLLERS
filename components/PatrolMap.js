@@ -120,7 +120,7 @@ function FlyToUnit({ location }) {
   return null;
 }
 
-/** Pans map when a patrol is chosen from the status list (not on every GPS tick). */
+/** Pans map when a patrol is chosen from the status list (not on marker click). */
 function FlyToPatrol({ target }) {
   const map = useMap();
 

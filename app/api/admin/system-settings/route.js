@@ -13,7 +13,9 @@ import {
   updateDirectionsProvider,
   updateIncidentRadiusRings,
   updateLocationIntervalSeconds,
+  updateMobileAppRelease,
 } from "@/lib/mobile/systemSettings";
+import { parseMobileReleaseInput } from "@/lib/mobile/appRelease";
 import { formatRadiusRingsSummary } from "@/lib/incidentRadiusRings";
 
 function requireAdmin(user) {
@@ -44,6 +46,12 @@ function settingsPayload(settings) {
     incident_radius_summary: formatRadiusRingsSummary(
       settings.incident_radius_rings
     ),
+    mobile_latest_version_code: settings.mobile_latest_version_code,
+    mobile_min_version_code: settings.mobile_min_version_code,
+    mobile_latest_version_name: settings.mobile_latest_version_name,
+    mobile_apk_download_url: settings.mobile_apk_download_url,
+    mobile_update_required: settings.mobile_update_required,
+    mobile_release_notes: settings.mobile_release_notes,
   };
 }
 
@@ -78,8 +86,15 @@ export async function PATCH(request) {
     body?.unit != null;
   const hasDirections = body?.directions_provider != null;
   const hasRadiusRings = body?.incident_radius_rings != null;
+  const hasMobileRelease =
+    body?.mobile_latest_version_code != null ||
+    body?.mobile_min_version_code != null ||
+    body?.mobile_latest_version_name != null ||
+    body?.mobile_apk_download_url != null ||
+    body?.mobile_update_required != null ||
+    body?.mobile_release_notes != null;
 
-  if (!hasInterval && !hasDirections && !hasRadiusRings) {
+  if (!hasInterval && !hasDirections && !hasRadiusRings && !hasMobileRelease) {
     return NextResponse.json(
       { error: "No settings to update." },
       { status: 400 }
@@ -150,6 +165,37 @@ export async function PATCH(request) {
       return NextResponse.json(
         { error: error.message ?? "Could not save radius circles." },
         { status: 400 }
+      );
+    }
+  }
+
+  if (hasMobileRelease) {
+    const current = await getSystemSettings();
+    const parsed = parseMobileReleaseInput({
+      mobile_latest_version_code:
+        body?.mobile_latest_version_code ?? current.mobile_latest_version_code,
+      mobile_min_version_code:
+        body?.mobile_min_version_code ?? current.mobile_min_version_code,
+      mobile_latest_version_name:
+        body?.mobile_latest_version_name ?? current.mobile_latest_version_name,
+      mobile_apk_download_url:
+        body?.mobile_apk_download_url ?? current.mobile_apk_download_url ?? "",
+      mobile_update_required:
+        body?.mobile_update_required ?? current.mobile_update_required,
+      mobile_release_notes:
+        body?.mobile_release_notes ?? current.mobile_release_notes ?? "",
+    });
+
+    if (parsed.error) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    try {
+      await updateMobileAppRelease(parsed.release, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error.message ?? "Could not save mobile release settings." },
+        { status: 500 }
       );
     }
   }
