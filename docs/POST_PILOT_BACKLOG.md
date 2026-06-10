@@ -168,9 +168,9 @@ One-tap Android APK update from inside the app (no Play Store required).
 | **P4** | Sticky banner fix; cron migration `031` | — |
 | **P5** | `027`, `/api/mobile/app-update`, System Settings OTA card | `package_info_plus`, `ota_update`, install prompt |
 | **P1** | `028` heartbeat, `/api/mobile/heartbeat`, monitor presence Realtime | ~60s heartbeat POST; Supabase Realtime subscribe |
-| **P0** | Dispatch Realtime on monitor; FCM send on dispatch (`030`, `/api/mobile/fcm-token`) | Realtime on `call_response_dispatches`; FCM handler; instant respond UX |
-| **P2** | `029`, force-location APIs, `ForceLocationPanel` | Realtime/FCM listener → `sendNow()` |
-| **P3** | — (server RPC unchanged) | GPS/data banner, reconnect `sendNow()`, retry backoff |
+| **P0** | Dispatch Realtime on monitor; FCM send + Realtime broadcast on dispatch (`030`, `/api/mobile/fcm-token`) | Realtime broadcast + FCM notification; instant respond UX — **1.3.0** |
+| **P2** | `029`, force-location APIs, `ForceLocationPanel` | Realtime broadcast + FCM → `sendNow()` — **1.3.0** |
+| **P3** | — (server RPC unchanged) | GPS/data banner, reconnect `sendNow()`, retry backoff — **done in 1.3.0** |
 
 **Apply migrations `027`–`031` on Supabase before testing.**
 

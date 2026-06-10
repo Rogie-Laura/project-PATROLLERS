@@ -25,6 +25,7 @@ export async function POST(request) {
   return NextResponse.json({
     ok: true,
     token: accessToken.token,
+    access_token_id: accessToken.id,
     label: accessToken.label,
     interval_seconds: intervalSeconds,
     interval_minutes: Math.max(1, Math.ceil(intervalSeconds / 60)),
