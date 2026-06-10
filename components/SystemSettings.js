@@ -540,7 +540,7 @@ export default function SystemSettings() {
 
         <SettingCard
           title="Mobile app update (OTA)"
-          description="After you build a new Android APK, upload it to HTTPS storage (e.g. Supabase Storage) and publish the version here. Phones show an Update button and install in place — same app ID, higher version code."
+          description="After you build a new Android APK, upload it to HTTPS storage (Google Drive file link or Supabase Storage) and publish the version here. Phones show an Update button and install in place — same app ID, higher version code."
         >
           <form onSubmit={handleSaveMobileRelease} className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -606,9 +606,12 @@ export default function SystemSettings() {
                 disabled={loading || savingMobileRelease}
                 value={mobileApkDownloadUrl}
                 onChange={(e) => setMobileApkDownloadUrl(e.target.value)}
-                placeholder="https://your-project.supabase.co/storage/v1/object/public/app-releases/patrollers-1.1.0.apk"
+                placeholder="https://drive.google.com/file/d/…/view?usp=sharing"
                 className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
               />
+              <p className="mt-1 text-[11px] text-muted">
+                Google Drive: upload the APK, open the <strong className="font-medium text-foreground">file</strong> (not the folder), Share → Anyone with the link, paste that link — we convert it to a direct download URL automatically.
+              </p>
             </div>
 
             <div>
