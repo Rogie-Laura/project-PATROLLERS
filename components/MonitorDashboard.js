@@ -588,6 +588,9 @@ export default function MonitorDashboard({ user, onLogout }) {
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
         showAddCallResponse
+        showForceLocation
+        forceLocationOpen={forceLocationOpen}
+        onForceLocationOpenChange={setForceLocationOpen}
         callResponseOpen={callResponseOpen}
         onCallResponseOpenChange={setCallResponseOpen}
         callResponsePlace={callResponsePlace}
@@ -632,16 +635,6 @@ export default function MonitorDashboard({ user, onLogout }) {
           />
 
           <MapConnectionLegend />
-
-          <div className="pointer-events-auto absolute bottom-3 right-3 z-[400] flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => setForceLocationOpen((open) => !open)}
-              className="rounded-lg border border-border/60 bg-card/92 px-3 py-2 text-[11px] font-medium text-foreground shadow-lg backdrop-blur-sm transition hover:bg-background/80"
-            >
-              {forceLocationOpen ? "Hide force location" : "Force location"}
-            </button>
-          </div>
 
           {forceLocationOpen && (
             <ForceLocationPanel

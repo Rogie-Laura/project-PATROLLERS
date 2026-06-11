@@ -103,6 +103,32 @@ const NAV_ITEMS = [
   },
 ];
 
+function GpsLocateIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3" />
+      <path d="M12 19v3" />
+      <path d="M2 12h3" />
+      <path d="M19 12h3" />
+      <path d="m4.93 4.93 2.12 2.12" />
+      <path d="m16.95 16.95 2.12 2.12" />
+      <path d="m4.93 19.07 2.12-2.12" />
+      <path d="m16.95 7.05 2.12-2.12" />
+    </svg>
+  );
+}
+
 function PhoneCallIcon() {
   return (
     <svg
@@ -396,6 +422,9 @@ export default function MapToolbar({
   onBasemapChange,
   showBasemap = false,
   showAddCallResponse = false,
+  showForceLocation = false,
+  forceLocationOpen = false,
+  onForceLocationOpenChange,
   callResponseOpen = false,
   onCallResponseOpenChange,
   callResponsePlace = null,
@@ -441,39 +470,62 @@ export default function MapToolbar({
           <div
             className="flex min-w-0 shrink-0 items-center gap-1 overflow-visible"
             role="group"
-            aria-label="Map basemap and call response"
+            aria-label="Map basemap and command tools"
           >
             <BasemapPicker basemapId={basemapId} onBasemapChange={onBasemapChange} />
 
-            {showAddCallResponse && onCallResponseOpenChange && (
+            {(showAddCallResponse && onCallResponseOpenChange) ||
+            (showForceLocation && onForceLocationOpenChange) ? (
               <>
                 <ToolbarSeparator spacious />
-                <div className="relative z-[700] shrink-0">
-                  <button
-                    type="button"
-                    data-call-response-trigger
-                    onClick={() => onCallResponseOpenChange(!callResponseOpen)}
-                    aria-expanded={callResponseOpen}
-                    title="Add call-for-service response on the map"
-                    className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold leading-none shadow-sm transition sm:text-[11px] ${
-                      callResponseOpen
-                        ? "border-red-400 bg-red-500 text-white"
-                        : "border-red-500/70 bg-red-600 text-white hover:bg-red-500"
-                    }`}
-                  >
-                    <PhoneCallIcon />
-                    <span className="whitespace-nowrap">Add Call Response</span>
-                  </button>
-                  <AddCallResponsePopover
-                    open={callResponseOpen}
-                    onClose={() => onCallResponseOpenChange(false)}
-                    selectedPlace={callResponsePlace}
-                    onSelectedPlaceChange={onCallResponsePlaceChange}
-                    onAddIncidentMarker={onAddIncidentMarker}
-                  />
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {showAddCallResponse && onCallResponseOpenChange && (
+                    <div className="relative z-[700] shrink-0">
+                      <button
+                        type="button"
+                        data-call-response-trigger
+                        onClick={() => onCallResponseOpenChange(!callResponseOpen)}
+                        aria-expanded={callResponseOpen}
+                        title="Add call-for-service response on the map"
+                        className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold leading-none shadow-sm transition sm:text-[11px] ${
+                          callResponseOpen
+                            ? "border-red-400 bg-red-500 text-white"
+                            : "border-red-500/70 bg-red-600 text-white hover:bg-red-500"
+                        }`}
+                      >
+                        <PhoneCallIcon />
+                        <span className="whitespace-nowrap">Add Call Response</span>
+                      </button>
+                      <AddCallResponsePopover
+                        open={callResponseOpen}
+                        onClose={() => onCallResponseOpenChange(false)}
+                        selectedPlace={callResponsePlace}
+                        onSelectedPlaceChange={onCallResponsePlaceChange}
+                        onAddIncidentMarker={onAddIncidentMarker}
+                      />
+                    </div>
+                  )}
+
+                  {showForceLocation && onForceLocationOpenChange && (
+                    <button
+                      type="button"
+                      onClick={() => onForceLocationOpenChange(!forceLocationOpen)}
+                      aria-expanded={forceLocationOpen}
+                      aria-pressed={forceLocationOpen}
+                      title="Request fresh GPS from patrol units (silent)"
+                      className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold leading-none shadow-sm transition sm:text-[11px] ${
+                        forceLocationOpen
+                          ? "border-sky-400 bg-sky-500 text-white"
+                          : "border-sky-500/70 bg-sky-600 text-white hover:bg-sky-500"
+                      }`}
+                    >
+                      <GpsLocateIcon />
+                      <span className="whitespace-nowrap">Force Location</span>
+                    </button>
+                  )}
                 </div>
               </>
-            )}
+            ) : null}
           </div>
 
           {mapViewLayers && onMapViewLayerChange && (
