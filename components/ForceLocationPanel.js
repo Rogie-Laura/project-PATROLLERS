@@ -57,7 +57,15 @@ export default function ForceLocationPanel({
   const [filter, setFilter] = useState("all");
   const [requestMode, setRequestMode] = useState(LOCATION_REQUEST_MODES.silent);
   const [loading, setLoading] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [error, setError] = useState("");
+
+  function resetBatchView() {
+    setBatchId(null);
+    setBatch(null);
+    setItems([]);
+    setFilter("all");
+  }
 
   const loadBatch = useCallback(async (id) => {
     const res = await fetch(`/api/monitor/location-requests/${id}`);
@@ -141,6 +149,30 @@ export default function ForceLocationPanel({
       setError(err.message ?? "Could not request locations.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleFinishBatch() {
+    if (!batchId) return;
+
+    setError("");
+    setClosing(true);
+
+    try {
+      const res = await fetch(`/api/monitor/location-requests/${batchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "close" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not finish batch.");
+
+      setBatch(data.batch ?? null);
+      setItems(data.items ?? []);
+    } catch (err) {
+      setError(err.message ?? "Could not finish force location.");
+    } finally {
+      setClosing(false);
     }
   }
 
@@ -313,18 +345,30 @@ export default function ForceLocationPanel({
               )}
             </ul>
 
+            {batch.pendingCount > 0 && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleFinishBatch}
+                  disabled={closing}
+                  className="w-full rounded-lg bg-amber-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {closing ? "Finishing..." : "Finish force location"}
+                </button>
+                <p className="text-[10px] leading-snug text-muted">
+                  Stops waiting for pending units. Remaining pending will show as
+                  failed and phones will no longer retry this batch.
+                </p>
+              </div>
+            )}
+
             {batch.pendingCount === 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  setBatchId(null);
-                  setBatch(null);
-                  setItems([]);
-                  setFilter("all");
-                }}
+                onClick={resetBatchView}
                 className="w-full rounded-lg border border-border/70 px-3 py-2 text-sm text-foreground transition hover:bg-background/70"
               >
-                Done
+                Done — start new request
               </button>
             )}
           </div>
