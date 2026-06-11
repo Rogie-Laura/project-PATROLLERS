@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createLocationRequestBatch } from "@/lib/mobile/locationRequests";
+import {
+  createLocationRequestBatch,
+  normalizeLocationRequestMode,
+} from "@/lib/mobile/locationRequests";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +39,7 @@ export async function POST(request) {
       accessTokenIds,
       createdBy: user.id,
       label: body?.label ?? null,
+      requestMode: normalizeLocationRequestMode(body?.request_mode),
     });
 
     return NextResponse.json({

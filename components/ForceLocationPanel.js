@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { LOCATION_REQUEST_STATUS } from "@/lib/mobile/locationRequests";
+import {
+  LOCATION_REQUEST_MODES,
+  LOCATION_REQUEST_STATUS,
+} from "@/lib/mobile/locationRequests";
 
 function StatusPill({ status }) {
   const styles = {
@@ -20,6 +23,28 @@ function StatusPill({ status }) {
   );
 }
 
+function ModeOption({ active, title, description, tone, onClick }) {
+  const tones = {
+    silent: active
+      ? "border-sky-400/70 bg-sky-500/15 text-sky-100"
+      : "border-border/60 bg-background/40 text-muted hover:border-sky-500/40 hover:text-foreground",
+    alarm: active
+      ? "border-orange-400/70 bg-orange-500/15 text-orange-100"
+      : "border-border/60 bg-background/40 text-muted hover:border-orange-500/40 hover:text-foreground",
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2.5 text-left transition ${tones[tone]}`}
+    >
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-1 text-[11px] leading-snug opacity-90">{description}</p>
+    </button>
+  );
+}
+
 export default function ForceLocationPanel({
   locations = [],
   selectedLocation = null,
@@ -30,6 +55,7 @@ export default function ForceLocationPanel({
   const [batch, setBatch] = useState(null);
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [requestMode, setRequestMode] = useState(LOCATION_REQUEST_MODES.silent);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -76,10 +102,10 @@ export default function ForceLocationPanel({
     if (selectedLocation?.access_token_id) {
       return [selectedLocation.access_token_id];
     }
-    return locations
-      .map((loc) => loc.access_token_id)
-      .filter(Boolean);
+    return locations.map((loc) => loc.access_token_id).filter(Boolean);
   }, [locations, selectedLocation]);
+
+  const unitCount = targetIds.length;
 
   const filteredItems = useMemo(() => {
     if (filter === "all") return items;
@@ -90,15 +116,18 @@ export default function ForceLocationPanel({
     setError("");
     setLoading(true);
 
+    const isAlarm = requestMode === LOCATION_REQUEST_MODES.alarm;
+
     try {
       const res = await fetch("/api/monitor/location-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           access_token_ids: targetIds,
+          request_mode: requestMode,
           label: selectedLocation
-            ? "Single unit force location"
-            : "Fleet force location",
+            ? `${isAlarm ? "Alarm" : "Silent"} — single unit`
+            : `${isAlarm ? "Alarm" : "Silent"} — fleet`,
         }),
       });
       const data = await res.json();
@@ -122,8 +151,10 @@ export default function ForceLocationPanel({
         )
       : 0;
 
+  const isAlarmMode = requestMode === LOCATION_REQUEST_MODES.alarm;
+
   return (
-    <div className="pointer-events-auto absolute bottom-4 left-1/2 z-[500] w-[min(100%,420px)] -translate-x-1/2 rounded-lg border border-border/60 bg-card/95 shadow-xl backdrop-blur-sm">
+    <div className="pointer-events-auto absolute bottom-4 left-1/2 z-[500] w-[min(100%,440px)] -translate-x-1/2 rounded-lg border border-border/60 bg-card/95 shadow-xl backdrop-blur-sm">
       <div className="flex items-start justify-between gap-2 border-b border-border/60 px-3 py-2.5">
         <div className="min-w-0">
           <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
@@ -132,7 +163,7 @@ export default function ForceLocationPanel({
           <h2 className="text-sm font-semibold text-foreground">
             {selectedLocation
               ? "Request fresh GPS from selected unit"
-              : `Request fresh GPS from ${targetIds.length} unit(s)`}
+              : `Request fresh GPS from fleet`}
           </h2>
         </div>
         <button
@@ -146,24 +177,57 @@ export default function ForceLocationPanel({
       </div>
 
       <div className="space-y-3 px-3 py-3">
-        <p className="text-[11px] leading-snug text-muted">
-          Silent request — no alarm on the phone. Units with tracking on should
-          send GPS automatically. Timeout ~90 seconds.
-        </p>
-
         {!batchId && (
-          <button
-            type="button"
-            onClick={handleRequest}
-            disabled={loading || targetIds.length === 0}
-            className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading
-              ? "Sending requests..."
-              : selectedLocation
-                ? "Request location now"
-                : `Request all ${targetIds.length} units`}
-          </button>
+          <>
+            <div className="rounded-lg border border-border/50 bg-background/50 px-3 py-2.5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
+                Units to reach
+              </p>
+              <p className="mt-0.5 text-lg font-semibold text-foreground">
+                {unitCount} <span className="text-sm font-medium text-muted">unit(s)</span>
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-muted">
+                {selectedLocation
+                  ? "Only the selected patrol unit will receive this request."
+                  : "All active units on the map will receive this request."}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium text-foreground">Delivery mode</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <ModeOption
+                  active={!isAlarmMode}
+                  tone="silent"
+                  title="Silent"
+                  description="No alarm on the phone. Units with tracking on send GPS automatically."
+                  onClick={() => setRequestMode(LOCATION_REQUEST_MODES.silent)}
+                />
+                <ModeOption
+                  active={isAlarmMode}
+                  tone="alarm"
+                  title="Alarm"
+                  description="Orange edge alert, distinct tone, and a Send Location button on the phone."
+                  onClick={() => setRequestMode(LOCATION_REQUEST_MODES.alarm)}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRequest}
+              disabled={loading || unitCount === 0}
+              className={`w-full rounded-lg px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
+                isAlarmMode ? "bg-orange-600 hover:bg-orange-500" : "bg-sky-600 hover:bg-sky-500"
+              }`}
+            >
+              {loading
+                ? "Sending requests..."
+                : isAlarmMode
+                  ? `Send alarm to ${unitCount} unit(s)`
+                  : `Send silent request to ${unitCount} unit(s)`}
+            </button>
+          </>
         )}
 
         {error && (
@@ -174,15 +238,21 @@ export default function ForceLocationPanel({
 
         {batch && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-foreground">
-              <span>
-                {batch.successCount + batch.failedCount} / {batch.totalCount}
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-medium text-foreground">
+                {batch.requestMode === LOCATION_REQUEST_MODES.alarm ? "Alarm" : "Silent"} batch
               </span>
-              <span className="text-muted">{progress}%</span>
+              <span className="text-muted">
+                {batch.successCount + batch.failedCount} / {batch.totalCount} ({progress}%)
+              </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-background/80">
               <div
-                className="h-full rounded-full bg-accent transition-all"
+                className={`h-full rounded-full transition-all ${
+                  batch.requestMode === LOCATION_REQUEST_MODES.alarm
+                    ? "bg-orange-500"
+                    : "bg-sky-500"
+                }`}
                 style={{ width: `${progress}%` }}
               />
             </div>
