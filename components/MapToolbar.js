@@ -103,6 +103,28 @@ const NAV_ITEMS = [
   },
 ];
 
+function ReportIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 shrink-0"
+      aria-hidden
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M16 13H8" />
+      <path d="M16 17H8" />
+      <path d="M10 9H8" />
+    </svg>
+  );
+}
+
 function GpsLocateIcon() {
   return (
     <svg
@@ -425,6 +447,9 @@ export default function MapToolbar({
   showForceLocation = false,
   forceLocationOpen = false,
   onForceLocationOpenChange,
+  showGenerateReport = false,
+  generateReportOpen = false,
+  onGenerateReportOpenChange,
   callResponseOpen = false,
   onCallResponseOpenChange,
   callResponsePlace = null,
@@ -475,7 +500,8 @@ export default function MapToolbar({
             <BasemapPicker basemapId={basemapId} onBasemapChange={onBasemapChange} />
 
             {(showAddCallResponse && onCallResponseOpenChange) ||
-            (showForceLocation && onForceLocationOpenChange) ? (
+            (showForceLocation && onForceLocationOpenChange) ||
+            (showGenerateReport && onGenerateReportOpenChange) ? (
               <>
                 <ToolbarSeparator spacious />
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -521,6 +547,24 @@ export default function MapToolbar({
                     >
                       <GpsLocateIcon />
                       <span className="whitespace-nowrap">Force Location</span>
+                    </button>
+                  )}
+
+                  {showGenerateReport && onGenerateReportOpenChange && (
+                    <button
+                      type="button"
+                      onClick={() => onGenerateReportOpenChange(!generateReportOpen)}
+                      aria-expanded={generateReportOpen}
+                      aria-pressed={generateReportOpen}
+                      title="Generate patrol and incident reports"
+                      className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold leading-none shadow-sm transition sm:text-[11px] ${
+                        generateReportOpen
+                          ? "border-violet-400 bg-violet-500 text-white"
+                          : "border-violet-500/70 bg-violet-600 text-white hover:bg-violet-500"
+                      }`}
+                    >
+                      <ReportIcon />
+                      <span className="whitespace-nowrap">Generate Report</span>
                     </button>
                   )}
                 </div>

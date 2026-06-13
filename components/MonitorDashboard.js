@@ -24,6 +24,7 @@ import { upsertLatestLocationRow } from "@/lib/monitorLocations";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import ForceLocationPanel from "@/components/ForceLocationPanel";
+import GenerateReportPanel from "@/components/GenerateReportPanel";
 
 /** Full map refresh interval (backup if a Realtime message is missed). */
 const MONITOR_LOCATIONS_REFRESH_MS = 90_000;
@@ -77,6 +78,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [dispatchByCallId, setDispatchByCallId] = useState({});
   const [dispatchNotice, setDispatchNotice] = useState("");
   const [forceLocationOpen, setForceLocationOpen] = useState(false);
+  const [generateReportOpen, setGenerateReportOpen] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const incidentRadiusRings = useMemo(
@@ -591,6 +593,9 @@ export default function MonitorDashboard({ user, onLogout }) {
         showForceLocation
         forceLocationOpen={forceLocationOpen}
         onForceLocationOpenChange={setForceLocationOpen}
+        showGenerateReport
+        generateReportOpen={generateReportOpen}
+        onGenerateReportOpenChange={setGenerateReportOpen}
         callResponseOpen={callResponseOpen}
         onCallResponseOpenChange={setCallResponseOpen}
         callResponsePlace={callResponsePlace}
@@ -642,6 +647,10 @@ export default function MonitorDashboard({ user, onLogout }) {
               selectedLocation={selectedPatrol}
               onClose={() => setForceLocationOpen(false)}
             />
+          )}
+
+          {generateReportOpen && (
+            <GenerateReportPanel onClose={() => setGenerateReportOpen(false)} />
           )}
         </div>
 
