@@ -15,7 +15,6 @@ import { callResponseFromRow } from "@/lib/callResponses";
 import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
 import MapViewOverlays from "@/components/MapViewOverlays";
-import MapConnectionLegend from "@/components/MapConnectionLegend";
 import {
   clearCallResponseSession,
   useCallResponseSession,
@@ -638,8 +637,6 @@ export default function MonitorDashboard({ user, onLogout }) {
             intervalSeconds={intervalSeconds}
             mapAreaSize={mapAreaSize}
           />
-
-          <MapConnectionLegend />
 
           {forceLocationOpen && (
             <ForceLocationPanel
