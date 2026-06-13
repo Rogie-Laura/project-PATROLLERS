@@ -1,10 +1,16 @@
 import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
+import PatrolUnitCountBar from "@/components/PatrolUnitCountBar";
 
-export default function MonitorHeader({ user, onSignOut, signingOut = false }) {
+export default function MonitorHeader({
+  user,
+  onSignOut,
+  signingOut = false,
+  locations = [],
+}) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5 sm:gap-3 sm:px-4 sm:py-2">
-      <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+      <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
         <Image
           src="/PNP.png"
           alt="PNP"
@@ -25,6 +31,8 @@ export default function MonitorHeader({ user, onSignOut, signingOut = false }) {
           </h1>
         </div>
       </div>
+
+      <PatrolUnitCountBar locations={locations} />
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <AccountCard user={user} onSignOut={onSignOut} signingOut={signingOut} />

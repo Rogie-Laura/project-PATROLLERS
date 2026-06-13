@@ -585,6 +585,7 @@ export default function MonitorDashboard({ user, onLogout }) {
         user={user}
         onSignOut={handleSignOut}
         signingOut={signingOut}
+        locations={latestLocations}
       />
 
       <MapToolbar
