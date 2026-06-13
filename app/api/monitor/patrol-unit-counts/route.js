@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { countPatrolUnitsByType, PATROL_UNIT_TYPES } from "@/lib/patrolUnitTypes";
+import { countPatrolUnitsByType, countPersonnelOnDutyByType, PATROL_UNIT_TYPES } from "@/lib/patrolUnitTypes";
 
 export const dynamic = "force-dynamic";
 
@@ -36,15 +36,22 @@ export async function GET(request) {
 
   const active = locations.filter((loc) => loc?.tracking_active !== false);
   const counts = countPatrolUnitsByType(active);
+  const duty_counts = countPersonnelOnDutyByType(active);
   const total = PATROL_UNIT_TYPES.reduce(
     (sum, type) => sum + (counts[type.id] ?? 0),
+    0
+  );
+  const duty_total = PATROL_UNIT_TYPES.reduce(
+    (sum, type) => sum + (duty_counts[type.id] ?? 0),
     0
   );
 
   return NextResponse.json({
     ok: true,
     counts,
+    duty_counts,
     total,
+    duty_total,
     types: PATROL_UNIT_TYPES.map((type) => ({
       id: type.id,
       label: type.dashboardLabel ?? type.label,
