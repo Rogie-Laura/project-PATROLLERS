@@ -27,6 +27,7 @@ import {
   createPatrolMarkerIcon,
   getPatrolMarkerSizePx,
 } from "@/lib/patrolMarker";
+import { getPatrolUnitType } from "@/lib/patrolUnitTypes";
 import {
   formatMonitorLinkSummary,
   getConnectionState,
@@ -293,6 +294,7 @@ function PatrolMarker({
   const longitude = toNumber(location.longitude);
   const position = [latitude, longitude];
   const markerSizePx = getPatrolMarkerSizePx(mapZoom);
+  const patrolUnitType = getPatrolUnitType(location);
   const tooltip = formatMonitorLinkSummary(location, nowMs, intervalSeconds);
   const icon = useMemo(
     () =>
@@ -300,9 +302,16 @@ function PatrolMarker({
         location.patrol_status,
         showPatrolStatus,
         connectionState,
-        markerSizePx
+        markerSizePx,
+        patrolUnitType
       ),
-    [location.patrol_status, showPatrolStatus, connectionState, markerSizePx]
+    [
+      location.patrol_status,
+      showPatrolStatus,
+      connectionState,
+      markerSizePx,
+      patrolUnitType,
+    ]
   );
 
   useEffect(() => {

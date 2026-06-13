@@ -339,7 +339,12 @@ export default function MonitorDashboard({ user, onLogout }) {
           setLocations((prev) =>
             prev.map((loc) =>
               loc.access_token_id === row.access_token_id
-                ? { ...loc, last_seen_at: row.last_seen_at }
+                ? {
+                    ...loc,
+                    last_seen_at: row.last_seen_at ?? loc.last_seen_at,
+                    patrol_unit_type:
+                      row.patrol_unit_type ?? loc.patrol_unit_type,
+                  }
                 : loc
             )
           );

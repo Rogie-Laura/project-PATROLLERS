@@ -87,6 +87,7 @@ export async function POST(request) {
       unit: profile?.unit ?? null,
       personnel_on_board: normalizePersonnelOnBoard(profile?.personnel_on_board),
       patrol_status: patrolStatus,
+      patrol_unit_type: profile?.patrol_unit_type ?? null,
       battery_level: batteryLevel,
       signal_label: signalLabel,
       signal_level: signalLevel,
