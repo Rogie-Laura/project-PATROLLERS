@@ -28,9 +28,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
-.env*.local
-.env
+# env files (never commit real values — repo is public)
+.env*
+!.env.example
 
 # vercel
 .vercel
