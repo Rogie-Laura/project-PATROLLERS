@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AddCallResponsePopover from "@/components/AddCallResponsePopover";
-import { isAdminRole } from "@/lib/mobile/adminRoles";
+import { canAccessSettings, canManageAccessTokens } from "@/lib/mobile/adminRoles";
 import { BASEMAPS, getBasemapById } from "@/lib/mapBasemaps";
 import { MAP_VIEW_LAYERS } from "@/lib/mapViewLayers";
 
@@ -92,7 +92,7 @@ const NAV_ITEMS = [
     href: "/system-settings",
     label: "System Settings",
     Icon: SettingsIcon,
-    adminOnly: true,
+    settingsAccess: true,
   },
   {
     id: "tokens",
@@ -456,8 +456,12 @@ export default function MapToolbar({
   mapViewLayers,
   onMapViewLayerChange,
 }) {
-  const isAdmin = isAdminRole(user?.role);
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const canManageTokens = canManageAccessTokens(user?.role);
+  const items = NAV_ITEMS.filter((item) => {
+    if (item.adminOnly) return canManageTokens;
+    if (item.settingsAccess) return canAccessSettings(user?.role);
+    return true;
+  });
   const [mapOverlayOpen, setMapOverlayOpen] = useState(false);
 
   return (

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import MonitorHeader from "@/components/MonitorHeader";
 import MapToolbar from "@/components/MapToolbar";
 import SystemSettings from "@/components/SystemSettings";
-import { isAdminRole } from "@/lib/mobile/adminRoles";
+import { canAccessSettings, canEditFullSettings } from "@/lib/mobile/adminRoles";
 
 export default function SystemSettingsPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function SystemSettingsPage() {
           return;
         }
 
-        if (!isAdminRole(data.user.role)) {
+        if (!canAccessSettings(data.user.role)) {
           router.replace("/");
           return;
         }
@@ -72,7 +72,10 @@ export default function SystemSettingsPage() {
         signingOut={signingOut}
       />
       <MapToolbar active="settings" user={user} />
-      <SystemSettings />
+      <SystemSettings
+        fullAccess={canEditFullSettings(user.role)}
+        userRole={user.role}
+      />
     </main>
   );
 }

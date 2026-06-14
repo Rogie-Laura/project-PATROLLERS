@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { ADMIN_ROLES } from "@/lib/mobile/adminRoles";
+import {
+  canAccessSettings,
+  canEditFullSettings,
+  canEditRadiusSettings,
+} from "@/lib/auth/roles";
 import {
   DIRECTIONS_PROVIDER,
   formatIntervalLabel,
@@ -18,11 +22,11 @@ import {
 import { parseMobileReleaseInput } from "@/lib/mobile/appRelease";
 import { formatRadiusRingsSummary } from "@/lib/incidentRadiusRings";
 
-function requireAdmin(user) {
+function requireSettingsAccess(user) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
-  if (!ADMIN_ROLES.has(user.role)) {
+  if (!canAccessSettings(user.role)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
   return null;
@@ -57,7 +61,7 @@ function settingsPayload(settings) {
 
 export async function GET() {
   const user = await getCurrentUser();
-  const denied = requireAdmin(user);
+  const denied = requireSettingsAccess(user);
   if (denied) return denied;
 
   const settings = await getSystemSettings();
@@ -70,8 +74,11 @@ export async function GET() {
 
 export async function PATCH(request) {
   const user = await getCurrentUser();
-  const denied = requireAdmin(user);
+  const denied = requireSettingsAccess(user);
   if (denied) return denied;
+
+  const fullAccess = canEditFullSettings(user.role);
+  const radiusAccess = canEditRadiusSettings(user.role);
 
   let body;
   try {
@@ -99,6 +106,17 @@ export async function PATCH(request) {
       { error: "No settings to update." },
       { status: 400 }
     );
+  }
+
+  if ((hasInterval || hasDirections || hasMobileRelease) && !fullAccess) {
+    return NextResponse.json(
+      { error: "Only a system administrator can change those settings." },
+      { status: 403 }
+    );
+  }
+
+  if (hasRadiusRings && !radiusAccess) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   if (hasInterval) {

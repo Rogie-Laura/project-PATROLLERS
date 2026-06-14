@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth/session";
-import { ADMIN_ROLES } from "@/lib/mobile/adminRoles";
+import { canManageAccessTokens } from "@/lib/auth/roles";
 
 function requireAdmin(user) {
   if (!user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!ADMIN_ROLES.has(user.role)) {
+  if (!canManageAccessTokens(user.role)) {
     return NextResponse.json(
       { error: "Only system administrators can manage access tokens." },
       { status: 403 }

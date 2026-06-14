@@ -135,7 +135,7 @@ function RadiusCircleRow({ index, slot, disabled, onChange }) {
   );
 }
 
-export default function SystemSettings() {
+export default function SystemSettings({ fullAccess = false, userRole = "" }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingDirections, setSavingDirections] = useState(false);
@@ -379,10 +379,19 @@ export default function SystemSettings() {
     <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
       <div className="mx-auto max-w-2xl space-y-4">
         <div>
-          <h1 className="text-lg font-semibold text-foreground">System Settings</h1>
+          <h1 className="text-lg font-semibold text-foreground">
+            {fullAccess ? "System Settings" : "Response radius settings"}
+          </h1>
           <p className="mt-1 text-sm text-muted">
-            Configure map response rings, patrol GPS intervals, and dispatch routing.
+            {fullAccess
+              ? "Configure map response rings, patrol GPS intervals, and dispatch routing."
+              : "Configure call response radius circles shown around each incident on the map."}
           </p>
+          {!fullAccess && userRole && (
+            <p className="mt-2 text-xs text-muted">
+              Other system settings are managed by a system administrator.
+            </p>
+          )}
         </div>
 
         {error && (
@@ -433,6 +442,8 @@ export default function SystemSettings() {
           </form>
         </SettingCard>
 
+        {fullAccess && (
+          <>
         <SettingCard
           title="Mobile location updates"
           description="How often patrol devices send GPS updates while live tracking is active."
@@ -675,6 +686,8 @@ export default function SystemSettings() {
             bar to create or deactivate mobile device tokens.
           </p>
         </SettingCard>
+          </>
+        )}
       </div>
     </div>
   );

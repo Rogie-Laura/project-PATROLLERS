@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSessionCookie } from "@/lib/auth/session";
+import {
+  hashPassword,
+  isPasswordHash,
+  verifyPassword,
+} from "@/lib/auth/password";
+import { normalizeRole } from "@/lib/auth/roles";
 
 export async function POST(request) {
   let body;
@@ -36,7 +42,7 @@ export async function POST(request) {
     );
   }
 
-  if (!user || user.password !== password) {
+  if (!user || !verifyPassword(password, user.password)) {
     return NextResponse.json(
       { error: "Invalid email or password." },
       { status: 401 }
@@ -45,9 +51,14 @@ export async function POST(request) {
 
   // Single device: overwrite the session token so any other device is signed out.
   const token = randomUUID();
+  const sessionUpdate = { session: token };
+  if (!isPasswordHash(user.password)) {
+    sessionUpdate.password = hashPassword(password);
+  }
+
   const { error: updateError } = await admin
     .from("user")
-    .update({ session: token })
+    .update(sessionUpdate)
     .eq("id", user.id);
 
   if (updateError) {
@@ -68,7 +79,7 @@ export async function POST(request) {
       badge_number: user.badge_number,
       office: user.office,
       unit: user.unit,
-      role: user.role,
+      role: normalizeRole(user.role),
     },
   });
 
