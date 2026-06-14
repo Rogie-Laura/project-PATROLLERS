@@ -89,7 +89,15 @@ export default function AccessTokensManager() {
   const [createdToken, setCreatedToken] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [qrView, setQrView] = useState(null);
+
+  const allSelected =
+    tokens.length > 0 && tokens.every((row) => selectedIds.has(row.id));
+  const someSelected =
+    tokens.some((row) => selectedIds.has(row.id)) && !allSelected;
+  const selectedCount = selectedIds.size;
 
   const loadTokens = useCallback(async () => {
     setError("");
@@ -101,6 +109,14 @@ export default function AccessTokensManager() {
     }
 
     setTokens(data.tokens ?? []);
+    setSelectedIds((prev) => {
+      const validIds = new Set((data.tokens ?? []).map((row) => row.id));
+      const next = new Set();
+      for (const id of prev) {
+        if (validIds.has(id)) next.add(id);
+      }
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -137,39 +153,100 @@ export default function AccessTokensManager() {
     }
   }
 
-  async function handleDelete(tokenRow) {
-    const mobileLabel = formatTokenUser(tokenRow.mobile_user);
+  function toggleSelected(id, checked) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(checked) {
+    if (!checked) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(tokens.map((row) => row.id)));
+  }
+
+  async function deleteTokenRows(rows) {
+    if (rows.length === 0) return;
+
+    const activeCount = rows.filter((row) => row.is_active).length;
+    const labels = rows
+      .slice(0, 3)
+      .map((row) => row.label || row.token)
+      .join(", ");
+    const moreCount = rows.length > 3 ? rows.length - 3 : 0;
+    const labelSummary = moreCount > 0 ? `${labels}, +${moreCount} more` : labels;
+
     const confirmed = window.confirm(
-      tokenRow.is_active
-        ? `Permanently delete active token "${tokenRow.label}"?\n\nThe mobile device will stop working immediately. This cannot be undone.`
-        : `Permanently delete token "${tokenRow.label}"?\n\nLinked mobile profile (${mobileLabel}) will be removed. This cannot be undone.`
+      rows.length === 1
+        ? rows[0].is_active
+          ? `Permanently delete active token "${rows[0].label}"?\n\nThe mobile device will stop working immediately. This cannot be undone.`
+          : `Permanently delete token "${rows[0].label}"?\n\nLinked mobile profile (${formatTokenUser(rows[0].mobile_user)}) will be removed. This cannot be undone.`
+        : `Permanently delete ${rows.length} access tokens?\n\n${labelSummary}${
+            activeCount > 0
+              ? `\n\n${activeCount} selected token(s) are still active and will stop working immediately.`
+              : ""
+          }\n\nThis cannot be undone.`
     );
 
     if (!confirmed) return;
 
-    setDeletingId(tokenRow.id);
+    const isBulk = rows.length > 1;
+    if (isBulk) setBulkDeleting(true);
+    else setDeletingId(rows[0].id);
     setError("");
 
     try {
-      const res = await fetch(`/api/admin/access-tokens/${tokenRow.id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
+      const results = await Promise.all(
+        rows.map(async (row) => {
+          const res = await fetch(`/api/admin/access-tokens/${row.id}`, {
+            method: "DELETE",
+          });
+          const data = await res.json();
+          return { row, ok: res.ok, error: data.error };
+        })
+      );
 
-      if (!res.ok) {
-        throw new Error(data.error || "Could not delete token.");
+      const failed = results.filter((result) => !result.ok);
+      if (failed.length > 0) {
+        throw new Error(
+          failed.length === results.length
+            ? failed[0].error || "Could not delete selected tokens."
+            : `Deleted ${results.length - failed.length} of ${results.length}. ${failed[0].error || "Some tokens could not be deleted."}`
+        );
       }
 
-      if (createdToken?.id === tokenRow.id) {
+      const deletedIds = new Set(rows.map((row) => row.id));
+      if (createdToken?.id && deletedIds.has(createdToken.id)) {
         setCreatedToken(null);
       }
+
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of deletedIds) next.delete(id);
+        return next;
+      });
 
       await loadTokens();
     } catch (err) {
       setError(err.message);
     } finally {
-      setDeletingId(null);
+      if (isBulk) setBulkDeleting(false);
+      else setDeletingId(null);
     }
+  }
+
+  async function handleDelete(tokenRow) {
+    await deleteTokenRows([tokenRow]);
+  }
+
+  async function handleBulkDelete() {
+    const rows = tokens.filter((row) => selectedIds.has(row.id));
+    await deleteTokenRows(rows);
   }
 
   async function handleToggleActive(tokenRow, nextActive) {
@@ -220,7 +297,7 @@ export default function AccessTokensManager() {
               Mobile Access Tokens
             </h2>
             <p className="mt-1 text-xs text-muted sm:text-sm">
-              Create tokens for patrol mobile devices. Deactivate to pause a unit, or delete to remove the token permanently.
+              Create tokens for patrol mobile devices. Select multiple rows to delete in bulk, or use Deactivate to pause a unit.
             </p>
           </div>
 
@@ -283,10 +360,51 @@ export default function AccessTokensManager() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border/70 bg-card/80">
+              {selectedCount > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-background/40 px-4 py-2.5">
+                  <p className="text-xs text-muted sm:text-sm">
+                    <span className="font-medium text-foreground">{selectedCount}</span>{" "}
+                    selected
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIds(new Set())}
+                      disabled={bulkDeleting}
+                      className="rounded-md border border-border/70 px-3 py-1.5 text-[11px] font-medium text-muted transition hover:bg-background/80 hover:text-foreground disabled:opacity-50 sm:text-xs"
+                    >
+                      Clear selection
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBulkDelete}
+                      disabled={bulkDeleting}
+                      className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-medium text-red-400 transition hover:bg-red-500/20 disabled:opacity-50 sm:text-xs"
+                    >
+                      {bulkDeleting ? "Deleting..." : `Delete selected (${selectedCount})`}
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead className="border-b border-border/70 bg-background/40 text-xs uppercase tracking-wide text-muted">
                     <tr>
+                      <th className="w-10 px-3 py-3 font-medium">
+                        <label className="sr-only" htmlFor="select-all-tokens">
+                          Select all tokens
+                        </label>
+                        <input
+                          id="select-all-tokens"
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(input) => {
+                            if (input) input.indeterminate = someSelected;
+                          }}
+                          onChange={(e) => toggleSelectAll(e.target.checked)}
+                          className="h-4 w-4 accent-accent"
+                        />
+                      </th>
                       <th className="px-4 py-3 font-medium">Label</th>
                       <th className="px-4 py-3 font-medium">Access Token</th>
                       <th className="px-4 py-3 font-medium">Mobile User / Unit</th>
@@ -297,7 +415,24 @@ export default function AccessTokensManager() {
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {tokens.map((row) => (
-                      <tr key={row.id} className="text-foreground/90">
+                      <tr
+                        key={row.id}
+                        className={`text-foreground/90 ${
+                          selectedIds.has(row.id) ? "bg-accent/5" : ""
+                        }`}
+                      >
+                        <td className="px-3 py-3 align-top">
+                          <label className="sr-only" htmlFor={`select-token-${row.id}`}>
+                            Select {row.label || row.token}
+                          </label>
+                          <input
+                            id={`select-token-${row.id}`}
+                            type="checkbox"
+                            checked={selectedIds.has(row.id)}
+                            onChange={(e) => toggleSelected(row.id, e.target.checked)}
+                            className="h-4 w-4 accent-accent"
+                          />
+                        </td>
                         <td className="px-4 py-3 align-top">
                           <div className="font-medium text-foreground">{row.label || "—"}</div>
                           <div className="mt-1 text-[11px] text-muted">{formatDate(row.created_at)}</div>
@@ -343,7 +478,11 @@ export default function AccessTokensManager() {
                           <div className="flex flex-wrap gap-2">
                             <button
                               type="button"
-                              disabled={updatingId === row.id || deletingId === row.id}
+                              disabled={
+                                updatingId === row.id ||
+                                deletingId === row.id ||
+                                bulkDeleting
+                              }
                               onClick={() => handleToggleActive(row, !row.is_active)}
                               className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition disabled:opacity-50 sm:text-xs ${
                                 row.is_active
@@ -359,7 +498,11 @@ export default function AccessTokensManager() {
                             </button>
                             <button
                               type="button"
-                              disabled={updatingId === row.id || deletingId === row.id}
+                              disabled={
+                                updatingId === row.id ||
+                                deletingId === row.id ||
+                                bulkDeleting
+                              }
                               onClick={() => handleDelete(row)}
                               className="rounded-md border border-red-500/30 px-3 py-1.5 text-[11px] font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50 sm:text-xs"
                             >
