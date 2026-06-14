@@ -310,26 +310,24 @@ function MapViewPicker({ layers, onLayerChange }) {
           id="map-view-options"
           role="group"
           aria-label="Map view options"
-          className="absolute left-0 top-full z-[750] mt-1 flex max-w-[min(calc(100vw-2rem),52rem)] items-center overflow-x-auto rounded-md border border-border/70 bg-card/95 px-0.5 py-0.5 shadow-lg"
+          className="absolute right-0 top-full z-[750] mt-1 min-w-[12.5rem] rounded-md border border-border/70 bg-card/95 py-1 shadow-lg backdrop-blur-sm"
         >
-          {MAP_VIEW_LAYERS.map((layer, index) => (
-            <span key={layer.id} className="flex shrink-0 items-center">
-              {index > 0 && (
-                <span
-                  className="mx-0.5 h-5 w-px shrink-0 bg-border/70"
-                  aria-hidden
-                />
-              )}
-              <label className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded px-1.5 py-1 text-[10px] font-medium text-foreground transition hover:bg-background/80 sm:px-2 sm:text-[11px]">
-                <input
-                  type="checkbox"
-                  checked={Boolean(layers[layer.id])}
-                  onChange={(e) => onLayerChange(layer.id, e.target.checked)}
-                  className="h-3.5 w-3.5 shrink-0 rounded border-border/80 accent-accent"
-                />
-                <span>{layer.label}</span>
-              </label>
-            </span>
+          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+            Map layers
+          </p>
+          {MAP_VIEW_LAYERS.map((layer) => (
+            <label
+              key={layer.id}
+              className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-background/80 sm:text-xs"
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(layers[layer.id])}
+                onChange={(e) => onLayerChange(layer.id, e.target.checked)}
+                className="h-3.5 w-3.5 shrink-0 rounded border-border/80 accent-accent"
+              />
+              <span className="min-w-0 flex-1">{layer.label}</span>
+            </label>
           ))}
         </div>
       )}
