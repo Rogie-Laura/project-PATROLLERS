@@ -22,6 +22,7 @@ import {
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
+import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
 import ForceLocationPanel from "@/components/ForceLocationPanel";
 import GenerateReportPanel from "@/components/GenerateReportPanel";
 
@@ -39,6 +40,8 @@ const PatrolMap = dynamic(() => import("@/components/PatrolMap"), {
 
 export default function MonitorDashboard({ user, onLogout }) {
   const supabase = createClient();
+  const onLogoutRef = useRef(onLogout);
+  onLogoutRef.current = onLogout;
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -280,11 +283,20 @@ export default function MonitorDashboard({ user, onLogout }) {
   useEffect(() => {
     let active = true;
 
+    function handleSessionEnded() {
+      onLogoutRef.current?.({ message: SESSION_ENDED_MESSAGE });
+    }
+
     async function loadLocations() {
       try {
         const res = await fetch("/api/monitor/locations");
         const data = await res.json();
         if (!active) return;
+
+        if (res.status === 401) {
+          handleSessionEnded();
+          return;
+        }
 
         if (!res.ok) {
           setError(data.error ?? "Could not load patrol locations.");

@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildSessionCookie } from "@/lib/auth/session";
+import { buildSessionCookie, resolveSessionTokenFromRequest, SESSION_MAX_AGE } from "@/lib/auth/session";
 import {
   hashPassword,
   isPasswordHash,
   verifyPassword,
 } from "@/lib/auth/password";
 import { normalizeRole } from "@/lib/auth/roles";
+import {
+  evaluateSessionLogin,
+  SESSION_ACTIVE_CODE,
+  SESSION_ACTIVE_MESSAGE,
+} from "@/lib/auth/sessionPolicy";
 
 export async function POST(request) {
   let body;
@@ -49,9 +54,28 @@ export async function POST(request) {
     );
   }
 
-  // Single device: overwrite the session token so any other device is signed out.
+  const requestSessionToken = await resolveSessionTokenFromRequest(request);
+  const sessionDecision = evaluateSessionLogin(
+    user,
+    requestSessionToken,
+    SESSION_MAX_AGE
+  );
+
+  if (!sessionDecision.allowed) {
+    return NextResponse.json(
+      {
+        error: SESSION_ACTIVE_MESSAGE,
+        code: SESSION_ACTIVE_CODE,
+      },
+      { status: 409 }
+    );
+  }
+
   const token = randomUUID();
-  const sessionUpdate = { session: token };
+  const sessionUpdate = {
+    session: token,
+    session_started_at: new Date().toISOString(),
+  };
   if (!isPasswordHash(user.password)) {
     sessionUpdate.password = hashPassword(password);
   }

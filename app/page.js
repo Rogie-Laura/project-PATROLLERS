@@ -14,6 +14,8 @@ export default function HomePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [errorKind, setErrorKind] = useState("error");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -37,6 +39,8 @@ export default function HomePage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    setErrorKind("error");
+    setNotice("");
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -47,6 +51,7 @@ export default function HomePage() {
       const data = await res.json();
 
       if (!res.ok) {
+        setErrorKind(res.status === 409 ? "session_active" : "error");
         setError(data.error || "Login failed.");
       } else {
         setUser(data.user);
@@ -54,9 +59,17 @@ export default function HomePage() {
       }
     } catch {
       setError("Network error. Please try again.");
+      setErrorKind("error");
     }
 
     setSubmitting(false);
+  }
+
+  function handleLogout({ message } = {}) {
+    setUser(null);
+    setNotice(message || "");
+    setError("");
+    setErrorKind("error");
   }
 
   if (checkingSession) {
@@ -71,7 +84,7 @@ export default function HomePage() {
   }
 
   if (user) {
-    return <MonitorDashboard user={user} onLogout={() => setUser(null)} />;
+    return <MonitorDashboard user={user} onLogout={handleLogout} />;
   }
 
   const inputClassName =
@@ -194,8 +207,8 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
-            {error && (
-              <p className="flex items-center gap-2 rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-400 ring-1 ring-red-500/20">
+            {notice && (
+              <p className="flex items-start gap-2 rounded-xl bg-accent/10 px-3 py-2.5 text-sm text-accent ring-1 ring-accent/20">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -204,13 +217,48 @@ export default function HomePage() {
                   strokeWidth="1.8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="h-4 w-4 shrink-0"
+                  className="mt-0.5 h-4 w-4 shrink-0"
                 >
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                {error}
+                {notice}
+              </p>
+            )}
+            {error && (
+              <p
+                className={`flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm ring-1 ${
+                  errorKind === "session_active"
+                    ? "bg-amber-500/10 text-amber-300 ring-amber-500/25"
+                    : "bg-red-500/10 text-red-400 ring-red-500/20"
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                >
+                  {errorKind === "session_active" ? (
+                    <>
+                      <path d="M12 9v4" />
+                      <path d="M12 17h.01" />
+                      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    </>
+                  ) : (
+                    <>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </>
+                  )}
+                </svg>
+                <span>{error}</span>
               </p>
             )}
             <button

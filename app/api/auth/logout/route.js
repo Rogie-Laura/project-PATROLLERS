@@ -7,7 +7,10 @@ export async function POST(request) {
 
   if (token) {
     const admin = createAdminClient();
-    await admin.from("user").update({ session: null }).eq("session", token);
+    await admin
+      .from("user")
+      .update({ session: null, session_started_at: null })
+      .eq("session", token);
   }
 
   const response = NextResponse.json({ ok: true });
