@@ -84,3 +84,45 @@ export async function PATCH(request, { params }) {
 
   return NextResponse.json({ ok: true, token: data });
 }
+
+export async function DELETE(_request, { params }) {
+  const user = await getCurrentUser();
+  const denied = requireAdmin(user);
+  if (denied) return denied;
+
+  const { id } = await params;
+  const admin = createAdminClient();
+
+  const { data: existing, error: fetchError } = await admin
+    .from("access_tokens")
+    .select("id, token, label, is_active")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError) {
+    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+  }
+
+  if (!existing) {
+    return NextResponse.json({ error: "Access token not found." }, { status: 404 });
+  }
+
+  const { error: deleteError } = await admin
+    .from("access_tokens")
+    .delete()
+    .eq("id", id);
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    deleted: {
+      id: existing.id,
+      token: existing.token,
+      label: existing.label,
+      was_active: existing.is_active,
+    },
+  });
+}

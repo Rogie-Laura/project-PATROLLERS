@@ -88,6 +88,7 @@ export default function AccessTokensManager() {
   const [creating, setCreating] = useState(false);
   const [createdToken, setCreatedToken] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [qrView, setQrView] = useState(null);
 
   const loadTokens = useCallback(async () => {
@@ -133,6 +134,41 @@ export default function AccessTokensManager() {
       setError(err.message);
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleDelete(tokenRow) {
+    const mobileLabel = formatTokenUser(tokenRow.mobile_user);
+    const confirmed = window.confirm(
+      tokenRow.is_active
+        ? `Permanently delete active token "${tokenRow.label}"?\n\nThe mobile device will stop working immediately. This cannot be undone.`
+        : `Permanently delete token "${tokenRow.label}"?\n\nLinked mobile profile (${mobileLabel}) will be removed. This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingId(tokenRow.id);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/admin/access-tokens/${tokenRow.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Could not delete token.");
+      }
+
+      if (createdToken?.id === tokenRow.id) {
+        setCreatedToken(null);
+      }
+
+      await loadTokens();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -184,7 +220,7 @@ export default function AccessTokensManager() {
               Mobile Access Tokens
             </h2>
             <p className="mt-1 text-xs text-muted sm:text-sm">
-              Create tokens for patrol mobile devices. Deactivate instead of delete so shared tokens stay in history.
+              Create tokens for patrol mobile devices. Deactivate to pause a unit, or delete to remove the token permanently.
             </p>
           </div>
 
@@ -304,22 +340,32 @@ export default function AccessTokensManager() {
                           </span>
                         </td>
                         <td className="px-4 py-3 align-top">
-                          <button
-                            type="button"
-                            disabled={updatingId === row.id}
-                            onClick={() => handleToggleActive(row, !row.is_active)}
-                            className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition disabled:opacity-50 sm:text-xs ${
-                              row.is_active
-                                ? "border-red-500/30 text-red-400 hover:bg-red-500/10"
-                                : "border-accent/30 text-accent hover:bg-accent/10"
-                            }`}
-                          >
-                            {updatingId === row.id
-                              ? "Saving..."
-                              : row.is_active
-                                ? "Deactivate"
-                                : "Reactivate"}
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={updatingId === row.id || deletingId === row.id}
+                              onClick={() => handleToggleActive(row, !row.is_active)}
+                              className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition disabled:opacity-50 sm:text-xs ${
+                                row.is_active
+                                  ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                  : "border-accent/30 text-accent hover:bg-accent/10"
+                              }`}
+                            >
+                              {updatingId === row.id
+                                ? "Saving..."
+                                : row.is_active
+                                  ? "Deactivate"
+                                  : "Reactivate"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={updatingId === row.id || deletingId === row.id}
+                              onClick={() => handleDelete(row)}
+                              className="rounded-md border border-red-500/30 px-3 py-1.5 text-[11px] font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50 sm:text-xs"
+                            >
+                              {deletingId === row.id ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
