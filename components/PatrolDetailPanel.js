@@ -1,6 +1,11 @@
 "use client";
 
 import { normalizePersonnelOnBoard } from "@/lib/personnelOnBoard";
+import {
+  formatShiftRange,
+  normalizeDutyShifts,
+  normalizeVisibilityPoints,
+} from "@/lib/mobile/dutyDetail";
 import { getPatrolStatusLabel } from "@/lib/patrolStatusLabels";
 import {
   CONNECTION_BORDER_COLOR,
@@ -54,6 +59,8 @@ export default function PatrolDetailPanel({
   const personnel = normalizePersonnelOnBoard(location.personnel_on_board).filter(
     (person) => person.onDuty
   );
+  const dutyShifts = normalizeDutyShifts(location.duty_shifts);
+  const visibilityPoints = normalizeVisibilityPoints(location.visibility_points);
   const title =
     location.patrol_name ||
     location.mobile_plate ||
@@ -126,6 +133,45 @@ export default function PatrolDetailPanel({
           <DetailRow label="GPS Accuracy" value={accuracy} />
         </Section>
 
+        <Section title="Duty Detail">
+          {dutyShifts.length === 0 ? (
+            <p className="text-xs text-muted">No shifts configured.</p>
+          ) : (
+            <ul className="space-y-2">
+              {dutyShifts.map((shift, index) => (
+                <li
+                  key={`${shift.label}-${index}`}
+                  className="rounded-md border border-border/50 bg-background/40 px-2.5 py-2"
+                >
+                  <p className="text-xs font-medium text-foreground">
+                    {shift.label || `Shift ${index + 1}`}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {formatShiftRange(shift)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+          {visibilityPoints.length > 0 && (
+            <div className="mt-3 space-y-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted">
+                Fixed visibility points
+              </p>
+              <ul className="space-y-1.5">
+                {visibilityPoints.map((point, index) => (
+                  <li
+                    key={`${point.name}-${index}`}
+                    className="text-xs text-foreground"
+                  >
+                    • {point.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Section>
+
         <Section title="Deployed Personnel">
           {personnel.length === 0 ? (
             <p className="text-xs text-muted">No personnel on board.</p>
@@ -144,6 +190,11 @@ export default function PatrolDetailPanel({
                   <p className="mt-0.5 text-[11px] text-muted">
                     {person.mobileNumber || "No mobile number"}
                   </p>
+                  {person.viberNumber ? (
+                    <p className="mt-0.5 text-[11px] text-muted">
+                      Viber: {person.viberNumber}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>
