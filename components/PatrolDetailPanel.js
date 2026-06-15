@@ -141,11 +141,22 @@ export default function PatrolDetailPanel({
               {dutyShifts.map((shift, index) => (
                 <li
                   key={`${shift.label}-${index}`}
-                  className="rounded-md border border-border/50 bg-background/40 px-2.5 py-2"
+                  className={`rounded-md border px-2.5 py-2 ${
+                    shift.selected
+                      ? "border-accent/50 bg-accent/10"
+                      : "border-border/50 bg-background/40"
+                  }`}
                 >
-                  <p className="text-xs font-medium text-foreground">
-                    {shift.label || `Shift ${index + 1}`}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-foreground">
+                      {shift.label || `Shift ${index + 1}`}
+                    </p>
+                    {shift.selected ? (
+                      <span className="shrink-0 rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                        Active
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-0.5 text-[11px] text-muted">
                     {formatShiftRange(shift)}
                   </p>
