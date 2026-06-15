@@ -8,7 +8,7 @@ Patrol location monitoring and dispatch-assist system for Police Regional Office
 
 | Document | Description |
 |----------|-------------|
-| **[docs/PATROLLERS_IMPLEMENTATION.md](docs/PATROLLERS_IMPLEMENTATION.md)** | **Full implementation guide** — architecture, auth, flows, API, database, deployment |
+| **[docs/PATROLLERS_IMPLEMENTATION.md](docs/PATROLLERS_IMPLEMENTATION.md)** | Full guide — architecture, mobile app usage, PRO4A-COMMAND integration, API, deployment |
 | [docs/COMMAND_GROUP_PRESENTATION.md](docs/COMMAND_GROUP_PRESENTATION.md) | Command group pilot presentation |
 | [docs/POST_PILOT_BACKLOG.md](docs/POST_PILOT_BACKLOG.md) | Version 2 roadmap |
 
