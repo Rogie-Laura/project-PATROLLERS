@@ -1,0 +1,12 @@
+{
+  "source": "demo",
+  "region": "Calabarzon",
+  "generatedAt": "2026-06-16T15:37:16.480Z",
+  "layers": [
+    "globe-lte.json",
+    "globe-nr.json",
+    "smart-lte.json",
+    "smart-nr.json"
+  ],
+  "attribution": "https://opencellid.org/"
+}

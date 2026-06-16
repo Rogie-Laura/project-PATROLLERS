@@ -32,6 +32,7 @@ import {
   formatMonitorLinkSummary,
   getConnectionState,
 } from "@/lib/connectionState";
+import CellCoverageMapLayers from "@/components/CellCoverageMapLayer";
 
 function patrolKey(location) {
   return location.access_token_id || location.user_id || location.id;
@@ -354,6 +355,7 @@ export default function PatrolMap({
   incidentRadiusRings = INCIDENT_RADIUS_RINGS,
   nowMs = Date.now(),
   locationIntervalSeconds = 180,
+  cellCoverageLayers = null,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -402,6 +404,10 @@ export default function PatrolMap({
           incidentRadiusRings={incidentRadiusRings}
         />
         <DispatchRouteLayer dispatchRoute={dispatchRoute} />
+
+        {cellCoverageLayers && (
+          <CellCoverageMapLayers layers={cellCoverageLayers} />
+        )}
 
         <PatrolMarkersLayer
           locations={parsedLocations}

@@ -6,6 +6,10 @@ import AddCallResponsePopover from "@/components/AddCallResponsePopover";
 import { canAccessSettings, canManageAccessTokens } from "@/lib/mobile/adminRoles";
 import { BASEMAPS, getBasemapById } from "@/lib/mapBasemaps";
 import { MAP_VIEW_LAYERS } from "@/lib/mapViewLayers";
+import {
+  CELL_COVERAGE_LAYERS,
+  OPENCELLID_ATTRIBUTION,
+} from "@/lib/cellCoverageLayers";
 
 function MapIcon() {
   return (
@@ -191,8 +195,12 @@ function LayersIcon() {
   );
 }
 
-function MapOverlayModal({ open, onClose }) {
+function MapOverlayModal({ open, onClose, cellCoverageLayers, onCellCoverageLayerChange }) {
   if (!open) return null;
+
+  const activeCount = CELL_COVERAGE_LAYERS.filter(
+    ({ id }) => cellCoverageLayers?.[id]
+  ).length;
 
   return (
     <div
@@ -213,7 +221,7 @@ function MapOverlayModal({ open, onClose }) {
               Map Overlay
             </h2>
             <p className="mt-1 text-xs text-muted">
-              Configure additional map layers and overlays.
+              Cell tower coverage heat maps (OpenCelliD, Calabarzon).
             </p>
           </div>
           <button
@@ -225,13 +233,51 @@ function MapOverlayModal({ open, onClose }) {
             ✕
           </button>
         </div>
-        <div className="px-5 py-6">
-          <div className="rounded-lg border border-dashed border-accent/30 bg-accent/5 px-4 py-8 text-center">
-            <p className="text-sm font-medium text-accent">Ongoing development</p>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
-              Map overlay settings will be available here in a future update.
-            </p>
+        <div className="space-y-4 px-5 py-5">
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Network coverage
+              </p>
+              {activeCount > 0 && (
+                <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium text-accent">
+                  {activeCount} on
+                </span>
+              )}
+            </div>
+            <ul className="space-y-1">
+              {CELL_COVERAGE_LAYERS.map((layer) => {
+                const checked = Boolean(cellCoverageLayers?.[layer.id]);
+                return (
+                  <li key={layer.id}>
+                    <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border/50 px-3 py-2 transition hover:bg-background/60">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          onCellCoverageLayerChange?.(layer.id, !checked)
+                        }
+                        className="h-3.5 w-3.5 rounded border-border accent-accent"
+                      />
+                      <span className="text-sm text-foreground">{layer.label}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
+          <p
+            className="text-[11px] leading-relaxed text-muted"
+            dangerouslySetInnerHTML={{ __html: OPENCELLID_ATTRIBUTION }}
+          />
+          <p className="text-[11px] leading-relaxed text-muted/90">
+            Approximate tower-based coverage — not official Globe/Smart maps. Run{" "}
+            <code className="rounded bg-background/80 px-1 py-0.5 text-[10px]">
+              npm run build:coverage
+            </code>{" "}
+            with <code className="rounded bg-background/80 px-1 py-0.5 text-[10px]">OPENCELLID_API_KEY</code>{" "}
+            for live OpenCelliD data.
+          </p>
         </div>
         <div className="flex justify-end border-t border-border/60 px-5 py-3">
           <button
@@ -455,6 +501,8 @@ export default function MapToolbar({
   onAddIncidentMarker,
   mapViewLayers,
   onMapViewLayerChange,
+  cellCoverageLayers,
+  onCellCoverageLayerChange,
 }) {
   const canManageTokens = canManageAccessTokens(user?.role);
   const items = NAV_ITEMS.filter((item) => {
@@ -466,7 +514,12 @@ export default function MapToolbar({
 
   return (
     <div className="relative z-[600] flex shrink-0 items-center gap-2 overflow-visible border-b border-border/60 bg-card/90 px-3 py-1 sm:px-4">
-      <MapOverlayModal open={mapOverlayOpen} onClose={() => setMapOverlayOpen(false)} />
+      <MapOverlayModal
+        open={mapOverlayOpen}
+        onClose={() => setMapOverlayOpen(false)}
+        cellCoverageLayers={cellCoverageLayers}
+        onCellCoverageLayerChange={onCellCoverageLayerChange}
+      />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {
           const isActive = item.id === active;
