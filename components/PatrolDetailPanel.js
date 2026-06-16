@@ -109,6 +109,7 @@ export default function PatrolDetailPanel({
         <Section title="Vehicle Info">
           <DetailRow label="Mobile Plate" value={location.mobile_plate} />
           <DetailRow label="Radio Call Sign" value={location.radio_call_sign} />
+          <DetailRow label="Mobile Number" value={location.mobile_phone} />
           <DetailRow label="Office" value={location.office} />
           <DetailRow label="Station" value={location.unit} />
           {showPatrolStatus && (
@@ -131,6 +132,35 @@ export default function PatrolDetailPanel({
             value={formatLastUpdateAge(location, nowMs)}
           />
           <DetailRow label="GPS Accuracy" value={accuracy} />
+        </Section>
+
+        <Section title="Deployed Personnel">
+          {personnel.length === 0 ? (
+            <p className="text-xs text-muted">No personnel on board.</p>
+          ) : (
+            <ul className="space-y-2">
+              {personnel.map((person, index) => (
+                <li
+                  key={`${person.rankName}-${person.mobileNumber}-${index}`}
+                  className="rounded-md border border-border/50 bg-background/40 px-2.5 py-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-medium text-foreground">
+                      {person.rankName || "Unnamed"}
+                    </p>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {person.mobileNumber || "No mobile number"}
+                  </p>
+                  {person.viberNumber ? (
+                    <p className="mt-0.5 text-[11px] text-muted">
+                      Viber: {person.viberNumber}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
 
         <Section title="Duty Detail">
@@ -183,35 +213,6 @@ export default function PatrolDetailPanel({
           )}
         </Section>
 
-        <Section title="Deployed Personnel">
-          {personnel.length === 0 ? (
-            <p className="text-xs text-muted">No personnel on board.</p>
-          ) : (
-            <ul className="space-y-2">
-              {personnel.map((person, index) => (
-                <li
-                  key={`${person.rankName}-${person.mobileNumber}-${index}`}
-                  className="rounded-md border border-border/50 bg-background/40 px-2.5 py-2"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium text-foreground">
-                      {person.rankName || "Unnamed"}
-                    </p>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    {person.mobileNumber || "No mobile number"}
-                  </p>
-                  {person.viberNumber ? (
-                    <p className="mt-0.5 text-[11px] text-muted">
-                      Viber: {person.viberNumber}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-
         <Section title="Connection">
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className="shrink-0 text-muted">Monitor link</span>
@@ -240,7 +241,6 @@ export default function PatrolDetailPanel({
         )}
 
         <Section title="Phone Status">
-          <DetailRow label="Mobile Phone" value={location.mobile_phone} />
           <DetailRow
             label="Battery"
             value={location.battery_level != null ? `${location.battery_level}%` : "—"}
