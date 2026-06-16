@@ -26,10 +26,10 @@ export default function MobileInstallCard({
         <>
           <div className="mt-6 flex flex-col items-center gap-3">
             <div className="rounded-xl border border-border/70 bg-white p-3">
-              <QRCodeSVG value={installPageUrl} size={220} level="M" />
+              <QRCodeSVG value={downloadUrl} size={220} level="M" />
             </div>
             <p className="text-center text-xs text-muted">
-              QR → buksan ang page na ito sa phone
+              QR → diretsong download ng APK (Google Drive)
             </p>
           </div>
 

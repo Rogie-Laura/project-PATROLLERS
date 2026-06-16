@@ -9,14 +9,12 @@ export const metadata = {
   description: "Download and install the PATROLLERS mobile app on Android phones.",
 };
 
+const PRODUCTION_ORIGIN =
+  process.env.NEXT_PUBLIC_PATROLLERS_URL?.replace(/\/$/, "") ||
+  "https://project-patrollers.vercel.app";
+
 function resolveSiteOrigin() {
-  const configured = process.env.NEXT_PUBLIC_PATROLLERS_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
-
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel}`;
-
-  return "https://project-patrollers.vercel.app";
+  return PRODUCTION_ORIGIN;
 }
 
 export default async function InstallPage() {
