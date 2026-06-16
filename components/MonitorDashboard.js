@@ -421,7 +421,7 @@ export default function MonitorDashboard({ user, onLogout }) {
     loadDispatchesForCall(selectedCallId);
     const id = setInterval(
       () => loadDispatchesForCall(selectedCallId),
-      90_000
+      5_000
     );
     return () => clearInterval(id);
   }, [selectedCallId]);
