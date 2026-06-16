@@ -14,8 +14,6 @@ import { getUnitKey } from "@/lib/dispatchUnits";
 import { callResponseFromRow } from "@/lib/callResponses";
 import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
-import { useCellCoverageLayers } from "@/lib/useCellCoverageLayers";
-import { OPENCELLID_ATTRIBUTION } from "@/lib/cellCoverageLayers";
 import MapViewOverlays from "@/components/MapViewOverlays";
 import {
   clearCallResponseSession,
@@ -50,8 +48,6 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
-  const { layers: cellCoverageLayers, setLayer: setCellCoverageLayer } =
-    useCellCoverageLayers();
   const showPatrolStatus = mapViewLayers.patrolStatus;
   const [selectedPatrol, setSelectedPatrol] = useState(null);
 
@@ -63,18 +59,6 @@ export default function MonitorDashboard({ user, onLogout }) {
       }
     },
     [setMapViewLayer]
-  );
-
-  const handleCellCoverageLayerChange = useCallback(
-    (id, value) => {
-      setCellCoverageLayer(id, value);
-    },
-    [setCellCoverageLayer]
-  );
-
-  const hasActiveCellCoverage = useMemo(
-    () => Object.values(cellCoverageLayers).some(Boolean),
-    [cellCoverageLayers]
   );
   const [callResponseOpen, setCallResponseOpen] = useState(false);
   const [callResponsePlace, setCallResponsePlace] = useState(null);
@@ -643,8 +627,6 @@ export default function MonitorDashboard({ user, onLogout }) {
         onAddIncidentMarker={handleAddCallResponse}
         mapViewLayers={mapViewLayers}
         onMapViewLayerChange={handleMapViewLayerChange}
-        cellCoverageLayers={cellCoverageLayers}
-        onCellCoverageLayerChange={handleCellCoverageLayerChange}
       />
 
       <section className="relative min-h-0 flex-1 overflow-hidden">
@@ -665,15 +647,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             incidentRadiusRings={incidentRadiusRings}
             nowMs={nowMs}
             locationIntervalSeconds={intervalSeconds}
-            cellCoverageLayers={cellCoverageLayers}
           />
-
-          {hasActiveCellCoverage && (
-            <div
-              className="pointer-events-none absolute bottom-2 left-2 z-[450] max-w-[min(100%,20rem)] rounded-md border border-border/50 bg-card/90 px-2 py-1 text-[10px] leading-snug text-muted shadow-sm backdrop-blur-sm"
-              dangerouslySetInnerHTML={{ __html: OPENCELLID_ATTRIBUTION }}
-            />
-          )}
 
           {error && (
             <div className="pointer-events-none absolute left-1/2 top-4 z-[500] max-w-sm -translate-x-1/2 rounded-lg border border-red-500/30 bg-card/95 px-4 py-2 text-center text-sm text-red-400 shadow-lg backdrop-blur-sm">

@@ -6,14 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "build:coverage": "node scripts/build-cell-coverage.mjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
     "leaflet": "^1.9.4",
-    "leaflet.heat": "^0.2.0",
     "next": "^15.3.3",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
