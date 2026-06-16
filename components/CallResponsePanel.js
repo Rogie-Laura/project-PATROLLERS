@@ -62,7 +62,7 @@ export default function CallResponsePanel({
   const availableUnits = useMemo(() => {
     if (!selectedCall) return [];
     const units = latestLocations.filter(
-      (loc) => loc.access_token_id && loc.tracking_active !== false
+      (loc) => loc.access_token_id && loc.live_tracking_active !== false
     );
     return rankNearbyUnits(selectedCall, units, Number.MAX_SAFE_INTEGER);
   }, [selectedCall, latestLocations]);

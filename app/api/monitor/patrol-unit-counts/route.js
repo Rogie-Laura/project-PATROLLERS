@@ -43,7 +43,9 @@ export async function GET(request) {
       ? JSON.parse(data)
       : [];
 
-  const active = locations.filter((loc) => loc?.tracking_active !== false);
+  const active = locations.filter(
+    (loc) => loc?.live_tracking_active !== false
+  );
   const counts = countPatrolUnitsByType(active);
   const duty_counts = countPersonnelOnDutyByType(active);
   const total = PATROL_UNIT_TYPES.reduce(

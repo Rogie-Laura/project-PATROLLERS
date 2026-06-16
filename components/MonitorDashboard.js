@@ -88,11 +88,8 @@ export default function MonitorDashboard({ user, onLogout }) {
     [mapRadiusSlots]
   );
 
-  // One row per unit from get_latest_patrol_locations; hide stop-tracking beacons.
-  const latestLocations = useMemo(
-    () => locations.filter((loc) => loc.tracking_active !== false),
-    [locations]
-  );
+  // Server returns units with live_tracking_active; keep last-known pin on map until Stop.
+  const latestLocations = useMemo(() => locations, [locations]);
 
   const selectedPatrolKey = selectedPatrol
     ? selectedPatrol.access_token_id || selectedPatrol.user_id
@@ -328,12 +325,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           setLocations((prev) => upsertLatestLocationRow(prev, row));
 
           if (row.tracking_active === false) {
-            const unitKey = row.access_token_id || row.user_id;
-            setSelectedPatrol((current) => {
-              if (!current || !unitKey) return current;
-              const currentKey = current.access_token_id || current.user_id;
-              return currentKey === unitKey ? null : current;
-            });
+            return;
           }
         }
       )
@@ -346,7 +338,22 @@ export default function MonitorDashboard({ user, onLogout }) {
         { event: "UPDATE", schema: "public", table: "mobile_device_profiles" },
         (payload) => {
           const row = payload.new;
-          if (!row?.access_token_id || !row.last_seen_at) return;
+          if (!row?.access_token_id) return;
+
+          if (row.live_tracking_active === false) {
+            setLocations((prev) =>
+              prev.filter((loc) => loc.access_token_id !== row.access_token_id)
+            );
+            setSelectedPatrol((current) => {
+              if (!current) return current;
+              return current.access_token_id === row.access_token_id
+                ? null
+                : current;
+            });
+            return;
+          }
+
+          if (!row.last_seen_at) return;
 
           setLocations((prev) =>
             prev.map((loc) =>

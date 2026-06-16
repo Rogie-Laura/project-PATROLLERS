@@ -32,7 +32,7 @@ export default function PatrolStatusPopoutView() {
   const [locked, setLocked] = useState(false);
 
   const latestLocations = useMemo(
-    () => locations.filter((loc) => loc.tracking_active !== false),
+    () => locations.filter((loc) => loc.live_tracking_active !== false),
     [locations]
   );
 
