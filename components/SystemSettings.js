@@ -621,7 +621,16 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
                 className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
               />
               <p className="mt-1 text-[11px] text-muted">
-                Google Drive: upload the APK, open the <strong className="font-medium text-foreground">file</strong> (not the folder), Share → Anyone with the link, paste that link — we convert it to a direct download URL automatically.
+                Google Drive: upload the APK, open the <strong className="font-medium text-foreground">file</strong> (not the folder), Share → Anyone with the link, paste that link — we convert it to a direct download URL automatically. After saving, open{" "}
+                <a
+                  href="/install"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-accent underline-offset-2 hover:underline"
+                >
+                  /install
+                </a>{" "}
+                for the QR code officers can scan.
               </p>
             </div>
 
