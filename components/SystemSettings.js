@@ -135,6 +135,124 @@ function RadiusCircleRow({ index, slot, disabled, onChange }) {
   );
 }
 
+const COST = {
+  supaBase: 25, // Supabase Pro platform fee
+  rtIncludedMsg: 5_000_000, // realtime messages included
+  rtPerMillion: 2.5,
+  egressIncludedGB: 250,
+  egressPerGB: 0.09,
+  vercelBase: 20, // Vercel Pro platform fee
+  avgRtKb: 0.8, // assumed realtime payload per change
+  safety: 0.2, // 20% safety buffer
+};
+
+function EstimatorInput({ label, value, onChange, min = 0, step = 1, suffix }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-muted">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={min}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-w-0 flex-1 rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+        />
+        {suffix && <span className="shrink-0 text-xs text-muted">{suffix}</span>}
+      </div>
+    </div>
+  );
+}
+
+function EstimatorRow({ label, value, strong }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className={`text-xs ${strong ? "font-semibold text-foreground" : "text-muted"}`}>
+        {label}
+      </span>
+      <span className={`text-right text-sm ${strong ? "font-semibold text-accent" : "font-medium text-foreground"}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function CostEstimatorCard() {
+  const [phones, setPhones] = useState("300");
+  const [locMin, setLocMin] = useState("3");
+  const [hbSec, setHbSec] = useState("60");
+  const [hours, setHours] = useState("24");
+  const [monitors, setMonitors] = useState("1");
+  const [fx, setFx] = useState("58");
+
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const phonesN = Math.max(0, n(phones));
+  const locMinN = Math.max(0.5, n(locMin) || 3);
+  const hbSecN = Math.max(10, n(hbSec) || 60);
+  const hoursN = Math.min(24, Math.max(1, n(hours) || 24));
+  const monitorsN = Math.max(1, n(monitors) || 1);
+  const rate = Math.max(1, n(fx) || 58);
+
+  const activeSec = hoursN * 30 * 3600;
+  const locationWrites = phonesN * (activeSec / (locMinN * 60));
+  const heartbeats = phonesN * (activeSec / hbSecN);
+  const profileUpdates = locationWrites + heartbeats;
+  const locationInserts = locationWrites;
+  const realtimeMessages = (profileUpdates + locationInserts) * monitorsN;
+
+  const rtOver = Math.max(0, realtimeMessages - COST.rtIncludedMsg);
+  const rtCost = (rtOver / 1_000_000) * COST.rtPerMillion;
+  const rtEgressGB = (realtimeMessages * COST.avgRtKb) / 1_000_000;
+  const egressOver = Math.max(0, rtEgressGB - COST.egressIncludedGB);
+  const egressCost = egressOver * COST.egressPerGB;
+
+  const supaTotal = COST.supaBase + rtCost + egressCost;
+  const subtotal = supaTotal + COST.vercelBase;
+  const buffer = subtotal * COST.safety;
+  const total = subtotal + buffer;
+
+  const usd = (x) => `$${x.toFixed(2)}`;
+  const php = (x) => `\u20b1${Math.round(x * rate).toLocaleString("en-US")}`;
+  const both = (x) => `${usd(x)}  (${php(x)})`;
+  const intFmt = (x) => Math.round(x).toLocaleString("en-US");
+
+  return (
+    <SettingCard
+      title="Monthly cost estimator"
+      description="Estimate the Supabase + Vercel bill from your fleet size. Includes a 20% safety buffer. Location and heartbeat pings go directly to Supabase, so realtime messages drive most of the cost."
+    >
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <EstimatorInput label="Mobile phones" value={phones} onChange={setPhones} suffix="units" />
+        <EstimatorInput label="Location interval" value={locMin} onChange={setLocMin} step={0.5} suffix="min" />
+        <EstimatorInput label="Heartbeat interval" value={hbSec} onChange={setHbSec} step={5} suffix="sec" />
+        <EstimatorInput label="Active hours/day" value={hours} onChange={setHours} suffix="h" />
+        <EstimatorInput label="Monitors open" value={monitors} onChange={setMonitors} suffix="open" />
+        <EstimatorInput label="FX rate" value={fx} onChange={setFx} suffix="₱/$" />
+      </div>
+
+      <div className="mt-4 rounded-lg border border-border/50 bg-background/40 px-3 py-2">
+        <EstimatorRow label={`Realtime messages / month`} value={`${intFmt(realtimeMessages)} (5M free)`} />
+        <EstimatorRow label="Supabase Pro (base $25)" value={usd(COST.supaBase)} />
+        <EstimatorRow label="Realtime overage" value={usd(rtCost)} />
+        {egressCost > 0 && <EstimatorRow label="Egress overage" value={usd(egressCost)} />}
+        <EstimatorRow label="Vercel Pro (base)" value={usd(COST.vercelBase)} />
+        <div className="my-1 border-t border-border/50" />
+        <EstimatorRow label="Subtotal" value={both(subtotal)} />
+        <EstimatorRow label="Safety buffer (20%)" value={both(buffer)} />
+        <div className="my-1 border-t border-border/50" />
+        <EstimatorRow label="Estimated monthly total" value={both(total)} strong />
+      </div>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-muted">
+        Estimate only. Realtime payload assumed ~{COST.avgRtKb} KB/change; database writes load the
+        compute instance but are not billed per request. Lowering the heartbeat to 2–3 min sharply cuts
+        the realtime overage at large fleets.
+      </p>
+    </SettingCard>
+  );
+}
+
 export default function SystemSettings({ fullAccess = false, userRole = "" }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -685,6 +803,8 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
           <ReadOnlyValue label="Default status" value="Police Visibility" />
           <ReadOnlyValue label="Incident alert status" value="On Incident Response" />
         </SettingCard>
+
+        <CostEstimatorCard />
 
         <SettingCard
           title="Access & administration"
