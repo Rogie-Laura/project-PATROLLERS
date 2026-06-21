@@ -5,7 +5,7 @@ import {
   getClosureOutcomeLabel,
 } from "@/lib/callResponseOutcomes";
 import { callResponseFromRow } from "@/lib/callResponses";
-import { canViewLocation } from "@/lib/auth/scope";
+import { isSameScope } from "@/lib/auth/scope";
 import {
   cancelAllActiveDispatches,
   cancelPendingDispatches,
@@ -52,8 +52,9 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: "Incident not found." }, { status: 404 });
   }
 
-  // Stations / provinces can only act on incidents within their own scope.
-  if (!canViewLocation(user, existing)) {
+  // Only the command level that owns the incident may close/cancel it. Higher
+  // offices get read-only awareness, not dispatch control.
+  if (!isSameScope(user, existing)) {
     return NextResponse.json({ error: "Incident not found." }, { status: 404 });
   }
 

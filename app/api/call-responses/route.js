@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import { callResponseFromRow, callResponsesFromRows } from "@/lib/callResponses";
-import { filterLocationsForUser } from "@/lib/auth/scope";
+import { filterOwnedForUser } from "@/lib/auth/scope";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +27,10 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Station / Provincial accounts only see their own incidents; RCC + admin all.
-  const scoped = filterLocationsForUser(user, data ?? []);
+  // Each command level only sees its OWN incidents in the dispatch list.
+  // Higher offices get a separate read-only overview (see incident-overview API),
+  // so a station's dispatch panel stays independent of RCC/PCC.
+  const scoped = filterOwnedForUser(user, data ?? []);
 
   return NextResponse.json({
     ok: true,

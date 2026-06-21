@@ -20,7 +20,13 @@ import {
   useCallResponseSession,
 } from "@/lib/useCallResponseSession";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
-import { filterLocationsForUser, canViewLocation } from "@/lib/auth/scope";
+import {
+  filterLocationsForUser,
+  isSameScope,
+  isSubordinateScope,
+  canSeeSubordinates,
+} from "@/lib/auth/scope";
+import IncidentOverviewPanel from "@/components/IncidentOverviewPanel";
 import { canForceLocation } from "@/lib/auth/roles";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
@@ -66,6 +72,11 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [callResponsePlace, setCallResponsePlace] = useState(null);
   const [callResponses, setCallResponses] = useState([]);
   const [callResponsesLoaded, setCallResponsesLoaded] = useState(false);
+  // Read-only awareness for higher offices: incidents owned by subordinate
+  // command levels (RCC sees all PCC/station incidents, PCC sees its stations).
+  const [subordinateIncidents, setSubordinateIncidents] = useState([]);
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const [seenIncidentIds, setSeenIncidentIds] = useState(() => new Set());
   const {
     selectedCallId,
     setSelectedCallId,
@@ -191,6 +202,16 @@ export default function MonitorDashboard({ user, onLogout }) {
         if (active) setCallResponsesLoaded(true);
       });
 
+    // Read-only awareness of subordinate offices' active incidents.
+    fetch("/api/monitor/incident-overview")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data?.incidents) return;
+        setSubordinateIncidents(data.incidents);
+        setSeenIncidentIds(new Set(data.incidents.map((c) => c.id)));
+      })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
@@ -215,19 +236,44 @@ export default function MonitorDashboard({ user, onLogout }) {
           if (payload.eventType === "INSERT") {
             const row = callResponseFromRow(payload.new);
             if (!row || row.status !== "active") return;
-            // Only show incidents within this account's scope.
-            if (!canViewLocation(user, row)) return;
-            setCallResponses((prev) => {
-              if (prev.some((c) => c.id === row.id)) return prev;
-              return [...prev, row];
-            });
+            // Own incidents drive this account's interactive dispatch panel.
+            if (isSameScope(user, row)) {
+              setCallResponses((prev) => {
+                if (prev.some((c) => c.id === row.id)) return prev;
+                return [...prev, row];
+              });
+              return;
+            }
+            // A subordinate office's incident: notify + add to read-only list,
+            // but never into this account's dispatch panel.
+            if (isSubordinateScope(user, row)) {
+              setSubordinateIncidents((prev) => {
+                if (prev.some((c) => c.id === row.id)) return prev;
+                return [row, ...prev];
+              });
+            }
             return;
           }
 
           if (payload.eventType === "UPDATE") {
             const row = callResponseFromRow(payload.new);
             if (!row) return;
-            if (!canViewLocation(user, row)) return;
+
+            if (isSubordinateScope(user, row)) {
+              setSubordinateIncidents((prev) => {
+                if (row.status === "closed") {
+                  return prev.filter((c) => c.id !== row.id);
+                }
+                const idx = prev.findIndex((c) => c.id === row.id);
+                if (idx === -1) return [row, ...prev];
+                const next = [...prev];
+                next[idx] = row;
+                return next;
+              });
+              return;
+            }
+
+            if (!isSameScope(user, row)) return;
             if (row.status === "closed") {
               setCallResponses((prev) => {
                 const next = prev.filter((c) => c.id !== row.id);
@@ -605,6 +651,26 @@ export default function MonitorDashboard({ user, onLogout }) {
   const hasActiveCalls =
     callResponsesLoaded && callUiHydrated && callResponses.length > 0;
 
+  const showOverview = canSeeSubordinates(user);
+  const unseenIncidentCount = useMemo(
+    () =>
+      subordinateIncidents.reduce(
+        (count, inc) => (seenIncidentIds.has(inc.id) ? count : count + 1),
+        0
+      ),
+    [subordinateIncidents, seenIncidentIds]
+  );
+
+  const toggleOverview = useCallback(() => {
+    setOverviewOpen((open) => {
+      const next = !open;
+      if (next) {
+        setSeenIncidentIds(new Set(subordinateIncidents.map((c) => c.id)));
+      }
+      return next;
+    });
+  }, [subordinateIncidents]);
+
   const activeCallId = selectedCallId ?? callResponses[0]?.id ?? null;
   const activeDispatches = activeCallId ? dispatchByCallId[activeCallId] ?? [] : [];
 
@@ -683,6 +749,34 @@ export default function MonitorDashboard({ user, onLogout }) {
 
           {generateReportOpen && (
             <GenerateReportPanel onClose={() => setGenerateReportOpen(false)} />
+          )}
+
+          {showOverview && (
+            <button
+              type="button"
+              onClick={toggleOverview}
+              className="pointer-events-auto absolute right-4 top-4 z-[510] flex items-center gap-2 rounded-lg border border-border/60 bg-card/95 px-3 py-1.5 text-[12px] font-medium text-foreground shadow-lg backdrop-blur-sm transition hover:bg-background/80"
+              title="Stations with active incidents"
+            >
+              <span>Station incidents</span>
+              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
+                {subordinateIncidents.length}
+              </span>
+              {unseenIncidentCount > 0 && !overviewOpen && (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                </span>
+              )}
+            </button>
+          )}
+
+          {showOverview && overviewOpen && (
+            <IncidentOverviewPanel
+              incidents={subordinateIncidents}
+              nowMs={nowMs}
+              onClose={() => setOverviewOpen(false)}
+            />
           )}
         </div>
 
