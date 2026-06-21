@@ -59,9 +59,20 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (typeof body?.is_active !== "boolean") {
+  const update = {};
+  if (typeof body?.is_active === "boolean") {
+    update.is_active = body.is_active;
+  }
+  if (Object.prototype.hasOwnProperty.call(body ?? {}, "station")) {
+    update.station = String(body.station ?? "").trim() || null;
+  }
+  if (Object.prototype.hasOwnProperty.call(body ?? {}, "label")) {
+    update.label = String(body.label ?? "").trim() || null;
+  }
+
+  if (Object.keys(update).length === 0) {
     return NextResponse.json(
-      { error: "Provide is_active: true or false." },
+      { error: "Provide is_active, station, or label to update." },
       { status: 400 }
     );
   }
@@ -69,9 +80,9 @@ export async function PATCH(request, { params }) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("access_tokens")
-    .update({ is_active: body.is_active })
+    .update(update)
     .eq("id", id)
-    .select("id, token, label, is_active, created_at, created_by")
+    .select("id, token, label, station, is_active, created_at, created_by")
     .maybeSingle();
 
   if (error) {

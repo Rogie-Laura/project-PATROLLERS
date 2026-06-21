@@ -29,6 +29,7 @@ function mapTokenRow(token, profile, creator) {
     id: token.id,
     token: token.token,
     label: token.label,
+    station: token.station ?? null,
     is_active: token.is_active,
     created_at: token.created_at,
     created_by: creator
@@ -54,7 +55,7 @@ function mapTokenRow(token, profile, creator) {
 async function loadTokenRows(admin) {
   const { data: tokens, error } = await admin
     .from("access_tokens")
-    .select("id, token, label, is_active, created_at, created_by")
+    .select("id, token, label, station, is_active, created_at, created_by")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -121,29 +122,44 @@ export async function POST(request) {
     body = {};
   }
 
-  const label = String(body?.label ?? "").trim() || "Mobile Patrol Device";
-  const token = generateAccessToken();
+  const rawLabel = String(body?.label ?? "").trim();
+  const station = String(body?.station ?? "").trim() || null;
+  const count = Math.min(100, Math.max(1, Math.floor(Number(body?.count) || 1)));
+  const base = rawLabel || station || "Mobile Patrol Device";
+
+  const labelFor = (index) =>
+    count === 1
+      ? rawLabel || station || "Mobile Patrol Device"
+      : `${base} ${String(index).padStart(2, "0")}`;
+
+  const rows = Array.from({ length: count }, (_, i) => ({
+    token: generateAccessToken(),
+    label: labelFor(i + 1),
+    station,
+    created_by: user.id,
+    is_active: true,
+  }));
 
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("access_tokens")
-    .insert({
-      token,
-      label,
-      created_by: user.id,
-      is_active: true,
-    })
-    .select("id, token, label, is_active, created_at")
-    .single();
+    .insert(rows)
+    .select("id");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const adminClient = createAdminClient();
-  const [row] = await loadTokenRows(adminClient).then((rows) =>
-    rows.filter((entry) => entry.id === data.id)
+  const createdIds = new Set((data ?? []).map((entry) => entry.id));
+  const createdRows = await loadTokenRows(admin).then((all) =>
+    all.filter((entry) => createdIds.has(entry.id))
   );
 
-  return NextResponse.json({ ok: true, token: row ?? data });
+  return NextResponse.json({
+    ok: true,
+    created_count: createdRows.length,
+    tokens: createdRows,
+    // Back-compat: single-create callers can still read `token`.
+    token: createdRows[0] ?? null,
+  });
 }

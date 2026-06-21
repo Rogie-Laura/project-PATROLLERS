@@ -80,23 +80,108 @@ function TokenQrModal({ token, label, onClose }) {
   );
 }
 
+function QrSheetOverlay({ rows, onClose }) {
+  if (!rows || rows.length === 0) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-auto bg-black/60 p-4 print:static print:bg-white print:p-0">
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          #qr-print-sheet, #qr-print-sheet * { visibility: visible !important; }
+          #qr-print-sheet { position: absolute; left: 0; top: 0; width: 100%; }
+          .qr-no-print { display: none !important; }
+        }
+      `}</style>
+
+      <div className="mx-auto max-w-5xl rounded-xl bg-white p-6 shadow-xl print:max-w-none print:rounded-none print:p-0 print:shadow-none">
+        <div className="qr-no-print mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">
+              QR Sheet — {rows.length} token{rows.length === 1 ? "" : "s"}
+            </h3>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Print and hand to field units. Each phone scans one QR (1 token = 1 phone).
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-700"
+            >
+              Print
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="qr-print-sheet"
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 print:grid-cols-3 print:gap-3"
+        >
+          {rows.map((row) => (
+            <div
+              key={row.id || row.token}
+              className="flex flex-col items-center gap-2 rounded-lg border border-gray-300 p-3 text-center"
+              style={{ breakInside: "avoid" }}
+            >
+              <div className="text-sm font-semibold text-gray-900">
+                {row.label || "Mobile Patrol"}
+              </div>
+              {row.station && (
+                <div className="text-xs font-medium text-gray-500">{row.station}</div>
+              )}
+              <div className="rounded-md border border-gray-200 bg-white p-2">
+                <TokenQrCode value={row.token} size={150} />
+              </div>
+              <code className="break-all text-[10px] text-gray-600">{row.token}</code>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AccessTokensManager() {
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [label, setLabel] = useState("");
+  const [station, setStation] = useState("");
+  const [count, setCount] = useState(1);
   const [creating, setCreating] = useState(false);
-  const [createdToken, setCreatedToken] = useState(null);
+  const [createdTokens, setCreatedTokens] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [qrView, setQrView] = useState(null);
+  const [stationFilter, setStationFilter] = useState("");
+  const [qrSheetRows, setQrSheetRows] = useState(null);
+
+  const stations = Array.from(
+    new Set(tokens.map((row) => (row.station || "").trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filteredTokens = stationFilter
+    ? stationFilter === "__none__"
+      ? tokens.filter((row) => !(row.station || "").trim())
+      : tokens.filter((row) => (row.station || "").trim() === stationFilter)
+    : tokens;
 
   const allSelected =
-    tokens.length > 0 && tokens.every((row) => selectedIds.has(row.id));
+    filteredTokens.length > 0 &&
+    filteredTokens.every((row) => selectedIds.has(row.id));
   const someSelected =
-    tokens.some((row) => selectedIds.has(row.id)) && !allSelected;
+    filteredTokens.some((row) => selectedIds.has(row.id)) && !allSelected;
   const selectedCount = selectedIds.size;
 
   const loadTokens = useCallback(async () => {
@@ -129,13 +214,19 @@ export default function AccessTokensManager() {
     e.preventDefault();
     setCreating(true);
     setError("");
-    setCreatedToken(null);
+    setCreatedTokens([]);
+
+    const safeCount = Math.min(100, Math.max(1, Math.floor(Number(count) || 1)));
 
     try {
       const res = await fetch("/api/admin/access-tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: label.trim() || "Mobile Patrol Device" }),
+        body: JSON.stringify({
+          label: label.trim(),
+          station: station.trim(),
+          count: safeCount,
+        }),
       });
       const data = await res.json();
 
@@ -143,8 +234,14 @@ export default function AccessTokensManager() {
         throw new Error(data.error || "Could not create access token.");
       }
 
-      setCreatedToken(data.token);
+      const created = Array.isArray(data.tokens)
+        ? data.tokens
+        : data.token
+          ? [data.token]
+          : [];
+      setCreatedTokens(created);
       setLabel("");
+      setCount(1);
       await loadTokens();
     } catch (err) {
       setError(err.message);
@@ -167,7 +264,7 @@ export default function AccessTokensManager() {
       setSelectedIds(new Set());
       return;
     }
-    setSelectedIds(new Set(tokens.map((row) => row.id)));
+    setSelectedIds(new Set(filteredTokens.map((row) => row.id)));
   }
 
   async function deleteTokenRows(rows) {
@@ -221,9 +318,7 @@ export default function AccessTokensManager() {
       }
 
       const deletedIds = new Set(rows.map((row) => row.id));
-      if (createdToken?.id && deletedIds.has(createdToken.id)) {
-        setCreatedToken(null);
-      }
+      setCreatedTokens((prev) => prev.filter((row) => !deletedIds.has(row.id)));
 
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -290,6 +385,8 @@ export default function AccessTokensManager() {
         onClose={() => setQrView(null)}
       />
 
+      <QrSheetOverlay rows={qrSheetRows} onClose={() => setQrSheetRows(null)} />
+
       <div className="border-b border-border/60 bg-card/90 px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -301,20 +398,39 @@ export default function AccessTokensManager() {
             </p>
           </div>
 
-          <form onSubmit={handleCreate} className="flex w-full max-w-xl flex-col gap-2 sm:flex-row">
+          <form
+            onSubmit={handleCreate}
+            className="grid w-full max-w-2xl grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto_auto]"
+          >
+            <input
+              type="text"
+              value={station}
+              onChange={(e) => setStation(e.target.value)}
+              placeholder="Station (e.g. Rosario MPS)"
+              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            />
             <input
               type="text"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="Token label (e.g. Alpha Mobile 1)"
+              placeholder="Label (optional)"
               className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+            />
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={count}
+              onChange={(e) => setCount(e.target.value)}
+              title="How many tokens to create"
+              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-20"
             />
             <button
               type="submit"
               disabled={creating}
               className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
             >
-              {creating ? "Creating..." : "Create Token"}
+              {creating ? "Creating..." : Number(count) > 1 ? `Create ${count}` : "Create Token"}
             </button>
           </form>
         </div>
@@ -322,33 +438,102 @@ export default function AccessTokensManager() {
 
       <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-6xl">
-          {createdToken && (
+          {createdTokens.length > 0 && (
             <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-4 text-sm text-foreground">
-              <p className="font-medium text-accent">New access token created</p>
+              <p className="font-medium text-accent">
+                {createdTokens.length === 1
+                  ? "New access token created"
+                  : `${createdTokens.length} access tokens created`}
+              </p>
               <p className="mt-1 text-xs text-muted">
-                Share this token with the mobile device via QR scan or copy.
+                Share with mobile devices via QR scan. 1 token = 1 phone.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setQrView({ token: createdToken.token, label: createdToken.label })
-                  }
+                  onClick={() => setQrSheetRows(createdTokens)}
                   className="rounded-md border border-accent/30 bg-background/40 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/10"
                 >
-                  View QR Code
+                  Print QR sheet
                 </button>
-                <CopyButton value={createdToken.token} />
+                {createdTokens.length === 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQrView({
+                          token: createdTokens[0].token,
+                          label: createdTokens[0].label,
+                        })
+                      }
+                      className="rounded-md border border-accent/30 bg-background/40 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/10"
+                    >
+                      View QR Code
+                    </button>
+                    <CopyButton value={createdTokens[0].token} />
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setCreatedTokens([])}
+                  className="rounded-md border border-border/70 px-3 py-1.5 text-xs font-medium text-muted transition hover:bg-background/80 hover:text-foreground"
+                >
+                  Dismiss
+                </button>
               </div>
-              <code className="mt-2 block break-all font-mono text-xs sm:text-sm">
-                {createdToken.token}
-              </code>
+              {createdTokens.length === 1 && (
+                <code className="mt-2 block break-all font-mono text-xs sm:text-sm">
+                  {createdTokens[0].token}
+                </code>
+              )}
             </div>
           )}
 
           {error && (
             <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {error}
+            </div>
+          )}
+
+          {!loading && tokens.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <label htmlFor="station-filter" className="text-xs text-muted">
+                  Station
+                </label>
+                <select
+                  id="station-filter"
+                  value={stationFilter}
+                  onChange={(e) => setStationFilter(e.target.value)}
+                  className="rounded-lg border border-border/80 bg-background/80 px-2 py-1.5 text-xs text-foreground outline-none focus:border-accent"
+                >
+                  <option value="">All stations</option>
+                  {stations.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                  <option value="__none__">No station</option>
+                </select>
+                <span className="text-xs text-muted">
+                  {filteredTokens.length} shown
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setQrSheetRows(
+                    selectedCount > 0
+                      ? tokens.filter((row) => selectedIds.has(row.id))
+                      : filteredTokens
+                  )
+                }
+                className="rounded-lg border border-accent/30 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/10"
+              >
+                {selectedCount > 0
+                  ? `Print QR sheet (${selectedCount})`
+                  : "Print QR sheet"}
+              </button>
             </div>
           )}
 
@@ -406,6 +591,7 @@ export default function AccessTokensManager() {
                         />
                       </th>
                       <th className="px-4 py-3 font-medium">Label</th>
+                      <th className="px-4 py-3 font-medium">Station</th>
                       <th className="px-4 py-3 font-medium">Access Token</th>
                       <th className="px-4 py-3 font-medium">Mobile User / Unit</th>
                       <th className="px-4 py-3 font-medium">Created By</th>
@@ -414,7 +600,7 @@ export default function AccessTokensManager() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {tokens.map((row) => (
+                    {filteredTokens.map((row) => (
                       <tr
                         key={row.id}
                         className={`text-foreground/90 ${
@@ -436,6 +622,15 @@ export default function AccessTokensManager() {
                         <td className="px-4 py-3 align-top">
                           <div className="font-medium text-foreground">{row.label || "—"}</div>
                           <div className="mt-1 text-[11px] text-muted">{formatDate(row.created_at)}</div>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          {row.station ? (
+                            <span className="inline-flex rounded-full bg-background/60 px-2.5 py-1 text-[11px] font-medium text-foreground/80">
+                              {row.station}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-muted">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 align-top">
                           <div className="flex flex-wrap items-start gap-2">
