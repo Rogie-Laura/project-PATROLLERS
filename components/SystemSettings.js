@@ -185,6 +185,10 @@ function CostEstimatorCard() {
   const [hours, setHours] = useState("24");
   const [monitors, setMonitors] = useState("1");
   const [fx, setFx] = useState("58");
+  const [stations, setStations] = useState("10");
+  const [provinces, setProvinces] = useState("1");
+  const [provWeight, setProvWeight] = useState("2");
+  const [regionPaysPlatform, setRegionPaysPlatform] = useState(true);
 
   const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const phonesN = Math.max(0, n(phones));
@@ -211,6 +215,18 @@ function CostEstimatorCard() {
   const subtotal = supaTotal + COST.vercelBase;
   const buffer = subtotal * COST.safety;
   const total = subtotal + buffer;
+
+  // Cost sharing: platform base (Vercel + Supabase Pro) is paid once by the
+  // Region / System Administrator. Stations and provinces only split the rest.
+  const platformBase = COST.supaBase + COST.vercelBase;
+  const stationsN = Math.max(0, n(stations));
+  const provincesN = Math.max(0, n(provinces));
+  const provWeightN = Math.max(1, n(provWeight) || 2);
+  const poolToShare = regionPaysPlatform ? Math.max(0, total - platformBase) : total;
+  const weightedUnits = stationsN + provincesN * provWeightN;
+  const perStation = weightedUnits > 0 ? poolToShare / weightedUnits : 0;
+  const perProvince = perStation * provWeightN;
+  const regionPays = regionPaysPlatform ? platformBase : 0;
 
   const usd = (x) => `$${x.toFixed(2)}`;
   const php = (x) => `\u20b1${Math.round(x * rate).toLocaleString("en-US")}`;
@@ -242,6 +258,43 @@ function CostEstimatorCard() {
         <EstimatorRow label="Safety buffer (20%)" value={both(buffer)} />
         <div className="my-1 border-t border-border/50" />
         <EstimatorRow label="Estimated monthly total" value={both(total)} strong />
+      </div>
+
+      <div className="mt-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-foreground">Cost sharing</h3>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={regionPaysPlatform}
+              onChange={(e) => setRegionPaysPlatform(e.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
+            <span className="text-xs text-muted">Region pays platform base</span>
+          </label>
+        </div>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted">
+          The {usd(platformBase)} platform base (Vercel {usd(COST.vercelBase)} + Supabase{" "}
+          {usd(COST.supaBase)}) is paid once by you, the System Administrator. Stations and provinces
+          only split the remaining {usd(poolToShare)}. A province pays {provWeightN}× a station.
+        </p>
+
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <EstimatorInput label="Stations" value={stations} onChange={setStations} suffix="SCC" />
+          <EstimatorInput label="Provinces" value={provinces} onChange={setProvinces} suffix="PCC" />
+          <EstimatorInput label="Province weight" value={provWeight} onChange={setProvWeight} suffix="× station" />
+        </div>
+
+        <div className="mt-3 rounded-lg border border-border/50 bg-background/40 px-3 py-2">
+          <EstimatorRow label="Region (you) pays" value={both(regionPays)} />
+          <EstimatorRow label="Per station / month" value={both(perStation)} strong />
+          <EstimatorRow label="Per province / month" value={both(perProvince)} strong />
+          <div className="my-1 border-t border-border/50" />
+          <EstimatorRow
+            label="Collected from field"
+            value={both(perStation * stationsN + perProvince * provincesN)}
+          />
+        </div>
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
