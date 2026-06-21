@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { extractBearerToken, resolveAccessToken } from "@/lib/mobile/accessToken";
+import { computeDrivingRoute } from "@/lib/directions/computeRoute";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -75,35 +76,28 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Incident not found." }, { status: 404 });
   }
 
-  const origin = new URL(request.url).origin;
-  const directionsRes = await fetch(`${origin}/api/route/directions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  try {
+    const directions = await computeDrivingRoute(
       fromLat,
       fromLon,
-      toLat: incident.latitude,
-      toLon: incident.longitude,
-    }),
-    cache: "no-store",
-  });
+      Number(incident.latitude),
+      Number(incident.longitude)
+    );
 
-  const directions = await directionsRes.json();
-  if (!directionsRes.ok) {
+    return NextResponse.json({
+      ok: true,
+      incident: {
+        id: incident.id,
+        latitude: incident.latitude,
+        longitude: incident.longitude,
+        label: incident.label,
+      },
+      route: directions,
+    });
+  } catch (err) {
     return NextResponse.json(
-      { error: directions.error ?? "Could not compute route." },
-      { status: directionsRes.status }
+      { error: err?.message ?? "Could not compute route." },
+      { status: 502 }
     );
   }
-
-  return NextResponse.json({
-    ok: true,
-    incident: {
-      id: incident.id,
-      latitude: incident.latitude,
-      longitude: incident.longitude,
-      label: incident.label,
-    },
-    route: directions,
-  });
 }
