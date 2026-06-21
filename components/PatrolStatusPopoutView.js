@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import PatrolStatusDetachFrame from "@/components/PatrolStatusDetachFrame";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
+import { filterLocationsForUser } from "@/lib/auth/scope";
 import {
   readDetachLocked,
   writeDetachLocked,
@@ -24,6 +25,7 @@ export default function PatrolStatusPopoutView() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [locations, setLocations] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [intervalSeconds, setIntervalSeconds] = useState(180);
@@ -32,8 +34,12 @@ export default function PatrolStatusPopoutView() {
   const [locked, setLocked] = useState(false);
 
   const latestLocations = useMemo(
-    () => locations.filter((loc) => loc.live_tracking_active !== false),
-    [locations]
+    () =>
+      filterLocationsForUser(
+        user,
+        locations.filter((loc) => loc.live_tracking_active !== false)
+      ),
+    [user, locations]
   );
 
   const { onTitleBarPointerDown, moveBlocked } = useWindowDrag({ locked });
@@ -63,7 +69,11 @@ export default function PatrolStatusPopoutView() {
       .then((res) => res.json())
       .then((data) => {
         if (!active) return;
-        if (!data.user) router.replace("/");
+        if (!data.user) {
+          router.replace("/");
+          return;
+        }
+        setUser(data.user);
       })
       .catch(() => {
         if (active) router.replace("/");

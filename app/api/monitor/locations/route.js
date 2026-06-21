@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { filterLocationsForUser } from "@/lib/auth/scope";
 
 export const dynamic = "force-dynamic";
 
 /** Latest GPS row per patrol unit — scales to thousands of devices (not limit 500). */
 export async function GET(request) {
-  const { error: authError } = await authorizeCommandCenter(request);
+  const { user, error: authError } = await authorizeCommandCenter(request);
   if (authError) return authError;
 
   const admin = createAdminClient();
@@ -16,7 +17,7 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const locations = Array.isArray(data) ? data : [];
+  const locations = filterLocationsForUser(user, Array.isArray(data) ? data : []);
 
   return NextResponse.json({
     ok: true,

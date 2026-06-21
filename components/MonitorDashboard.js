@@ -20,6 +20,7 @@ import {
   useCallResponseSession,
 } from "@/lib/useCallResponseSession";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
+import { filterLocationsForUser } from "@/lib/auth/scope";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
@@ -89,7 +90,12 @@ export default function MonitorDashboard({ user, onLogout }) {
   );
 
   // Server returns units with live_tracking_active; keep last-known pin on map until Stop.
-  const latestLocations = useMemo(() => locations, [locations]);
+  // Scope markers to the signed-in role: PCC sees its office, SCC its office+unit,
+  // RCC / System Administrator see the whole region.
+  const latestLocations = useMemo(
+    () => filterLocationsForUser(user, locations),
+    [user, locations]
+  );
 
   const selectedPatrolKey = selectedPatrol
     ? selectedPatrol.access_token_id || selectedPatrol.user_id
