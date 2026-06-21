@@ -21,6 +21,7 @@ import {
 } from "@/lib/useCallResponseSession";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
 import { filterLocationsForUser } from "@/lib/auth/scope";
+import { canForceLocation } from "@/lib/auth/roles";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
@@ -620,7 +621,7 @@ export default function MonitorDashboard({ user, onLogout }) {
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
         showAddCallResponse
-        showForceLocation
+        showForceLocation={canForceLocation(user?.role)}
         forceLocationOpen={forceLocationOpen}
         onForceLocationOpenChange={setForceLocationOpen}
         showGenerateReport
@@ -669,7 +670,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             mapAreaSize={mapAreaSize}
           />
 
-          {forceLocationOpen && (
+          {forceLocationOpen && canForceLocation(user?.role) && (
             <ForceLocationPanel
               locations={latestLocations}
               selectedLocation={selectedPatrol}
