@@ -5,6 +5,7 @@ import {
   getClosureOutcomeLabel,
 } from "@/lib/callResponseOutcomes";
 import { callResponseFromRow } from "@/lib/callResponses";
+import { canViewLocation } from "@/lib/auth/scope";
 import {
   cancelAllActiveDispatches,
   cancelPendingDispatches,
@@ -48,6 +49,11 @@ export async function PATCH(request, { params }) {
   }
 
   if (!existing) {
+    return NextResponse.json({ error: "Incident not found." }, { status: 404 });
+  }
+
+  // Stations / provinces can only act on incidents within their own scope.
+  if (!canViewLocation(user, existing)) {
     return NextResponse.json({ error: "Incident not found." }, { status: 404 });
   }
 

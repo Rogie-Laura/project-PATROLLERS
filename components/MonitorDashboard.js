@@ -20,7 +20,7 @@ import {
   useCallResponseSession,
 } from "@/lib/useCallResponseSession";
 import { upsertLatestLocationRow } from "@/lib/monitorLocations";
-import { filterLocationsForUser } from "@/lib/auth/scope";
+import { filterLocationsForUser, canViewLocation } from "@/lib/auth/scope";
 import { canForceLocation } from "@/lib/auth/roles";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
@@ -215,6 +215,8 @@ export default function MonitorDashboard({ user, onLogout }) {
           if (payload.eventType === "INSERT") {
             const row = callResponseFromRow(payload.new);
             if (!row || row.status !== "active") return;
+            // Only show incidents within this account's scope.
+            if (!canViewLocation(user, row)) return;
             setCallResponses((prev) => {
               if (prev.some((c) => c.id === row.id)) return prev;
               return [...prev, row];
@@ -225,6 +227,7 @@ export default function MonitorDashboard({ user, onLogout }) {
           if (payload.eventType === "UPDATE") {
             const row = callResponseFromRow(payload.new);
             if (!row) return;
+            if (!canViewLocation(user, row)) return;
             if (row.status === "closed") {
               setCallResponses((prev) => {
                 const next = prev.filter((c) => c.id !== row.id);
@@ -255,7 +258,7 @@ export default function MonitorDashboard({ user, onLogout }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, setSelectedCallId, setDispatchRoute, setHighlightedUnitKey]);
+  }, [supabase, user, setSelectedCallId, setDispatchRoute, setHighlightedUnitKey]);
 
   useEffect(() => {
     let active = true;
