@@ -27,7 +27,7 @@ import {
   canSeeSubordinates,
 } from "@/lib/auth/scope";
 import IncidentOverviewPanel from "@/components/IncidentOverviewPanel";
-import { canForceLocation } from "@/lib/auth/roles";
+import { canForceLocation, canDispatch } from "@/lib/auth/roles";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
@@ -648,8 +648,15 @@ export default function MonitorDashboard({ user, onLogout }) {
     onLogout();
   }
 
+  // System Administrator manages the platform, not field dispatch — hide the
+  // dispatch assist panel and Add-call-response for it. RCC/PCC/SCC dispatch.
+  const dispatchEnabled = canDispatch(user?.role);
+
   const hasActiveCalls =
-    callResponsesLoaded && callUiHydrated && callResponses.length > 0;
+    dispatchEnabled &&
+    callResponsesLoaded &&
+    callUiHydrated &&
+    callResponses.length > 0;
 
   const showOverview = canSeeSubordinates(user);
   const unseenIncidentCount = useMemo(
@@ -689,7 +696,7 @@ export default function MonitorDashboard({ user, onLogout }) {
         showBasemap
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
-        showAddCallResponse
+        showAddCallResponse={dispatchEnabled}
         showForceLocation={canForceLocation(user?.role)}
         forceLocationOpen={forceLocationOpen}
         onForceLocationOpenChange={setForceLocationOpen}
