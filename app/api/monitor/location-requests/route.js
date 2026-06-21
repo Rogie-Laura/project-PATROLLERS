@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createLocationRequestBatch,
@@ -9,10 +9,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const { user, error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   let body;
   try {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import {
   normalizeClosureOutcome,
   getClosureOutcomeLabel,
@@ -15,10 +15,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(request, { params }) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const { user, error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   const id = (await params)?.id;
   if (!id) {

@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 /** Latest GPS row per patrol unit — scales to thousands of devices (not limit 500). */
 export async function GET(request) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const { error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("get_monitor_patrol_snapshot");

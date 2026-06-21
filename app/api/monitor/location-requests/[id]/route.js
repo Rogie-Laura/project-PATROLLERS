@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   closeLocationRequestBatch,
@@ -9,10 +9,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request, { params }) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const { error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   const id = (await params)?.id;
   if (!id) {
@@ -42,10 +40,8 @@ export async function GET(request, { params }) {
 
 /** Close batch — remaining pending units are marked failed (no more mobile retries). */
 export async function PATCH(request, { params }) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const { error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   const id = (await params)?.id;
   if (!id) {

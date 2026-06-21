@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import { callResponseFromRow } from "@/lib/callResponses";
 import { DISPATCH_ROLE } from "@/lib/callResponseDispatches";
 import {
@@ -11,10 +11,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 export async function GET(request, { params }) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const { error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   const id = (await params)?.id;
   if (!id) {
@@ -32,10 +30,8 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  const { error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   const id = (await params)?.id;
   if (!id) {

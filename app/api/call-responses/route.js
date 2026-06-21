@@ -1,21 +1,13 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import { callResponseFromRow, callResponsesFromRows } from "@/lib/callResponses";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-function requireUser(user) {
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
-  return null;
-}
-
 export async function GET(request) {
-  const user = await getCurrentUser(request);
-  const denied = requireUser(user);
-  if (denied) return denied;
+  const { error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") === "closed" ? "closed" : "active";
@@ -41,9 +33,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const user = await getCurrentUser(request);
-  const denied = requireUser(user);
-  if (denied) return denied;
+  const { user, error: authError } = await authorizeCommandCenter(request);
+  if (authError) return authError;
 
   let body;
   try {

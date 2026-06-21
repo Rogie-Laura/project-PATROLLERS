@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { authorizeUser } from "@/lib/auth/apiAuth";
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
 export async function GET(request) {
+  const { error: authError } = await authorizeUser(request);
+  if (authError) return authError;
+
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (q.length < 2) {

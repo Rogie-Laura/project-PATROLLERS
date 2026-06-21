@@ -6,9 +6,7 @@ export const dynamic = "force-dynamic";
 
 function verifyCommandApiKey(request) {
   const expected = process.env.PATROLLERS_COMMAND_API_KEY?.trim();
-  if (!expected) {
-    return process.env.NODE_ENV !== "production";
-  }
+  if (!expected) return false;
 
   const header =
     request.headers.get("x-patrollers-api-key")?.trim() ||
@@ -19,7 +17,7 @@ function verifyCommandApiKey(request) {
 
 /** Active patrol unit counts for PRO4A COMMAND (Police Intervention). */
 export async function GET(request) {
-  if (!process.env.PATROLLERS_COMMAND_API_KEY?.trim() && process.env.NODE_ENV === "production") {
+  if (!process.env.PATROLLERS_COMMAND_API_KEY?.trim()) {
     return NextResponse.json(
       { error: "Patrol counts API is not configured." },
       { status: 503 },

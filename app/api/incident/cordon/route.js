@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authorizeUser } from "@/lib/auth/apiAuth";
 import { analyzeCordon } from "@/lib/cordonAnalysis";
 import { fetchOverpassElements } from "@/lib/overpassClient";
 
@@ -6,6 +7,9 @@ export const maxDuration = 25;
 export const dynamic = "force-dynamic";
 
 export async function POST(request) {
+  const { error: authError } = await authorizeUser(request);
+  if (authError) return authError;
+
   let body;
 
   try {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authorizeUser } from "@/lib/auth/apiAuth";
 import { decodeGooglePolyline } from "@/lib/googlePolyline";
 import { stripHtml } from "@/lib/formatRoute";
 import {
@@ -119,6 +120,9 @@ async function fetchGoogleRoute(fromLat, fromLon, toLat, toLon, apiKey) {
 }
 
 export async function POST(request) {
+  const { error: authError } = await authorizeUser(request);
+  if (authError) return authError;
+
   let body;
 
   try {
