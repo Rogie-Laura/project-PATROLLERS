@@ -75,8 +75,33 @@ export default function MonitorDashboard({ user, onLogout }) {
   // Read-only awareness for higher offices: incidents owned by subordinate
   // command levels (RCC sees all PCC/station incidents, PCC sees its stations).
   const [subordinateIncidents, setSubordinateIncidents] = useState([]);
-  const [overviewOpen, setOverviewOpen] = useState(false);
-  const [seenIncidentIds, setSeenIncidentIds] = useState(() => new Set());
+  // Off by default = independent (higher office does NOT see subordinate panels).
+  // Toggled from the View menu "Show all incident response".
+  const [showAllIncidents, setShowAllIncidentsState] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("patrollers.map.showAllIncidents");
+      if (raw === "1") setShowAllIncidentsState(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setShowAllIncidents = useCallback((next) => {
+    setShowAllIncidentsState((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      try {
+        sessionStorage.setItem(
+          "patrollers.map.showAllIncidents",
+          value ? "1" : "0"
+        );
+      } catch {
+        /* ignore */
+      }
+      return value;
+    });
+  }, []);
   const {
     selectedCallId,
     setSelectedCallId,
@@ -208,7 +233,6 @@ export default function MonitorDashboard({ user, onLogout }) {
       .then((data) => {
         if (!active || !data?.incidents) return;
         setSubordinateIncidents(data.incidents);
-        setSeenIncidentIds(new Set(data.incidents.map((c) => c.id)));
       })
       .catch(() => {});
 
@@ -659,24 +683,6 @@ export default function MonitorDashboard({ user, onLogout }) {
     callResponses.length > 0;
 
   const showOverview = canSeeSubordinates(user);
-  const unseenIncidentCount = useMemo(
-    () =>
-      subordinateIncidents.reduce(
-        (count, inc) => (seenIncidentIds.has(inc.id) ? count : count + 1),
-        0
-      ),
-    [subordinateIncidents, seenIncidentIds]
-  );
-
-  const toggleOverview = useCallback(() => {
-    setOverviewOpen((open) => {
-      const next = !open;
-      if (next) {
-        setSeenIncidentIds(new Set(subordinateIncidents.map((c) => c.id)));
-      }
-      return next;
-    });
-  }, [subordinateIncidents]);
 
   const activeCallId = selectedCallId ?? callResponses[0]?.id ?? null;
   const activeDispatches = activeCallId ? dispatchByCallId[activeCallId] ?? [] : [];
@@ -710,6 +716,10 @@ export default function MonitorDashboard({ user, onLogout }) {
         onAddIncidentMarker={handleAddCallResponse}
         mapViewLayers={mapViewLayers}
         onMapViewLayerChange={handleMapViewLayerChange}
+        showAllIncidentsToggle={showOverview}
+        allIncidentsChecked={showAllIncidents}
+        allIncidentsCount={subordinateIncidents.length}
+        onAllIncidentsChange={setShowAllIncidents}
       />
 
       <section className="relative min-h-0 flex-1 overflow-hidden">
@@ -758,31 +768,11 @@ export default function MonitorDashboard({ user, onLogout }) {
             <GenerateReportPanel onClose={() => setGenerateReportOpen(false)} />
           )}
 
-          {showOverview && (
-            <button
-              type="button"
-              onClick={toggleOverview}
-              className="pointer-events-auto absolute right-4 top-4 z-[510] flex items-center gap-2 rounded-lg border border-border/60 bg-card/95 px-3 py-1.5 text-[12px] font-medium text-foreground shadow-lg backdrop-blur-sm transition hover:bg-background/80"
-              title="Stations with active incidents"
-            >
-              <span>Station incidents</span>
-              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-amber-300">
-                {subordinateIncidents.length}
-              </span>
-              {unseenIncidentCount > 0 && !overviewOpen && (
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-                </span>
-              )}
-            </button>
-          )}
-
-          {showOverview && overviewOpen && (
+          {showOverview && showAllIncidents && (
             <IncidentOverviewPanel
               incidents={subordinateIncidents}
               nowMs={nowMs}
-              onClose={() => setOverviewOpen(false)}
+              onClose={() => setShowAllIncidents(false)}
             />
           )}
         </div>

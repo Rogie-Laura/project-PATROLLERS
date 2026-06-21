@@ -294,11 +294,22 @@ function ViewIcon() {
   );
 }
 
-function MapViewPicker({ layers, onLayerChange }) {
+function MapViewPicker({
+  layers,
+  onLayerChange,
+  showAllIncidentsToggle = false,
+  allIncidentsChecked = false,
+  allIncidentsCount = 0,
+  onAllIncidentsChange,
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
-  const activeCount = MAP_VIEW_LAYERS.filter(({ id }) => layers[id]).length;
+  const activeCount =
+    MAP_VIEW_LAYERS.filter(({ id }) => layers[id]).length +
+    (showAllIncidentsToggle && allIncidentsChecked ? 1 : 0);
+  const hasIncidentAlert =
+    showAllIncidentsToggle && !allIncidentsChecked && allIncidentsCount > 0;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -330,6 +341,12 @@ function MapViewPicker({ layers, onLayerChange }) {
       >
         <ViewIcon />
         <span className="whitespace-nowrap">View</span>
+        {hasIncidentAlert && (
+          <span className="relative flex h-2 w-2" aria-label="New incident response">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+          </span>
+        )}
         <ChevronDownIcon open={open} />
       </button>
 
@@ -357,6 +374,29 @@ function MapViewPicker({ layers, onLayerChange }) {
               <span className="min-w-0 flex-1">{layer.label}</span>
             </label>
           ))}
+
+          {showAllIncidentsToggle && (
+            <>
+              <div className="my-1 border-t border-border/60" />
+              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                Incident response
+              </p>
+              <label className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-background/80 sm:text-xs">
+                <input
+                  type="checkbox"
+                  checked={Boolean(allIncidentsChecked)}
+                  onChange={(e) => onAllIncidentsChange?.(e.target.checked)}
+                  className="h-3.5 w-3.5 shrink-0 rounded border-border/80 accent-accent"
+                />
+                <span className="min-w-0 flex-1">Show all incident response</span>
+                {allIncidentsCount > 0 && (
+                  <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                    {allIncidentsCount}
+                  </span>
+                )}
+              </label>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -483,6 +523,10 @@ export default function MapToolbar({
   onAddIncidentMarker,
   mapViewLayers,
   onMapViewLayerChange,
+  showAllIncidentsToggle = false,
+  allIncidentsChecked = false,
+  allIncidentsCount = 0,
+  onAllIncidentsChange,
 }) {
   const canManageTokens = canManageAccessTokens(user?.role);
   const items = NAV_ITEMS.filter((item) => {
@@ -608,6 +652,10 @@ export default function MapToolbar({
               <MapViewPicker
                 layers={mapViewLayers}
                 onLayerChange={onMapViewLayerChange}
+                showAllIncidentsToggle={showAllIncidentsToggle}
+                allIncidentsChecked={allIncidentsChecked}
+                allIncidentsCount={allIncidentsCount}
+                onAllIncidentsChange={onAllIncidentsChange}
               />
               <button
                 type="button"
