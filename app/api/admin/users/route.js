@@ -28,6 +28,9 @@ function requireAdmin(user) {
   return null;
 }
 
+const USER_SELECT =
+  "id, rank, full_name, rank_fullname, badge_number, email, role, office, unit, created_at, is_active, subscription_expires_at";
+
 function mapUserRow(row) {
   const role = normalizeRole(row.role);
   return {
@@ -42,7 +45,24 @@ function mapUserRow(row) {
     office: row.office ?? "",
     unit: row.unit ?? "",
     created_at: row.created_at,
+    is_active: row.is_active !== false,
+    subscription_expires_at: row.subscription_expires_at ?? null,
   };
+}
+
+/**
+ * Normalize a subscription expiry input to an ISO string or null.
+ * Returns { value } on success, or { error } when the date is invalid.
+ */
+function parseExpiry(input) {
+  if (input === undefined || input === null || String(input).trim() === "") {
+    return { value: null };
+  }
+  const ms = new Date(input).getTime();
+  if (Number.isNaN(ms)) {
+    return { error: "Subscription expiry must be a valid date." };
+  }
+  return { value: new Date(ms).toISOString() };
 }
 
 /** Reject if office/unit are missing or not in the PRO4A list. */
@@ -78,9 +98,7 @@ export async function GET(request) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("user")
-    .select(
-      "id, rank, full_name, rank_fullname, badge_number, email, role, office, unit, created_at"
-    )
+    .select(USER_SELECT)
     .in("role", LIST_ROLES)
     .order("created_at", { ascending: false });
 
@@ -114,6 +132,11 @@ export async function POST(request) {
   const rank = String(body?.rank ?? "").trim() || null;
   const fullName = String(body?.full_name ?? "").trim() || null;
   const badgeNumber = String(body?.badge_number ?? "").trim() || null;
+  const isActive = body?.is_active === false ? false : true;
+  const expiry = parseExpiry(body?.subscription_expires_at);
+  if (expiry.error) {
+    return NextResponse.json({ error: expiry.error }, { status: 400 });
+  }
 
   if (!email) {
     return NextResponse.json({ error: "Email is required." }, { status: 400 });
@@ -148,10 +171,10 @@ export async function POST(request) {
       rank,
       full_name: fullName,
       badge_number: badgeNumber,
+      is_active: isActive,
+      subscription_expires_at: expiry.value,
     })
-    .select(
-      "id, rank, full_name, rank_fullname, badge_number, email, role, office, unit, created_at"
-    )
+    .select(USER_SELECT)
     .single();
 
   if (error) {

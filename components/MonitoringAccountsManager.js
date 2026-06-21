@@ -5,6 +5,7 @@ import {
   officeSelectOptions,
   unitSelectOptions,
 } from "@/lib/offices";
+import { subscriptionStatus } from "@/lib/auth/subscription";
 
 const ROLE_OPTIONS = [
   { value: "RCC", label: "RCC — Regional (whole region)" },
@@ -21,11 +22,58 @@ const EMPTY_FORM = {
   role: "SCC",
   office: "",
   unit: "",
+  subscription_expires_at: "",
 };
 
 function formatDate(value) {
   if (!value) return "—";
   return new Date(value).toLocaleString();
+}
+
+function formatDateOnly(value) {
+  if (!value) return "No expiry";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "No expiry";
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** ISO timestamp -> "YYYY-MM-DD" for <input type="date">. */
+function toDateInputValue(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+const STATUS_STYLES = {
+  active: "bg-emerald-500/15 text-emerald-400",
+  expiring: "bg-amber-500/15 text-amber-400",
+  expired: "bg-red-500/15 text-red-400",
+  inactive: "bg-zinc-500/20 text-zinc-400",
+};
+
+const STATUS_LABELS = {
+  active: "Active",
+  expiring: "Expiring soon",
+  expired: "Expired",
+  inactive: "Deactivated",
+};
+
+function StatusBadge({ account }) {
+  const status = subscriptionStatus(account);
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${
+        STATUS_STYLES[status] ?? STATUS_STYLES.inactive
+      }`}
+    >
+      {STATUS_LABELS[status] ?? "Unknown"}
+    </span>
+  );
 }
 
 function scopeHint(role) {
@@ -103,6 +151,8 @@ function EditModal({ account, onClose, onSaved, onError }) {
     badge_number: account.badge_number,
     email: account.email,
     password: "",
+    is_active: account.is_active !== false,
+    subscription_expires_at: toDateInputValue(account.subscription_expires_at),
   });
   const [saving, setSaving] = useState(false);
 
@@ -140,6 +190,8 @@ function EditModal({ account, onClose, onSaved, onError }) {
         full_name: form.full_name.trim(),
         badge_number: form.badge_number.trim(),
         email: form.email.trim(),
+        is_active: form.is_active,
+        subscription_expires_at: form.subscription_expires_at || null,
       };
       if (form.password) payload.password = form.password;
 
@@ -226,6 +278,35 @@ function EditModal({ account, onClose, onSaved, onError }) {
               className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
             />
           </label>
+
+          <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+            <label className="flex cursor-pointer items-center justify-between gap-3">
+              <span className="text-xs font-medium text-foreground">
+                Account active
+              </span>
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(e) => update("is_active", e.target.checked)}
+                className="h-4 w-4 accent-accent"
+              />
+            </label>
+            <label className="mt-3 block text-xs text-muted">
+              Subscription expires on (leave blank = never)
+              <input
+                type="date"
+                value={form.subscription_expires_at}
+                onChange={(e) =>
+                  update("subscription_expires_at", e.target.value)
+                }
+                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              />
+            </label>
+            <p className="mt-1 text-[11px] text-muted">
+              After this date the account is automatically blocked from signing
+              in until you renew it.
+            </p>
+          </div>
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
@@ -257,6 +338,7 @@ export default function MonitoringAccountsManager() {
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
   const [editing, setEditing] = useState(null);
 
   const loadUsers = useCallback(async () => {
@@ -314,6 +396,26 @@ export default function MonitoringAccountsManager() {
       setError(err.message);
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleToggleActive(account) {
+    const nextActive = !(account.is_active !== false);
+    setTogglingId(account.id);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/users/${account.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: nextActive }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not update account.");
+      await loadUsers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -426,6 +528,17 @@ export default function MonitoringAccountsManager() {
               required
               className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
             />
+            <label className="text-xs text-muted sm:col-span-2 lg:col-span-2">
+              Subscription expires on (optional)
+              <input
+                type="date"
+                value={form.subscription_expires_at}
+                onChange={(e) =>
+                  updateForm("subscription_expires_at", e.target.value)
+                }
+                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              />
+            </label>
             <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2">
               <p className="text-[11px] text-muted">{roleHint}</p>
               <button
@@ -479,6 +592,7 @@ export default function MonitoringAccountsManager() {
                       <th className="px-4 py-3 font-medium">Role</th>
                       <th className="px-4 py-3 font-medium">Office</th>
                       <th className="px-4 py-3 font-medium">Unit</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 font-medium">Action</th>
                     </tr>
                   </thead>
@@ -505,11 +619,39 @@ export default function MonitoringAccountsManager() {
                           <td className="px-4 py-3 align-top">{row.unit || "—"}</td>
                           <td className="px-4 py-3 align-top">
                             {isAdmin ? (
+                              <span className="text-[11px] text-muted">—</span>
+                            ) : (
+                              <div>
+                                <StatusBadge account={row} />
+                                <div className="mt-1 text-[11px] text-muted">
+                                  {formatDateOnly(row.subscription_expires_at)}
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 align-top">
+                            {isAdmin ? (
                               <span className="text-[11px] text-muted">
                                 System Administrator
                               </span>
                             ) : (
                               <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  disabled={togglingId === row.id}
+                                  onClick={() => handleToggleActive(row)}
+                                  className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition disabled:opacity-50 sm:text-xs ${
+                                    row.is_active !== false
+                                      ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                      : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                  }`}
+                                >
+                                  {togglingId === row.id
+                                    ? "Saving..."
+                                    : row.is_active !== false
+                                    ? "Deactivate"
+                                    : "Activate"}
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => setEditing(row)}

@@ -26,6 +26,9 @@ function requireAdmin(user) {
   return null;
 }
 
+const USER_SELECT =
+  "id, rank, full_name, rank_fullname, badge_number, email, role, office, unit, created_at, is_active, subscription_expires_at";
+
 function mapUserRow(row) {
   const role = normalizeRole(row.role);
   return {
@@ -40,7 +43,21 @@ function mapUserRow(row) {
     office: row.office ?? "",
     unit: row.unit ?? "",
     created_at: row.created_at,
+    is_active: row.is_active !== false,
+    subscription_expires_at: row.subscription_expires_at ?? null,
   };
+}
+
+/** Normalize a subscription expiry input to an ISO string or null. */
+function parseExpiry(input) {
+  if (input === undefined || input === null || String(input).trim() === "") {
+    return { value: null };
+  }
+  const ms = new Date(input).getTime();
+  if (Number.isNaN(ms)) {
+    return { error: "Subscription expiry must be a valid date." };
+  }
+  return { value: new Date(ms).toISOString() };
 }
 
 function validateScope(role, office, unit) {
@@ -129,6 +146,16 @@ export async function PATCH(request, { params }) {
   if (Object.prototype.hasOwnProperty.call(body, "badge_number")) {
     update.badge_number = String(body.badge_number ?? "").trim() || null;
   }
+  if (Object.prototype.hasOwnProperty.call(body, "is_active")) {
+    update.is_active = body.is_active === true;
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "subscription_expires_at")) {
+    const expiry = parseExpiry(body.subscription_expires_at);
+    if (expiry.error) {
+      return NextResponse.json({ error: expiry.error }, { status: 400 });
+    }
+    update.subscription_expires_at = expiry.value;
+  }
   if (Object.prototype.hasOwnProperty.call(body, "email")) {
     const email = String(body.email ?? "").trim().toLowerCase();
     if (!email) {
@@ -166,9 +193,7 @@ export async function PATCH(request, { params }) {
     .from("user")
     .update(update)
     .eq("id", id)
-    .select(
-      "id, rank, full_name, rank_fullname, badge_number, email, role, office, unit, created_at"
-    )
+    .select(USER_SELECT)
     .maybeSingle();
 
   if (error) {

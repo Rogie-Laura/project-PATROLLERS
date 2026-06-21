@@ -13,6 +13,7 @@ import {
   SESSION_ACTIVE_CODE,
   SESSION_ACTIVE_MESSAGE,
 } from "@/lib/auth/sessionPolicy";
+import { accountAccessBlock } from "@/lib/auth/subscription";
 
 export async function POST(request) {
   let body;
@@ -51,6 +52,14 @@ export async function POST(request) {
     return NextResponse.json(
       { error: "Invalid email or password." },
       { status: 401 }
+    );
+  }
+
+  const block = accountAccessBlock(user);
+  if (block) {
+    return NextResponse.json(
+      { error: block.message, code: block.code },
+      { status: 403 }
     );
   }
 
