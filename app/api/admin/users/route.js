@@ -8,6 +8,10 @@ import {
   roleLabel,
 } from "@/lib/auth/roles";
 import { hashPassword } from "@/lib/auth/password";
+import {
+  isKnownOffice,
+  isKnownUnitForOffice,
+} from "@/lib/offices";
 
 const LIST_ROLES = ["RCC", "PCC", "SCC", "System Administrator"];
 
@@ -41,14 +45,27 @@ function mapUserRow(row) {
   };
 }
 
-/** Reject if office/unit are missing for a role that needs them. */
+/** Reject if office/unit are missing or not in the PRO4A list. */
 function validateScope(role, office, unit) {
   const normalized = normalizeRole(role);
-  if (normalized === "PCC" && !office) {
-    return "Provincial Command Center (PCC) accounts need an Office (e.g. Cavite PPO).";
+  if (normalized === "PCC") {
+    if (!office) {
+      return "Provincial Command Center (PCC) accounts need an Office.";
+    }
+    if (!isKnownOffice(office)) {
+      return "Select a valid office from the list.";
+    }
   }
-  if (normalized === "SCC" && (!office || !unit)) {
-    return "Station (SCC) accounts need both an Office and a Unit (e.g. Cavite PPO / Rosario MPS).";
+  if (normalized === "SCC") {
+    if (!office || !unit) {
+      return "Station (SCC) accounts need both an Office and a Unit.";
+    }
+    if (!isKnownOffice(office)) {
+      return "Select a valid office from the list.";
+    }
+    if (!isKnownUnitForOffice(office, unit)) {
+      return "Select a valid unit for the chosen office.";
+    }
   }
   return null;
 }

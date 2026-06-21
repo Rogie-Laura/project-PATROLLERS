@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  officeSelectOptions,
+  unitSelectOptions,
+} from "@/lib/offices";
 
 const ROLE_OPTIONS = [
   { value: "RCC", label: "RCC — Regional (whole region)" },
@@ -26,8 +30,67 @@ function formatDate(value) {
 
 function scopeHint(role) {
   if (role === "RCC") return "Sees the whole region. Office/Unit optional.";
-  if (role === "PCC") return "Sees one office. Office required (e.g. Cavite PPO).";
-  return "Sees one station. Office + Unit required (e.g. Cavite PPO / Rosario MPS).";
+  if (role === "PCC") return "Sees one office. Select a PPO below.";
+  return "Sees one station. Select office, then unit.";
+}
+
+const selectClassName =
+  "mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent";
+
+function OfficeUnitFields({ role, office, unit, onOfficeChange, onUnitChange }) {
+  const offices = useMemo(() => officeSelectOptions(office), [office]);
+  const units = useMemo(
+    () => unitSelectOptions(office, unit),
+    [office, unit]
+  );
+  const showOffice = role === "PCC" || role === "SCC";
+  const showUnit = role === "SCC";
+
+  if (!showOffice && !showUnit) return null;
+
+  return (
+    <div className={`grid gap-3 ${showUnit ? "grid-cols-2" : "grid-cols-1"}`}>
+      {showOffice && (
+        <label className="text-xs text-muted">
+          Office
+          <select
+            value={office}
+            onChange={(e) => onOfficeChange(e.target.value)}
+            required={role === "PCC" || role === "SCC"}
+            className={selectClassName}
+          >
+            <option value="">Select office…</option>
+            {offices.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {showUnit && (
+        <label className="text-xs text-muted">
+          Unit / Station
+          <select
+            value={unit}
+            onChange={(e) => onUnitChange(e.target.value)}
+            required
+            disabled={!office}
+            className={`${selectClassName} disabled:opacity-50`}
+          >
+            <option value="">
+              {office ? "Select unit…" : "Select office first"}
+            </option>
+            {units.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
+  );
 }
 
 function EditModal({ account, onClose, onSaved, onError }) {
@@ -44,7 +107,24 @@ function EditModal({ account, onClose, onSaved, onError }) {
   const [saving, setSaving] = useState(false);
 
   function update(field, value) {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "role") {
+        if (value === "RCC") {
+          next.office = "";
+          next.unit = "";
+        } else if (value === "PCC") {
+          next.unit = "";
+        }
+      }
+      if (field === "office") {
+        const validUnits = unitSelectOptions(value, prev.unit);
+        if (prev.unit && !validUnits.includes(prev.unit)) {
+          next.unit = "";
+        }
+      }
+      return next;
+    });
   }
 
   async function handleSave(e) {
@@ -109,26 +189,13 @@ function EditModal({ account, onClose, onSaved, onError }) {
           </label>
           <p className="-mt-1 text-[11px] text-muted">{scopeHint(form.role)}</p>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs text-muted">
-              Office
-              <input
-                value={form.office}
-                onChange={(e) => update("office", e.target.value)}
-                placeholder="Cavite PPO"
-                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-              />
-            </label>
-            <label className="text-xs text-muted">
-              Unit
-              <input
-                value={form.unit}
-                onChange={(e) => update("unit", e.target.value)}
-                placeholder="Rosario MPS"
-                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-              />
-            </label>
-          </div>
+          <OfficeUnitFields
+            role={form.role}
+            office={form.office}
+            unit={form.unit}
+            onOfficeChange={(value) => update("office", value)}
+            onUnitChange={(value) => update("unit", value)}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs text-muted">
@@ -207,7 +274,24 @@ export default function MonitoringAccountsManager() {
   }, [loadUsers]);
 
   function updateForm(field, value) {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "role") {
+        if (value === "RCC") {
+          next.office = "";
+          next.unit = "";
+        } else if (value === "PCC") {
+          next.unit = "";
+        }
+      }
+      if (field === "office") {
+        const validUnits = unitSelectOptions(value, prev.unit);
+        if (prev.unit && !validUnits.includes(prev.unit)) {
+          next.unit = "";
+        }
+      }
+      return next;
+    });
   }
 
   async function handleCreate(e) {
@@ -325,20 +409,15 @@ export default function MonitoringAccountsManager() {
                 </option>
               ))}
             </select>
-            <input
-              type="text"
-              value={form.office}
-              onChange={(e) => updateForm("office", e.target.value)}
-              placeholder="Office (e.g. Cavite PPO)"
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            />
-            <input
-              type="text"
-              value={form.unit}
-              onChange={(e) => updateForm("unit", e.target.value)}
-              placeholder="Unit (e.g. Rosario MPS)"
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            />
+            <div className="sm:col-span-2 lg:col-span-4">
+              <OfficeUnitFields
+                role={form.role}
+                office={form.office}
+                unit={form.unit}
+                onOfficeChange={(value) => updateForm("office", value)}
+                onUnitChange={(value) => updateForm("unit", value)}
+              />
+            </div>
             <input
               type="text"
               value={form.password}
