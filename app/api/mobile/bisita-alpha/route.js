@@ -80,6 +80,13 @@ export async function POST(request) {
     );
   }
 
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return NextResponse.json(
+      { error: "Coordinates out of range." },
+      { status: 400 }
+    );
+  }
+
   if (Number.isNaN(recordedAt.getTime())) {
     return NextResponse.json(
       { error: "Invalid recorded_at timestamp." },

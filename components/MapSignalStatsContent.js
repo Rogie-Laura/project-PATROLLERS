@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { getConnectionState } from "@/lib/connectionState";
 import {
   getPatrolStatusLabel,
+  isInterventionStatus,
   PATROL_STATUS,
 } from "@/lib/patrolStatusLabels";
 
@@ -29,6 +30,7 @@ export default function MapSignalStatsContent({
 }) {
   const stats = useMemo(() => {
     let visibility = 0;
+    let intervention = 0;
     let incident = 0;
     let strong = 0;
     let weak = 0;
@@ -38,6 +40,8 @@ export default function MapSignalStatsContent({
     for (const loc of locations) {
       if (loc.patrol_status === PATROL_STATUS.incidentResponse) {
         incident += 1;
+      } else if (isInterventionStatus(loc.patrol_status)) {
+        intervention += 1;
       } else {
         visibility += 1;
       }
@@ -52,6 +56,7 @@ export default function MapSignalStatsContent({
     return {
       total: locations.length,
       visibility,
+      intervention,
       incident,
       strong,
       weak,
@@ -67,6 +72,7 @@ export default function MapSignalStatsContent({
         label={getPatrolStatusLabel(PATROL_STATUS.policeVisibility)}
         value={stats.visibility}
       />
+      <StatRow label="Police Intervention" value={stats.intervention} />
       <StatRow
         label={getPatrolStatusLabel(PATROL_STATUS.incidentResponse)}
         value={stats.incident}

@@ -1,7 +1,10 @@
 "use client";
 
 import {
+  getPatrolMarkerColor,
   getPatrolStatusLabel,
+  INTERVENTION_STATUS_ORDER,
+  isInterventionStatus,
   PATROL_STATUS,
 } from "@/lib/patrolStatusLabels";
 import {
@@ -136,11 +139,17 @@ export default function PatrolStatusListPanel({
   detachBlocked = false,
 }) {
   const visibility = locations.filter(
-    (loc) => loc.patrol_status !== PATROL_STATUS.incidentResponse
+    (loc) =>
+      loc.patrol_status !== PATROL_STATUS.incidentResponse &&
+      !isInterventionStatus(loc.patrol_status)
   );
   const incident = locations.filter(
     (loc) => loc.patrol_status === PATROL_STATUS.incidentResponse
   );
+  const interventionGroups = INTERVENTION_STATUS_ORDER.map((status) => ({
+    status,
+    items: locations.filter((loc) => loc.patrol_status === status),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <aside
@@ -193,6 +202,18 @@ export default function PatrolStatusListPanel({
           nowMs={nowMs}
           intervalSeconds={intervalSeconds}
         />
+        {interventionGroups.map((group) => (
+          <StatusGroup
+            key={group.status}
+            title={getPatrolStatusLabel(group.status)}
+            color={getPatrolMarkerColor(group.status)}
+            items={group.items}
+            selectedPatrolKey={selectedPatrolKey}
+            onSelect={onSelectPatrol}
+            nowMs={nowMs}
+            intervalSeconds={intervalSeconds}
+          />
+        ))}
         <StatusGroup
           title={getPatrolStatusLabel(PATROL_STATUS.incidentResponse)}
           color="#ef4444"
