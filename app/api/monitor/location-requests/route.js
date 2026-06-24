@@ -4,7 +4,6 @@ import {
   canUseCommandFeature,
   COMMAND_FEATURE_KEYS,
 } from "@/lib/auth/commandFeatureFlags";
-import { canForceLocation } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createLocationRequestBatch,
@@ -17,19 +16,6 @@ export const dynamic = "force-dynamic";
 export async function POST(request) {
   const { user, error: authError } = await authorizeCommandCenter(request);
   if (authError) return authError;
-
-  // Force Location is RCC / System Administrator only — it forces phones to
-  // send fresh GPS (extra cost + a command action). Station/Provincial accounts
-  // are blocked even if they bypass the hidden UI button.
-  if (!canForceLocation(user.role)) {
-    return NextResponse.json(
-      {
-        error:
-          "Force Location is restricted to the Regional Command Center and the System Administrator.",
-      },
-      { status: 403 }
-    );
-  }
 
   const settings = await getSystemSettings();
   if (

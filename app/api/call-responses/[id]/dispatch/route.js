@@ -4,7 +4,6 @@ import {
   canUseCommandFeature,
   COMMAND_FEATURE_KEYS,
 } from "@/lib/auth/commandFeatureFlags";
-import { canDispatch } from "@/lib/auth/roles";
 import { callResponseFromRow } from "@/lib/callResponses";
 import { DISPATCH_ROLE } from "@/lib/callResponseDispatches";
 import {
@@ -38,13 +37,6 @@ export async function GET(request, { params }) {
 export async function POST(request, { params }) {
   const { user, error: authError } = await authorizeCommandCenter(request);
   if (authError) return authError;
-
-  if (!canDispatch(user.role)) {
-    return NextResponse.json(
-      { error: "Dispatch is not available for your account role." },
-      { status: 403 }
-    );
-  }
 
   const settings = await getSystemSettings();
   if (

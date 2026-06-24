@@ -954,7 +954,7 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
 
         <SettingCard
           title="Command center features"
-          description="Turn map toolbar actions on or off for each command level (RCC, PCC, SCC). Only the system administrator can change these toggles."
+          description="Turn map toolbar actions on or off for RCC, PCC, and SCC. The system administrator always has Add Call Response, Force Location, and Generate Reports — these toggles do not apply to your account."
         >
           <form onSubmit={handleSaveCommandFeatures} className="space-y-3">
             <CommandFeatureToggleGrid
@@ -963,9 +963,9 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
               onChange={updateCommandFeatureFlag}
             />
             <p className="text-[11px] leading-relaxed text-muted">
-              Changes apply immediately on the server. Monitoring accounts may need to refresh the
-              map to see updated toolbar buttons. Force Location remains limited to RCC (and the
-              system administrator when enabled for RCC).
+              Changes apply immediately on the server. RCC, PCC, and SCC accounts may need to
+              refresh the map to see updated toolbar buttons. Force Location for field accounts
+              remains limited to RCC when enabled here.
             </p>
             <button
               type="submit"
