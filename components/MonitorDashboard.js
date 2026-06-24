@@ -634,13 +634,13 @@ export default function MonitorDashboard({ user, onLogout }) {
     setDispatchNotice("Response cancelled. Mobile units notified.");
   }
 
-  async function handleCloseCall(callId, { outcome, remarks }) {
+  async function handleCloseCall(callId) {
     setError("");
 
     const res = await fetch(`/api/call-responses/${callId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "close", outcome, remarks }),
+      body: JSON.stringify({ action: "close" }),
     });
     const data = await res.json();
 

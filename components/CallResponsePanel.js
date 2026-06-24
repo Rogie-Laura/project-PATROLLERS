@@ -10,7 +10,6 @@ import {
   formatStepDistance,
   formatStepDuration,
 } from "@/lib/formatRoute";
-import { CLOSURE_OUTCOMES } from "@/lib/callResponseOutcomes";
 import { getDispatchResultLabel } from "@/lib/callResponseDispatches";
 
 const ZONE_STYLES = {
@@ -69,10 +68,6 @@ export default function CallResponsePanel({
 
   const [routeByUnit, setRouteByUnit] = useState({});
   const [showCloseForm, setShowCloseForm] = useState(false);
-  const [closureOutcome, setClosureOutcome] = useState(
-    CLOSURE_OUTCOMES[0].value
-  );
-  const [closureRemarks, setClosureRemarks] = useState("");
   const [closing, setClosing] = useState(false);
   const [closeError, setCloseError] = useState("");
   const [dispatchingKey, setDispatchingKey] = useState(null);
@@ -90,8 +85,6 @@ export default function CallResponsePanel({
 
   useEffect(() => {
     setShowCloseForm(false);
-    setClosureOutcome(CLOSURE_OUTCOMES[0].value);
-    setClosureRemarks("");
     setCloseError("");
   }, [selectedCallId]);
 
@@ -188,7 +181,7 @@ export default function CallResponsePanel({
     dispatchRoute.callId === selectedCallId &&
     dispatchRoute.steps?.length > 0;
 
-  const hasResolved = dispatches.some((entry) => entry?.status === "completed");
+  const hasArrived = dispatches.some((entry) => entry?.status === "arrived");
 
   async function handleCancelResponse() {
     if (!selectedCall) return;
@@ -216,10 +209,7 @@ export default function CallResponsePanel({
     setCloseError("");
 
     try {
-      await onCloseCall?.(selectedCall.id, {
-        outcome: closureOutcome,
-        remarks: closureRemarks.trim(),
-      });
+      await onCloseCall?.(selectedCall.id);
       setShowCloseForm(false);
     } catch (err) {
       setCloseError(err.message ?? "Could not close incident.");
@@ -284,7 +274,7 @@ export default function CallResponsePanel({
               >
                 {closing ? "Cancelling…" : "Cancel Response"}
               </button>
-              {hasResolved && (
+              {hasArrived && (
                 <button
                   type="button"
                   disabled={closing}
@@ -300,37 +290,9 @@ export default function CallResponsePanel({
             </div>
           ) : (
             <div className="mt-2 space-y-2 rounded-lg border border-border/60 bg-background/50 p-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                Mark as completed — outcome
+              <p className="text-[10px] text-muted">
+                Confirm this incident response is complete?
               </p>
-              <select
-                value={closureOutcome}
-                disabled={closing}
-                onChange={(e) => setClosureOutcome(e.target.value)}
-                className="w-full rounded-md border border-border/70 bg-background/80 px-2 py-1.5 text-[11px] text-foreground outline-none focus:border-accent"
-              >
-                {CLOSURE_OUTCOMES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-
-              {closureOutcome === "other" && (
-                <div>
-                  <label className="mb-1 block text-[10px] text-muted">
-                    Please specify
-                  </label>
-                  <textarea
-                    value={closureRemarks}
-                    disabled={closing}
-                    onChange={(e) => setClosureRemarks(e.target.value)}
-                    rows={3}
-                    placeholder="Describe what happened and police response…"
-                    className="w-full resize-none rounded-md border border-border/70 bg-background/80 px-2 py-1.5 text-[11px] text-foreground outline-none focus:border-accent"
-                  />
-                </div>
-              )}
 
               {closeError && (
                 <p className="text-[10px] text-red-400">{closeError}</p>

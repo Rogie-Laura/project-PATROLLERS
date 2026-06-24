@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
 import {
-  normalizeClosureOutcome,
+  DEFAULT_COMMAND_CLOSURE_OUTCOME,
   getClosureOutcomeLabel,
 } from "@/lib/callResponseOutcomes";
 import { callResponseFromRow } from "@/lib/callResponses";
 import { isSameScope } from "@/lib/auth/scope";
 import {
   cancelAllActiveDispatches,
-  cancelPendingDispatches,
-  hasCompletedDispatch,
+  hasArrivedDispatch,
 } from "@/lib/createCallResponseDispatches";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -94,32 +93,18 @@ export async function PATCH(request, { params }) {
     });
   }
 
-  const outcome = normalizeClosureOutcome(body?.outcome);
-  if (!outcome) {
-    return NextResponse.json(
-      { error: "Select a valid response outcome." },
-      { status: 400 }
-    );
-  }
-
-  const remarks = String(body?.remarks ?? "").trim();
-  if (outcome === "other" && !remarks) {
-    return NextResponse.json(
-      { error: "Please specify what happened for Others." },
-      { status: 400 }
-    );
-  }
-
-  const hasResolved = await hasCompletedDispatch(admin, id);
-  if (!hasResolved) {
+  const hasArrived = await hasArrivedDispatch(admin, id);
+  if (!hasArrived) {
     return NextResponse.json(
       {
         error:
-          "Mark as completed is available after at least one unit submits a resolved result.",
+          "Mark as completed is available after at least one unit marks arrived on scene.",
       },
       { status: 409 }
     );
   }
+
+  const outcome = DEFAULT_COMMAND_CLOSURE_OUTCOME;
 
   const closedAt = new Date().toISOString();
   const { data, error } = await admin
@@ -127,7 +112,7 @@ export async function PATCH(request, { params }) {
     .update({
       status: "closed",
       closure_outcome: outcome,
-      closure_remarks: remarks || null,
+      closure_remarks: null,
       closed_at: closedAt,
       closed_by: user.id,
     })
@@ -140,7 +125,7 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    await cancelPendingDispatches(admin, id);
+    await cancelAllActiveDispatches(admin, id);
   } catch (cancelError) {
     console.error("cancel dispatch alerts failed:", cancelError);
   }
@@ -148,9 +133,6 @@ export async function PATCH(request, { params }) {
   return NextResponse.json({
     ok: true,
     callResponse: callResponseFromRow(data),
-    closureSummary:
-      outcome === "other"
-        ? remarks
-        : getClosureOutcomeLabel(outcome),
+    closureSummary: getClosureOutcomeLabel(outcome),
   });
 }
