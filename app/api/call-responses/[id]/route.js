@@ -125,7 +125,7 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    await cancelAllActiveDispatches(admin, id);
+    await cancelAllActiveDispatches(admin, id, { notifyRespondingPrimary: false });
   } catch (cancelError) {
     console.error("cancel dispatch alerts failed:", cancelError);
   }
