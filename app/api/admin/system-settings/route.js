@@ -18,9 +18,11 @@ import {
   updateIncidentRadiusRings,
   updateLocationIntervalSeconds,
   updateMobileAppRelease,
+  updateCommandFeatureFlags,
 } from "@/lib/mobile/systemSettings";
 import { parseMobileReleaseInput } from "@/lib/mobile/appRelease";
 import { formatRadiusRingsSummary } from "@/lib/incidentRadiusRings";
+import { normalizeCommandFeatureFlags, parseCommandFeatureFlagsInput } from "@/lib/auth/commandFeatureFlags";
 
 function requireSettingsAccess(user) {
   if (!user) {
@@ -56,6 +58,9 @@ function settingsPayload(settings) {
     mobile_apk_download_url: settings.mobile_apk_download_url,
     mobile_update_required: settings.mobile_update_required,
     mobile_release_notes: settings.mobile_release_notes,
+    command_feature_flags: normalizeCommandFeatureFlags(
+      settings.command_feature_flags
+    ),
   };
 }
 
@@ -100,15 +105,22 @@ export async function PATCH(request) {
     body?.mobile_apk_download_url != null ||
     body?.mobile_update_required != null ||
     body?.mobile_release_notes != null;
+  const hasCommandFeatureFlags = body?.command_feature_flags != null;
 
-  if (!hasInterval && !hasDirections && !hasRadiusRings && !hasMobileRelease) {
+  if (
+    !hasInterval &&
+    !hasDirections &&
+    !hasRadiusRings &&
+    !hasMobileRelease &&
+    !hasCommandFeatureFlags
+  ) {
     return NextResponse.json(
       { error: "No settings to update." },
       { status: 400 }
     );
   }
 
-  if ((hasInterval || hasDirections || hasMobileRelease) && !fullAccess) {
+  if ((hasInterval || hasDirections || hasMobileRelease || hasCommandFeatureFlags) && !fullAccess) {
     return NextResponse.json(
       { error: "Only a system administrator can change those settings." },
       { status: 403 }
@@ -213,6 +225,22 @@ export async function PATCH(request) {
     } catch (error) {
       return NextResponse.json(
         { error: error.message ?? "Could not save mobile release settings." },
+        { status: 500 }
+      );
+    }
+  }
+
+  if (hasCommandFeatureFlags) {
+    const parsed = parseCommandFeatureFlagsInput(body.command_feature_flags);
+    if (parsed.error) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    try {
+      await updateCommandFeatureFlags(parsed.flags, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error.message ?? "Could not save command feature flags." },
         { status: 500 }
       );
     }

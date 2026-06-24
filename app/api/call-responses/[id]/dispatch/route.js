@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
+import {
+  canUseCommandFeature,
+  COMMAND_FEATURE_KEYS,
+} from "@/lib/auth/commandFeatureFlags";
+import { canDispatch } from "@/lib/auth/roles";
 import { callResponseFromRow } from "@/lib/callResponses";
 import { DISPATCH_ROLE } from "@/lib/callResponseDispatches";
 import {
@@ -7,6 +12,7 @@ import {
   listCallResponseDispatches,
 } from "@/lib/createCallResponseDispatches";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSystemSettings } from "@/lib/mobile/systemSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +36,32 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const { error: authError } = await authorizeCommandCenter(request);
+  const { user, error: authError } = await authorizeCommandCenter(request);
   if (authError) return authError;
+
+  if (!canDispatch(user.role)) {
+    return NextResponse.json(
+      { error: "Dispatch is not available for your account role." },
+      { status: 403 }
+    );
+  }
+
+  const settings = await getSystemSettings();
+  if (
+    !canUseCommandFeature(
+      user.role,
+      COMMAND_FEATURE_KEYS.addCallResponse,
+      settings.command_feature_flags
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Add Call Response is disabled for your command level. Contact the system administrator.",
+      },
+      { status: 403 }
+    );
+  }
 
   const id = (await params)?.id;
   if (!id) {

@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  COMMAND_FEATURE_LABELS,
+  COMMAND_LEVELS,
+  DEFAULT_COMMAND_FEATURE_FLAGS,
+} from "@/lib/auth/commandFeatureFlags";
+import {
   MAX_INCIDENT_RADIUS_CIRCLES,
   MAX_RADIUS_KM,
   MIN_RADIUS_KM,
@@ -306,12 +311,64 @@ function CostEstimatorCard() {
   );
 }
 
+const COMMAND_FEATURE_ROWS = [
+  { key: "addCallResponse", label: COMMAND_FEATURE_LABELS.addCallResponse },
+  { key: "forceLocation", label: COMMAND_FEATURE_LABELS.forceLocation },
+  { key: "generateReport", label: COMMAND_FEATURE_LABELS.generateReport },
+];
+
+function CommandFeatureToggleGrid({ flags, disabled, onChange }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border/50">
+      <table className="min-w-full text-left text-sm">
+        <thead>
+          <tr className="border-b border-border/50 bg-background/40">
+            <th className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              Feature
+            </th>
+            {COMMAND_LEVELS.map((level) => (
+              <th
+                key={level}
+                className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted"
+              >
+                {level}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {COMMAND_FEATURE_ROWS.map((row) => (
+            <tr key={row.key} className="border-b border-border/40 last:border-b-0">
+              <td className="px-3 py-2.5 text-sm text-foreground">{row.label}</td>
+              {COMMAND_LEVELS.map((level) => (
+                <td key={`${level}-${row.key}`} className="px-3 py-2.5 text-center">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(flags?.[level]?.[row.key])}
+                    disabled={disabled}
+                    onChange={(e) =>
+                      onChange(level, row.key, e.target.checked)
+                    }
+                    className="h-4 w-4 accent-accent"
+                    aria-label={`${row.label} for ${level}`}
+                  />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function SystemSettings({ fullAccess = false, userRole = "" }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingDirections, setSavingDirections] = useState(false);
   const [savingRadius, setSavingRadius] = useState(false);
   const [savingMobileRelease, setSavingMobileRelease] = useState(false);
+  const [savingCommandFeatures, setSavingCommandFeatures] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -330,6 +387,9 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
   const [mobileApkDownloadUrl, setMobileApkDownloadUrl] = useState("");
   const [mobileUpdateRequired, setMobileUpdateRequired] = useState(false);
   const [mobileReleaseNotes, setMobileReleaseNotes] = useState("");
+  const [commandFeatureFlags, setCommandFeatureFlags] = useState(
+    DEFAULT_COMMAND_FEATURE_FLAGS
+  );
 
   const [value, setValue] = useState("30");
   const [unit, setUnit] = useState("minutes");
@@ -354,6 +414,9 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
     setMobileApkDownloadUrl(settings.mobile_apk_download_url ?? "");
     setMobileUpdateRequired(Boolean(settings.mobile_update_required));
     setMobileReleaseNotes(settings.mobile_release_notes ?? "");
+    if (settings.command_feature_flags) {
+      setCommandFeatureFlags(settings.command_feature_flags);
+    }
 
     if (seconds % 60 === 0 && seconds >= 60) {
       setUnit("minutes");
@@ -511,6 +574,46 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
     } finally {
       setSavingMobileRelease(false);
     }
+  }
+
+  async function handleSaveCommandFeatures(event) {
+    event.preventDefault();
+    setSavingCommandFeatures(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command_feature_flags: commandFeatureFlags }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save command feature settings.");
+      }
+
+      applySettings(data.settings);
+      setSuccess(
+        "Command center feature access saved. RCC, PCC, and SCC accounts will see the updated toolbar buttons on their next map load."
+      );
+    } catch (err) {
+      setError(err.message ?? "Could not save command feature settings.");
+    } finally {
+      setSavingCommandFeatures(false);
+    }
+  }
+
+  function updateCommandFeatureFlag(level, key, enabled) {
+    setCommandFeatureFlags((prev) => ({
+      ...prev,
+      [level]: {
+        ...prev[level],
+        [key]: enabled,
+      },
+    }));
   }
 
   function updateRadiusSlot(index, nextSlot) {
@@ -847,6 +950,31 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
             Flutter, (2) build signed release APK, (3) upload to HTTPS, (4) save settings here.
             First APK with this feature must be installed manually once; later updates are one-tap.
           </p>
+        </SettingCard>
+
+        <SettingCard
+          title="Command center features"
+          description="Turn map toolbar actions on or off for each command level (RCC, PCC, SCC). Only the system administrator can change these toggles."
+        >
+          <form onSubmit={handleSaveCommandFeatures} className="space-y-3">
+            <CommandFeatureToggleGrid
+              flags={commandFeatureFlags}
+              disabled={loading || savingCommandFeatures}
+              onChange={updateCommandFeatureFlag}
+            />
+            <p className="text-[11px] leading-relaxed text-muted">
+              Changes apply immediately on the server. Monitoring accounts may need to refresh the
+              map to see updated toolbar buttons. Force Location remains limited to RCC (and the
+              system administrator when enabled for RCC).
+            </p>
+            <button
+              type="submit"
+              disabled={loading || savingCommandFeatures}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+            >
+              {savingCommandFeatures ? "Saving..." : "Save feature access"}
+            </button>
+          </form>
         </SettingCard>
 
         <SettingCard

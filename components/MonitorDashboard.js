@@ -27,7 +27,11 @@ import {
   canSeeSubordinates,
 } from "@/lib/auth/scope";
 import IncidentOverviewPanel from "@/components/IncidentOverviewPanel";
-import { canForceLocation, canDispatch } from "@/lib/auth/roles";
+import {
+  canUseCommandFeature,
+  COMMAND_FEATURE_KEYS,
+  DEFAULT_COMMAND_FEATURE_FLAGS,
+} from "@/lib/auth/commandFeatureFlags";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
@@ -115,6 +119,9 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [intervalSeconds, setIntervalSeconds] = useState(180);
   const [mapRadiusSlots, setMapRadiusSlots] = useState(createDefaultRadiusRingSlots);
   const [dispatchMaxRadiusM, setDispatchMaxRadiusM] = useState(6000);
+  const [commandFeatureFlags, setCommandFeatureFlags] = useState(
+    DEFAULT_COMMAND_FEATURE_FLAGS
+  );
   const [dispatchByCallId, setDispatchByCallId] = useState({});
   const [dispatchNotice, setDispatchNotice] = useState("");
   const [forceLocationOpen, setForceLocationOpen] = useState(false);
@@ -344,6 +351,9 @@ export default function MonitorDashboard({ user, onLogout }) {
         }
         if (data.dispatch_max_radius_m) {
           setDispatchMaxRadiusM(Number(data.dispatch_max_radius_m));
+        }
+        if (data.command_feature_flags) {
+          setCommandFeatureFlags(data.command_feature_flags);
         }
       })
       .catch(() => {});
@@ -672,9 +682,21 @@ export default function MonitorDashboard({ user, onLogout }) {
     onLogout();
   }
 
-  // System Administrator manages the platform, not field dispatch — hide the
-  // dispatch assist panel and Add-call-response for it. RCC/PCC/SCC dispatch.
-  const dispatchEnabled = canDispatch(user?.role);
+  const dispatchEnabled = canUseCommandFeature(
+    user?.role,
+    COMMAND_FEATURE_KEYS.addCallResponse,
+    commandFeatureFlags
+  );
+  const forceLocationEnabled = canUseCommandFeature(
+    user?.role,
+    COMMAND_FEATURE_KEYS.forceLocation,
+    commandFeatureFlags
+  );
+  const generateReportEnabled = canUseCommandFeature(
+    user?.role,
+    COMMAND_FEATURE_KEYS.generateReport,
+    commandFeatureFlags
+  );
 
   const hasActiveCalls =
     dispatchEnabled &&
@@ -703,10 +725,10 @@ export default function MonitorDashboard({ user, onLogout }) {
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
         showAddCallResponse={dispatchEnabled}
-        showForceLocation={canForceLocation(user?.role)}
+        showForceLocation={forceLocationEnabled}
         forceLocationOpen={forceLocationOpen}
         onForceLocationOpenChange={setForceLocationOpen}
-        showGenerateReport
+        showGenerateReport={generateReportEnabled}
         generateReportOpen={generateReportOpen}
         onGenerateReportOpenChange={setGenerateReportOpen}
         callResponseOpen={callResponseOpen}
@@ -756,7 +778,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             mapAreaSize={mapAreaSize}
           />
 
-          {forceLocationOpen && canForceLocation(user?.role) && (
+          {forceLocationOpen && forceLocationEnabled && (
             <ForceLocationPanel
               locations={latestLocations}
               selectedLocation={selectedPatrol}

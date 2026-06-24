@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
+import {
+  canUseCommandFeature,
+  COMMAND_FEATURE_KEYS,
+} from "@/lib/auth/commandFeatureFlags";
 import { canForceLocation } from "@/lib/auth/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createLocationRequestBatch,
   normalizeLocationRequestMode,
 } from "@/lib/mobile/locationRequests";
+import { getSystemSettings } from "@/lib/mobile/systemSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +26,23 @@ export async function POST(request) {
       {
         error:
           "Force Location is restricted to the Regional Command Center and the System Administrator.",
+      },
+      { status: 403 }
+    );
+  }
+
+  const settings = await getSystemSettings();
+  if (
+    !canUseCommandFeature(
+      user.role,
+      COMMAND_FEATURE_KEYS.forceLocation,
+      settings.command_feature_flags
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Force Location is disabled for your command level. Contact the system administrator.",
       },
       { status: 403 }
     );

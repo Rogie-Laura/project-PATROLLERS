@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { normalizeCommandFeatureFlags } from "@/lib/auth/commandFeatureFlags";
 import { maxEnabledRadiusMeters } from "@/lib/incidentRadiusRings";
 import { getSystemSettings } from "@/lib/mobile/systemSettings";
 
@@ -17,5 +18,8 @@ export async function GET() {
     location_interval_seconds: settings.location_interval_seconds,
     incident_radius_rings: settings.incident_radius_rings,
     dispatch_max_radius_m: maxEnabledRadiusMeters(settings.incident_radius_rings),
+    command_feature_flags: normalizeCommandFeatureFlags(
+      settings.command_feature_flags
+    ),
   });
 }
