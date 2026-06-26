@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { countPatrolUnitsByType, countPersonnelOnDutyByType, PATROL_UNIT_TYPES } from "@/lib/patrolUnitTypes";
+import { countPatrolUnitsByType, countPersonnelOnDutyByType, countPatrolBreakdownByOffice, PATROL_UNIT_TYPES } from "@/lib/patrolUnitTypes";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +61,7 @@ export async function GET(request) {
     duty_counts,
     total,
     duty_total,
+    office_breakdown: countPatrolBreakdownByOffice(active),
     types: PATROL_UNIT_TYPES.map((type) => ({
       id: type.id,
       label: type.dashboardLabel ?? type.label,
