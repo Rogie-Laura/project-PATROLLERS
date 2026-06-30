@@ -60,7 +60,7 @@ export default function MonitoringAccountsPage() {
   if (!user) return null;
 
   return (
-    <main className="flex h-dvh flex-col bg-background">
+    <main className="flex h-dvh flex-col overflow-hidden bg-background">
       <MonitorHeader user={user} onSignOut={handleSignOut} signingOut={signingOut} />
       <MapToolbar active="accounts" user={user} />
       <MonitoringAccountsManager />

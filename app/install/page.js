@@ -23,7 +23,7 @@ export default async function InstallPage() {
   const installPageUrl = `${resolveSiteOrigin()}/install`;
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="flex h-full min-h-0 items-center justify-center overflow-y-auto px-4 py-10">
       <MobileInstallCard
         installPageUrl={installPageUrl}
         downloadUrl={downloadUrl}

@@ -21,6 +21,34 @@ const TIME_RANGES = [
   { id: "7d", label: "Last 7 days", hours: 24 * 7 },
 ];
 
+function todayIsoDate() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  return new Date(now.getTime() - offset * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function buildTimeBounds(rangeMode, rangeId, customStartDate, customEndDate) {
+  if (rangeMode === "custom") {
+    if (!customStartDate) return null;
+
+    const start = new Date(`${customStartDate}T00:00:00`);
+    const endDate = customEndDate || customStartDate;
+    const end = new Date(`${endDate}T23:59:59.999`);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+      return null;
+    }
+
+    return { since: start.toISOString(), until: end.toISOString() };
+  }
+
+  const range = TIME_RANGES.find((item) => item.id === rangeId) ?? TIME_RANGES[2];
+  return {
+    since: new Date(Date.now() - range.hours * 60 * 60 * 1000).toISOString(),
+    until: null,
+  };
+}
+
 function deviceKey(row) {
   return row.access_token_id || row.user_id || "unknown";
 }
@@ -44,7 +72,11 @@ export default function TrackReview({
 
   const [devices, setDevices] = useState([]);
   const [selectedKey, setSelectedKey] = useState("");
+  const [rangeMode, setRangeMode] = useState("preset");
   const [rangeId, setRangeId] = useState("24h");
+  const [customStartDate, setCustomStartDate] = useState(todayIsoDate);
+  const [customEndDate, setCustomEndDate] = useState(todayIsoDate);
+  const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [points, setPoints] = useState([]);
   const [loadingDevices, setLoadingDevices] = useState(true);
   const [loadingTrack, setLoadingTrack] = useState(false);
@@ -102,24 +134,28 @@ export default function TrackReview({
   const loadTrack = useCallback(async () => {
     if (!selectedKey) return;
 
+    const bounds = buildTimeBounds(rangeMode, rangeId, customStartDate, customEndDate);
+    if (!bounds) {
+      setError("Choose a valid custom date range.");
+      setPoints([]);
+      return;
+    }
+
     setLoadingTrack(true);
     setError("");
-
-    const range = TIME_RANGES.find((r) => r.id === rangeId) ?? TIME_RANGES[2];
-    const since = new Date(Date.now() - range.hours * 60 * 60 * 1000).toISOString();
-
-    const column = selectedKey.startsWith("unknown") ? null : selectedKey;
 
     let query = supabase
       .from("location_updates")
       .select("id, latitude, longitude, created_at, patrol_status, access_token_id, user_id")
-      .gte("created_at", since)
+      .gte("created_at", bounds.since)
       .order("created_at", { ascending: true })
       .limit(5000);
 
-    // Match either access_token_id or user_id depending on the device key.
-    const device = devices.find((d) => d.key === selectedKey);
-    if (device) {
+    if (bounds.until) {
+      query = query.lte("created_at", bounds.until);
+    }
+
+    if (devices.find((device) => device.key === selectedKey)) {
       query = query.or(
         `access_token_id.eq.${selectedKey},user_id.eq.${selectedKey}`
       );
@@ -135,99 +171,170 @@ export default function TrackReview({
     }
 
     setLoadingTrack(false);
-  }, [supabase, selectedKey, rangeId, devices]);
+  }, [
+    supabase,
+    selectedKey,
+    rangeMode,
+    rangeId,
+    customStartDate,
+    customEndDate,
+    devices,
+  ]);
 
   useEffect(() => {
     if (selectedKey) loadTrack();
-  }, [selectedKey, rangeId, loadTrack]);
+  }, [selectedKey, rangeMode, rangeId, customStartDate, customEndDate, loadTrack]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <aside className="flex shrink-0 flex-col gap-4 border-b border-border/60 bg-card/80 p-4 lg:w-80 lg:border-b-0 lg:border-r">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted">
-            Mobile Unit
+      {showInfoPanel && (
+        <aside className="flex shrink-0 flex-col gap-4 overflow-y-auto overscroll-contain border-b border-border/60 bg-card/80 p-4 lg:max-h-full lg:w-80 lg:border-b-0 lg:border-r">
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+            <span className="text-xs font-medium text-foreground">Information panel</span>
+            <input
+              type="checkbox"
+              checked={showInfoPanel}
+              onChange={(e) => setShowInfoPanel(e.target.checked)}
+              className="h-4 w-4 accent-accent"
+            />
           </label>
-          <select
-            value={selectedKey}
-            onChange={(e) => setSelectedKey(e.target.value)}
-            disabled={loadingDevices}
-            className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-          >
-            {loadingDevices && <option>Loading...</option>}
-            {!loadingDevices && devices.length === 0 && (
-              <option value="">No units found</option>
-            )}
-            {devices.map((device) => (
-              <option key={device.key} value={device.key}>
-                {device.label}
-              </option>
-            ))}
-          </select>
-        </div>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-muted">
-            Time Range
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {TIME_RANGES.map((range) => (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted">
+              Mobile Unit
+            </label>
+            <select
+              value={selectedKey}
+              onChange={(e) => setSelectedKey(e.target.value)}
+              disabled={loadingDevices}
+              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+            >
+              {loadingDevices && <option>Loading...</option>}
+              {!loadingDevices && devices.length === 0 && (
+                <option value="">No units found</option>
+              )}
+              {devices.map((device) => (
+                <option key={device.key} value={device.key}>
+                  {device.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted">
+              Time Range
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {TIME_RANGES.map((range) => (
+                <button
+                  key={range.id}
+                  type="button"
+                  onClick={() => {
+                    setRangeMode("preset");
+                    setRangeId(range.id);
+                  }}
+                  className={`rounded-lg border px-2 py-2 text-xs font-medium transition ${
+                    rangeMode === "preset" && rangeId === range.id
+                      ? "border-accent bg-accent/15 text-accent"
+                      : "border-border/70 text-muted hover:text-foreground"
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
               <button
-                key={range.id}
                 type="button"
-                onClick={() => setRangeId(range.id)}
-                className={`rounded-lg border px-2 py-2 text-xs font-medium transition ${
-                  rangeId === range.id
+                onClick={() => setRangeMode("custom")}
+                className={`col-span-2 rounded-lg border px-2 py-2 text-xs font-medium transition ${
+                  rangeMode === "custom"
                     ? "border-accent bg-accent/15 text-accent"
                     : "border-border/70 text-muted hover:text-foreground"
                 }`}
               >
-                {range.label}
+                Custom date
               </button>
-            ))}
+            </div>
           </div>
-        </div>
 
-        <button
-          type="button"
-          onClick={loadTrack}
-          disabled={loadingTrack || !selectedKey}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
-        >
-          {loadingTrack ? "Loading track..." : "Refresh Track"}
-        </button>
-
-        <div className="rounded-lg border border-border/60 bg-background/40 p-3 text-xs text-muted">
-          <div className="flex items-center justify-between">
-            <span>Points</span>
-            <span className="font-semibold text-foreground">{points.length}</span>
-          </div>
-          {points.length > 0 && (
-            <>
-              <div className="mt-2 flex items-center justify-between">
-                <span>Start</span>
-                <span className="text-foreground">
-                  {new Date(points[0].created_at).toLocaleString()}
-                </span>
+          {rangeMode === "custom" && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  From date
+                </label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                />
               </div>
-              <div className="mt-1 flex items-center justify-between">
-                <span>Latest</span>
-                <span className="text-foreground">
-                  {new Date(points[points.length - 1].created_at).toLocaleString()}
-                </span>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted">
+                  To date
+                </label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  min={customStartDate || undefined}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                />
               </div>
-            </>
+            </div>
           )}
-        </div>
 
-        {error && (
-          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
-            {error}
-          </p>
-        )}
-      </aside>
+          <button
+            type="button"
+            onClick={loadTrack}
+            disabled={loadingTrack || !selectedKey}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+          >
+            {loadingTrack ? "Loading track..." : "Refresh Track"}
+          </button>
+
+          <div className="rounded-lg border border-border/60 bg-background/40 p-3 text-xs text-muted">
+            <div className="flex items-center justify-between">
+              <span>Points</span>
+              <span className="font-semibold text-foreground">{points.length}</span>
+            </div>
+            {points.length > 0 && (
+              <>
+                <div className="mt-2 flex items-center justify-between">
+                  <span>Start</span>
+                  <span className="text-foreground">
+                    {new Date(points[0].created_at).toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between">
+                  <span>Latest</span>
+                  <span className="text-foreground">
+                    {new Date(points[points.length - 1].created_at).toLocaleString()}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {error && (
+            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+              {error}
+            </p>
+          )}
+        </aside>
+      )}
 
       <section className="relative min-h-0 flex-1 overflow-hidden">
+        {!showInfoPanel && (
+          <button
+            type="button"
+            onClick={() => setShowInfoPanel(true)}
+            className="absolute left-3 top-3 z-[500] rounded-lg border border-border/70 bg-card/95 px-3 py-2 text-xs font-medium text-foreground shadow-lg backdrop-blur-sm hover:border-accent"
+          >
+            Show information panel
+          </button>
+        )}
         {points.length === 0 && !loadingTrack ? (
           <div className="flex h-full items-center justify-center bg-card text-sm text-muted">
             No location history for this unit in the selected time range.

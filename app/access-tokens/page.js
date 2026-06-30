@@ -65,7 +65,7 @@ export default function AccessTokensPage() {
   if (!user) return null;
 
   return (
-    <main className="flex h-dvh flex-col bg-background">
+    <main className="flex h-dvh flex-col overflow-hidden bg-background">
       <MonitorHeader
         user={user}
         onSignOut={handleSignOut}
