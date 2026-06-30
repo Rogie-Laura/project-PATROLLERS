@@ -148,6 +148,7 @@ const COST = {
   egressIncludedGB: 250,
   egressPerGB: 0.09,
   vercelBase: 20, // Vercel Pro platform fee
+  maintenance: 2.5, // Server maintenance (fixed monthly)
   avgRtKb: 0.8, // assumed realtime payload per change
   safety: 0.2, // 20% safety buffer
 };
@@ -252,6 +253,7 @@ function TierCostPanel({
           <>
             <EstimatorRow label="Supabase Pro (base $25)" value={usd(COST.supaBase)} />
             <EstimatorRow label="Vercel Pro (base)" value={usd(COST.vercelBase)} />
+            <EstimatorRow label="Server maintenance (fixed)" value={usd(COST.maintenance)} />
           </>
         )}
         <EstimatorRow
@@ -312,7 +314,7 @@ function CostEstimatorCard() {
     egressFreeGB: COST.egressIncludedGB * share(provincePhonesN),
   });
 
-  const platformBase = COST.supaBase + COST.vercelBase;
+  const platformBase = COST.supaBase + COST.vercelBase + COST.maintenance;
   const regionTotal = region.total + platformBase;
   const stationTotal = station.total;
   const provinceTotal = province.total;
@@ -376,10 +378,10 @@ function CostEstimatorCard() {
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
-        Region includes the one-time platform base (Vercel + Supabase Pro). Station and provincial
-        lines cover usage from their own phone counts only. The {intFmt(COST.rtIncludedMsg)} free
-        realtime messages are allocated across all three tiers by phone share. Realtime payload
-        assumed ~{COST.avgRtKb} KB/change.
+        Region includes the platform base (Vercel + Supabase Pro) and a fixed server maintenance
+        fee of {usd(COST.maintenance)}/month. Station and provincial lines cover usage from their
+        own phone counts only. The {intFmt(COST.rtIncludedMsg)} free realtime messages are allocated
+        across all three tiers by phone share. Realtime payload assumed ~{COST.avgRtKb} KB/change.
       </p>
     </SettingCard>
   );
