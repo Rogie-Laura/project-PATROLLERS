@@ -32,22 +32,45 @@ function todayIsoDate() {
   return new Date(now.getTime() - offset * 60 * 1000).toISOString().slice(0, 10);
 }
 
-function buildTimeBounds(rangeMode, rangeId, customStartDate, customEndDate) {
+function nowIsoTime() {
+  const now = new Date();
+  return now.toTimeString().slice(0, 5);
+}
+
+function oneHourAgoIsoTime() {
+  const dt = new Date(Date.now() - 60 * 60 * 1000);
+  return dt.toTimeString().slice(0, 5);
+}
+
+function parseLocalDateTime(dateStr, timeStr) {
+  if (!dateStr) return null;
+  const dt = new Date(`${dateStr}T${timeStr || "00:00"}:00`);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function buildTimeBounds(
+  rangeMode,
+  rangeId,
+  customStartDate,
+  customStartTime,
+  customEndDate,
+  customEndTime
+) {
   if (rangeMode === "custom") {
-    if (!customStartDate) return null;
+    const start = parseLocalDateTime(customStartDate, customStartTime);
+    const end = parseLocalDateTime(
+      customEndDate || customStartDate,
+      customEndTime || "23:59"
+    );
 
-    const start = new Date(`${customStartDate}T00:00:00`);
-    const endDate = customEndDate || customStartDate;
-    const end = new Date(`${endDate}T23:59:59.999`);
-
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+    if (!start || !end || end < start) {
       return null;
     }
 
     return { since: start.toISOString(), until: end.toISOString() };
   }
 
-  const range = TIME_RANGES.find((item) => item.id === rangeId) ?? TIME_RANGES[2];
+  const range = TIME_RANGES.find((item) => item.id === rangeId) ?? TIME_RANGES[0];
   return {
     since: new Date(Date.now() - range.hours * 60 * 60 * 1000).toISOString(),
     until: null,
@@ -114,9 +137,11 @@ export default function TrackReview({
   const [devices, setDevices] = useState([]);
   const [selectedKey, setSelectedKey] = useState(initialUnitKey);
   const [rangeMode, setRangeMode] = useState("preset");
-  const [rangeId, setRangeId] = useState("24h");
+  const [rangeId, setRangeId] = useState("1h");
   const [customStartDate, setCustomStartDate] = useState(todayIsoDate);
+  const [customStartTime, setCustomStartTime] = useState(oneHourAgoIsoTime);
   const [customEndDate, setCustomEndDate] = useState(todayIsoDate);
+  const [customEndTime, setCustomEndTime] = useState(nowIsoTime);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [points, setPoints] = useState([]);
   const [unitDetail, setUnitDetail] = useState(null);
@@ -212,9 +237,16 @@ export default function TrackReview({
   const loadTrack = useCallback(async () => {
     if (!selectedKey) return;
 
-    const bounds = buildTimeBounds(rangeMode, rangeId, customStartDate, customEndDate);
+    const bounds = buildTimeBounds(
+      rangeMode,
+      rangeId,
+      customStartDate,
+      customStartTime,
+      customEndDate,
+      customEndTime
+    );
     if (!bounds) {
-      setError("Choose a valid custom date range.");
+      setError("Choose a valid custom date and time range.");
       setPoints([]);
       return;
     }
@@ -255,13 +287,24 @@ export default function TrackReview({
     rangeMode,
     rangeId,
     customStartDate,
+    customStartTime,
     customEndDate,
+    customEndTime,
     devices,
   ]);
 
   useEffect(() => {
     if (selectedKey) loadTrack();
-  }, [selectedKey, rangeMode, rangeId, customStartDate, customEndDate, loadTrack]);
+  }, [
+    selectedKey,
+    rangeMode,
+    rangeId,
+    customStartDate,
+    customStartTime,
+    customEndDate,
+    customEndTime,
+    loadTrack,
+  ]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -339,29 +382,57 @@ export default function TrackReview({
         </div>
 
         {rangeMode === "custom" && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted">
-                From date
-              </label>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-              />
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted">
+                From
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Date</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Time</label>
+                  <input
+                    type="time"
+                    value={customStartTime}
+                    onChange={(e) => setCustomStartTime(e.target.value)}
+                    className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted">
-                To date
-              </label>
-              <input
-                type="date"
-                value={customEndDate}
-                min={customStartDate || undefined}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-              />
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted">
+                To
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Date</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    min={customStartDate || undefined}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted">Time</label>
+                  <input
+                    type="time"
+                    value={customEndTime}
+                    onChange={(e) => setCustomEndTime(e.target.value)}
+                    className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
