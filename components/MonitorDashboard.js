@@ -20,7 +20,12 @@ import {
   clearCallResponseSession,
   useCallResponseSession,
 } from "@/lib/useCallResponseSession";
-import { upsertLatestLocationRow } from "@/lib/monitorLocations";
+import {
+  applyLocationInsertRow,
+  filterActivePatrolLocations,
+  locationUnitKey,
+  removeLocationByKey,
+} from "@/lib/monitorLocations";
 import {
   filterLocationsForUser,
   isSameScope,
@@ -140,7 +145,8 @@ export default function MonitorDashboard({ user, onLogout }) {
   // Scope markers to the signed-in role: PCC sees its office, SCC its office+unit,
   // RCC / System Administrator see the whole region.
   const latestLocations = useMemo(
-    () => filterLocationsForUser(user, locations),
+    () =>
+      filterActivePatrolLocations(filterLocationsForUser(user, locations)),
     [user, locations]
   );
 
@@ -433,10 +439,14 @@ export default function MonitorDashboard({ user, onLogout }) {
           const row = payload.new;
           if (!row) return;
 
-          setLocations((prev) => upsertLatestLocationRow(prev, row));
+          setLocations((prev) => applyLocationInsertRow(prev, row));
 
           if (row.tracking_active === false) {
-            return;
+            const unitKey = locationUnitKey(row);
+            setSelectedPatrol((current) => {
+              if (!current || !unitKey) return current;
+              return locationUnitKey(current) === unitKey ? null : current;
+            });
           }
         }
       )
@@ -453,7 +463,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
           if (row.live_tracking_active === false) {
             setLocations((prev) =>
-              prev.filter((loc) => loc.access_token_id !== row.access_token_id)
+              removeLocationByKey(prev, row.access_token_id)
             );
             setSelectedPatrol((current) => {
               if (!current) return current;

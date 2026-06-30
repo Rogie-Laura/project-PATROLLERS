@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import PatrolStatusDetachFrame from "@/components/PatrolStatusDetachFrame";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
-import { upsertLatestLocationRow } from "@/lib/monitorLocations";
+import {
+  applyLocationInsertRow,
+  filterActivePatrolLocations,
+  locationUnitKey,
+  removeLocationByKey,
+} from "@/lib/monitorLocations";
 import { filterLocationsForUser } from "@/lib/auth/scope";
 import {
   readDetachLocked,
@@ -35,10 +40,7 @@ export default function PatrolStatusPopoutView() {
 
   const latestLocations = useMemo(
     () =>
-      filterLocationsForUser(
-        user,
-        locations.filter((loc) => loc.live_tracking_active !== false)
-      ),
+      filterActivePatrolLocations(filterLocationsForUser(user, locations)),
     [user, locations]
   );
 
@@ -140,7 +142,7 @@ export default function PatrolStatusPopoutView() {
         (payload) => {
           const row = payload.new;
           if (!row) return;
-          setLocations((prev) => upsertLatestLocationRow(prev, row));
+          setLocations((prev) => applyLocationInsertRow(prev, row));
         }
       )
       .subscribe();
@@ -152,7 +154,16 @@ export default function PatrolStatusPopoutView() {
         { event: "UPDATE", schema: "public", table: "mobile_device_profiles" },
         (payload) => {
           const row = payload.new;
-          if (!row?.access_token_id || !row.last_seen_at) return;
+          if (!row?.access_token_id) return;
+
+          if (row.live_tracking_active === false) {
+            setLocations((prev) =>
+              removeLocationByKey(prev, row.access_token_id)
+            );
+            return;
+          }
+
+          if (!row.last_seen_at) return;
 
           setLocations((prev) =>
             prev.map((loc) =>
