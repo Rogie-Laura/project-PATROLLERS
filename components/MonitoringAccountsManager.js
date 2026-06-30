@@ -76,6 +76,12 @@ function StatusBadge({ account }) {
   );
 }
 
+function displayAccountName(row) {
+  const combined = row.rank_fullname?.trim()
+    || [row.rank, row.full_name].filter(Boolean).join(" ").trim();
+  return combined || row.email || "—";
+}
+
 function scopeHint(role) {
   if (role === "RCC") return "Sees the whole region. Office/Unit optional.";
   if (role === "PCC") return "Sees one office. Select a PPO below.";
@@ -344,6 +350,7 @@ export default function MonitoringAccountsManager() {
   const [deletingId, setDeletingId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setError("");
@@ -395,6 +402,7 @@ export default function MonitoringAccountsManager() {
       if (!res.ok) throw new Error(data.error || "Could not create account.");
       setCreated(data.user);
       setForm(EMPTY_FORM);
+      setShowCreateForm(false);
       await loadUsers();
     } catch (err) {
       setError(err.message);
@@ -448,7 +456,7 @@ export default function MonitoringAccountsManager() {
   const roleHint = useMemo(() => scopeHint(form.role), [form.role]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {editing && (
         <EditModal
           account={editing}
@@ -461,135 +469,31 @@ export default function MonitoringAccountsManager() {
         />
       )}
 
-      <div className="border-b border-border/60 bg-card/90 px-4 py-4 sm:px-6 sm:py-5">
-        <div className="mx-auto max-w-7xl">
-          <h2 className="text-lg font-semibold text-foreground sm:text-xl">
-            Monitoring Accounts
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            Create RCC, PCC, and Station sign-ins. Each account only sees markers
-            within its scope and cannot open Access Tokens or System Settings.
-          </p>
-
-          <div className="mt-5 rounded-xl border border-border/70 bg-background/30 p-4 sm:p-5">
-            <h3 className="text-sm font-semibold text-foreground sm:text-base">
-              Create new account
-            </h3>
-
-            <form onSubmit={handleCreate} className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className={fieldLabelClassName}>
-                  Rank
-                  <input
-                    type="text"
-                    value={form.rank}
-                    onChange={(e) => updateForm("rank", e.target.value)}
-                    placeholder="e.g. PSSg"
-                    className={fieldInputClassName}
-                  />
-                </label>
-                <label className={fieldLabelClassName}>
-                  Full name
-                  <input
-                    type="text"
-                    value={form.full_name}
-                    onChange={(e) => updateForm("full_name", e.target.value)}
-                    placeholder="Complete name"
-                    className={fieldInputClassName}
-                  />
-                </label>
-                <label className={fieldLabelClassName}>
-                  Email (login)
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => updateForm("email", e.target.value)}
-                    placeholder="name@example.com"
-                    required
-                    className={fieldInputClassName}
-                  />
-                </label>
-                <label className={fieldLabelClassName}>
-                  Badge number
-                  <input
-                    type="text"
-                    value={form.badge_number}
-                    onChange={(e) => updateForm("badge_number", e.target.value)}
-                    placeholder="Optional"
-                    className={fieldInputClassName}
-                  />
-                </label>
-                <label className={fieldLabelClassName}>
-                  Role
-                  <select
-                    value={form.role}
-                    onChange={(e) => updateForm("role", e.target.value)}
-                    className={selectClassName}
-                  >
-                    {ROLE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={fieldLabelClassName}>
-                  Password
-                  <input
-                    type="text"
-                    value={form.password}
-                    onChange={(e) => updateForm("password", e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    required
-                    className={fieldInputClassName}
-                  />
-                </label>
-              </div>
-
-              <OfficeUnitFields
-                role={form.role}
-                office={form.office}
-                unit={form.unit}
-                onOfficeChange={(value) => updateForm("office", value)}
-                onUnitChange={(value) => updateForm("unit", value)}
-              />
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className={fieldLabelClassName}>
-                  Subscription expires on
-                  <input
-                    type="date"
-                    value={form.subscription_expires_at}
-                    onChange={(e) =>
-                      updateForm("subscription_expires_at", e.target.value)
-                    }
-                    className={fieldInputClassName}
-                  />
-                  <span className="mt-1 block text-xs text-muted">Optional</span>
-                </label>
-              </div>
-
-              <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted">{roleHint}</p>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50 sm:text-base"
-                >
-                  {creating ? "Creating..." : "Create account"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-auto px-4 py-5 sm:px-6">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground sm:text-xl">
+                Monitoring Accounts
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Manage RCC, PCC, and Station sign-ins. Only email, role, and password
+                are required when creating an account.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowCreateForm((open) => !open)}
+              className="shrink-0 rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/20"
+            >
+              {showCreateForm ? "Hide create form" : "Create new account"}
+            </button>
+          </div>
+
           {created && (
-            <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-foreground">
+            <div className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-foreground">
               <p className="font-medium text-accent">Account created</p>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-sm text-muted">
                 {created.role_label} — {created.email}
                 {created.office ? ` · ${created.office}` : ""}
                 {created.unit ? ` / ${created.unit}` : ""}. They can sign in with
@@ -599,115 +503,266 @@ export default function MonitoringAccountsManager() {
           )}
 
           {error && (
-            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {error}
             </div>
           )}
 
-          {loading ? (
-            <div className="py-12 text-center text-sm text-muted">
-              Loading accounts...
+          <section>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                All accounts
+                {!loading && (
+                  <span className="ml-2 text-sm font-normal text-muted">
+                    ({users.length})
+                  </span>
+                )}
+              </h3>
             </div>
-          ) : users.length === 0 ? (
-            <div className="rounded-xl border border-border/70 bg-card/60 px-4 py-10 text-center text-sm text-muted">
-              No monitoring accounts yet. Create one above.
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-border/70 bg-card/80">
-              <div className="overflow-x-auto">
-                <table className="min-w-[960px] w-full text-left">
-                  <thead className="border-b border-border/70 bg-background/40 text-xs uppercase tracking-wide text-muted sm:text-sm">
-                    <tr>
-                      <th className="px-5 py-4 font-medium">Name</th>
-                      <th className="min-w-[220px] px-5 py-4 font-medium">Email</th>
-                      <th className="px-5 py-4 font-medium">Role</th>
-                      <th className="min-w-[160px] px-5 py-4 font-medium">Office</th>
-                      <th className="min-w-[160px] px-5 py-4 font-medium">Unit</th>
-                      <th className="min-w-[140px] px-5 py-4 font-medium">Status</th>
-                      <th className="min-w-[220px] px-5 py-4 font-medium">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60 text-sm sm:text-base">
-                    {users.map((row) => {
-                      const isAdmin = row.role === "System Administrator";
-                      return (
-                        <tr key={row.id} className="text-foreground/90">
-                          <td className="px-5 py-4 align-top">
-                            <div className="font-semibold text-foreground">
-                              {row.rank_fullname || row.full_name || "—"}
-                            </div>
-                            <div className="mt-1 text-xs text-muted sm:text-sm">
-                              {formatDate(row.created_at)}
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 align-top break-words">{row.email || "—"}</td>
-                          <td className="px-5 py-4 align-top">
-                            <span className="inline-flex rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent sm:text-sm">
-                              {row.role}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 align-top break-words">{row.office || "—"}</td>
-                          <td className="px-5 py-4 align-top break-words">{row.unit || "—"}</td>
-                          <td className="px-5 py-4 align-top">
-                            {isAdmin ? (
-                              <span className="text-sm text-muted">—</span>
-                            ) : (
-                              <div>
-                                <StatusBadge account={row} />
-                                <div className="mt-1.5 text-xs text-muted sm:text-sm">
-                                  {formatDateOnly(row.subscription_expires_at)}
-                                </div>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-5 py-4 align-top">
-                            {isAdmin ? (
-                              <span className="text-sm text-muted">
-                                System Administrator
-                              </span>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  disabled={togglingId === row.id}
-                                  onClick={() => handleToggleActive(row)}
-                                  className={`rounded-md border px-3.5 py-2 text-xs font-medium transition disabled:opacity-50 sm:text-sm ${
-                                    row.is_active !== false
-                                      ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-                                      : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                                  }`}
-                                >
-                                  {togglingId === row.id
-                                    ? "Saving..."
-                                    : row.is_active !== false
-                                    ? "Deactivate"
-                                    : "Activate"}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditing(row)}
-                                  className="rounded-md border border-accent/30 px-3.5 py-2 text-xs font-medium text-accent transition hover:bg-accent/10 sm:text-sm"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={deletingId === row.id}
-                                  onClick={() => handleDelete(row)}
-                                  className="rounded-md border border-red-500/30 px-3.5 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50 sm:text-sm"
-                                >
-                                  {deletingId === row.id ? "Deleting..." : "Delete"}
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+
+            {loading ? (
+              <div className="rounded-xl border border-border/70 bg-card/60 py-12 text-center text-sm text-muted">
+                Loading accounts...
               </div>
-            </div>
+            ) : users.length === 0 ? (
+              <div className="rounded-xl border border-border/70 bg-card/60 px-4 py-10 text-center text-sm text-muted">
+                No monitoring accounts yet. Click{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(true)}
+                  className="font-medium text-accent underline-offset-2 hover:underline"
+                >
+                  Create new account
+                </button>{" "}
+                to add one.
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-border/70 bg-card/80">
+                <div className="overflow-x-auto">
+                  <table className="min-w-[960px] w-full text-left">
+                    <thead className="border-b border-border/70 bg-background/40 text-xs uppercase tracking-wide text-muted sm:text-sm">
+                      <tr>
+                        <th className="px-5 py-4 font-medium">Account</th>
+                        <th className="min-w-[220px] px-5 py-4 font-medium">Email</th>
+                        <th className="px-5 py-4 font-medium">Role</th>
+                        <th className="min-w-[160px] px-5 py-4 font-medium">Office</th>
+                        <th className="min-w-[160px] px-5 py-4 font-medium">Unit</th>
+                        <th className="min-w-[140px] px-5 py-4 font-medium">Status</th>
+                        <th className="min-w-[220px] px-5 py-4 font-medium">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60 text-sm sm:text-base">
+                      {users.map((row) => {
+                        const isAdmin = row.role === "System Administrator";
+                        const accountName = displayAccountName(row);
+                        const showEmailAsSecondary =
+                          accountName !== row.email && Boolean(row.email);
+
+                        return (
+                          <tr key={row.id} className="text-foreground/90">
+                            <td className="px-5 py-4 align-top">
+                              <div className="font-semibold text-foreground">
+                                {accountName}
+                              </div>
+                              {showEmailAsSecondary && (
+                                <div className="mt-1 text-xs text-muted sm:text-sm">
+                                  {row.email}
+                                </div>
+                              )}
+                              {row.badge_number ? (
+                                <div className="mt-1 text-xs text-muted sm:text-sm">
+                                  Badge: {row.badge_number}
+                                </div>
+                              ) : null}
+                              <div className="mt-1 text-xs text-muted sm:text-sm">
+                                Created {formatDate(row.created_at)}
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 align-top break-words">{row.email || "—"}</td>
+                            <td className="px-5 py-4 align-top">
+                              <span className="inline-flex rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent sm:text-sm">
+                                {row.role}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 align-top break-words">{row.office || "—"}</td>
+                            <td className="px-5 py-4 align-top break-words">{row.unit || "—"}</td>
+                            <td className="px-5 py-4 align-top">
+                              {isAdmin ? (
+                                <span className="text-sm text-muted">—</span>
+                              ) : (
+                                <div>
+                                  <StatusBadge account={row} />
+                                  <div className="mt-1.5 text-xs text-muted sm:text-sm">
+                                    {formatDateOnly(row.subscription_expires_at)}
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-5 py-4 align-top">
+                              {isAdmin ? (
+                                <span className="text-sm text-muted">
+                                  System Administrator
+                                </span>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={togglingId === row.id}
+                                    onClick={() => handleToggleActive(row)}
+                                    className={`rounded-md border px-3.5 py-2 text-xs font-medium transition disabled:opacity-50 sm:text-sm ${
+                                      row.is_active !== false
+                                        ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                        : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                    }`}
+                                  >
+                                    {togglingId === row.id
+                                      ? "Saving..."
+                                      : row.is_active !== false
+                                      ? "Deactivate"
+                                      : "Activate"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditing(row)}
+                                    className="rounded-md border border-accent/30 px-3.5 py-2 text-xs font-medium text-accent transition hover:bg-accent/10 sm:text-sm"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={deletingId === row.id}
+                                    onClick={() => handleDelete(row)}
+                                    className="rounded-md border border-red-500/30 px-3.5 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50 sm:text-sm"
+                                  >
+                                    {deletingId === row.id ? "Deleting..." : "Delete"}
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {showCreateForm && (
+            <section className="rounded-xl border border-border/70 bg-background/30 p-4 sm:p-5">
+              <h3 className="text-sm font-semibold text-foreground sm:text-base">
+                Create new account
+              </h3>
+              <p className="mt-1 text-sm text-muted">
+                Rank, full name, and badge number are optional and can be left blank.
+              </p>
+
+              <form onSubmit={handleCreate} className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <label className={fieldLabelClassName}>
+                    Rank <span className="font-normal text-muted">(optional)</span>
+                    <input
+                      type="text"
+                      value={form.rank}
+                      onChange={(e) => updateForm("rank", e.target.value)}
+                      placeholder="e.g. PSSg"
+                      className={fieldInputClassName}
+                    />
+                  </label>
+                  <label className={fieldLabelClassName}>
+                    Full name <span className="font-normal text-muted">(optional)</span>
+                    <input
+                      type="text"
+                      value={form.full_name}
+                      onChange={(e) => updateForm("full_name", e.target.value)}
+                      placeholder="Complete name"
+                      className={fieldInputClassName}
+                    />
+                  </label>
+                  <label className={fieldLabelClassName}>
+                    Email (login) <span className="text-accent">*</span>
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => updateForm("email", e.target.value)}
+                      placeholder="name@example.com"
+                      required
+                      className={fieldInputClassName}
+                    />
+                  </label>
+                  <label className={fieldLabelClassName}>
+                    Badge number <span className="font-normal text-muted">(optional)</span>
+                    <input
+                      type="text"
+                      value={form.badge_number}
+                      onChange={(e) => updateForm("badge_number", e.target.value)}
+                      placeholder="Leave blank if none"
+                      className={fieldInputClassName}
+                    />
+                  </label>
+                  <label className={fieldLabelClassName}>
+                    Role <span className="text-accent">*</span>
+                    <select
+                      value={form.role}
+                      onChange={(e) => updateForm("role", e.target.value)}
+                      className={selectClassName}
+                    >
+                      {ROLE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={fieldLabelClassName}>
+                    Password <span className="text-accent">*</span>
+                    <input
+                      type="text"
+                      value={form.password}
+                      onChange={(e) => updateForm("password", e.target.value)}
+                      placeholder="Minimum 6 characters"
+                      required
+                      className={fieldInputClassName}
+                    />
+                  </label>
+                </div>
+
+                <OfficeUnitFields
+                  role={form.role}
+                  office={form.office}
+                  unit={form.unit}
+                  onOfficeChange={(value) => updateForm("office", value)}
+                  onUnitChange={(value) => updateForm("unit", value)}
+                />
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <label className={fieldLabelClassName}>
+                    Subscription expires on{" "}
+                    <span className="font-normal text-muted">(optional)</span>
+                    <input
+                      type="date"
+                      value={form.subscription_expires_at}
+                      onChange={(e) =>
+                        updateForm("subscription_expires_at", e.target.value)
+                      }
+                      className={fieldInputClassName}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted">{roleHint}</p>
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50 sm:text-base"
+                  >
+                    {creating ? "Creating..." : "Create account"}
+                  </button>
+                </div>
+              </form>
+            </section>
           )}
         </div>
       </div>
