@@ -474,19 +474,32 @@ export default function MonitorDashboard({ user, onLogout }) {
             return;
           }
 
-          if (!row.last_seen_at) return;
+          if (!row.last_seen_at && row.duty_shifts == null && row.visibility_points == null) {
+            return;
+          }
 
           setLocations((prev) =>
-            prev.map((loc) =>
-              loc.access_token_id === row.access_token_id
-                ? {
-                    ...loc,
-                    last_seen_at: row.last_seen_at ?? loc.last_seen_at,
-                    patrol_unit_type:
-                      row.patrol_unit_type ?? loc.patrol_unit_type,
-                  }
-                : loc
-            )
+            prev.map((loc) => {
+              if (loc.access_token_id !== row.access_token_id) return loc;
+              return {
+                ...loc,
+                ...(row.last_seen_at
+                  ? { last_seen_at: row.last_seen_at }
+                  : {}),
+                ...(row.patrol_unit_type != null
+                  ? { patrol_unit_type: row.patrol_unit_type }
+                  : {}),
+                ...(row.duty_shifts != null
+                  ? { duty_shifts: row.duty_shifts }
+                  : {}),
+                ...(row.visibility_points != null
+                  ? { visibility_points: row.visibility_points }
+                  : {}),
+                ...(row.personnel_on_board != null
+                  ? { personnel_on_board: row.personnel_on_board }
+                  : {}),
+              };
+            })
           );
         }
       )
