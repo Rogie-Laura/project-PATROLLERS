@@ -291,6 +291,7 @@ function CostEstimatorCard() {
   const [hbSec, setHbSec] = useState("60");
   const [hours, setHours] = useState("24");
   const [monitors, setMonitors] = useState("1");
+  const [fx, setFx] = useState(String(COST.fxRate));
 
   const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const regionPhonesN = Math.max(0, n(regionPhones));
@@ -300,7 +301,7 @@ function CostEstimatorCard() {
   const hbSecN = Math.max(10, n(hbSec) || 60);
   const hoursN = Math.min(24, Math.max(1, n(hours) || 24));
   const monitorsN = Math.max(1, n(monitors) || 1);
-  const rate = COST.fxRate;
+  const rate = Math.max(1, n(fx) || COST.fxRate);
 
   const usageParams = { locMinN, hbSecN, hoursN, monitorsN };
   const independentParams = independentUsageParams(usageParams);
@@ -323,13 +324,13 @@ function CostEstimatorCard() {
       title="Monthly cost estimator"
       description="Simple calculator — enter phone counts separately for Region (RCC), Station (SCC), or Provincial (PCC). Each panel computes its own monthly cost. No sharing between tiers."
     >
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <EstimatorInput label="Location interval" value={locMin} onChange={setLocMin} step={0.5} suffix="min" />
         <EstimatorInput label="Heartbeat interval" value={hbSec} onChange={setHbSec} step={5} suffix="sec" />
         <EstimatorInput label="Active hours/day" value={hours} onChange={setHours} suffix="h" />
         <EstimatorInput label="Monitors open" value={monitors} onChange={setMonitors} suffix="open" />
+        <EstimatorInput label="FX rate" value={fx} onChange={setFx} step={0.5} suffix="₱/$" />
       </div>
-      <p className="mt-2 text-[11px] text-muted">FX rate fixed at {rate} ₱/$</p>
 
       <div className="mt-4 grid gap-3 xl:grid-cols-3">
         <TierCostPanel
@@ -361,8 +362,9 @@ function CostEstimatorCard() {
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
         Each panel is independent — e.g. enter 100 phones for Cavite PCC, or 80 for Laguna, one at
-        a time. Region includes platform base (Vercel + Supabase Pro). All tiers include server
-        maintenance ({usd(COST.maintenance)}/month). Realtime payload assumed ~{COST.avgRtKb} KB/change.
+        a time. Region includes platform base (Vercel + Supabase Pro). RCC, SCC, and PCC each include
+        server maintenance ({usd(COST.maintenance)}/month). Realtime payload assumed ~{COST.avgRtKb} KB/change.
+        PHP conversion defaults to {COST.fxRate} ₱/$ and can be edited above.
       </p>
     </SettingCard>
   );
