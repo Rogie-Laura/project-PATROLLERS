@@ -335,7 +335,13 @@ function MapOverlayModal({
               <p className="mt-2 text-[11px] leading-relaxed text-amber-200/90">
                 Cloud and precipitation layers need{" "}
                 <code className="text-accent">OPENWEATHERMAP_API_KEY</code> in
-                Vercel env. Rain radar works without a key.
+                Vercel env. Rain radar and typhoon track work without a key.
+              </p>
+            )}
+            {activeOption?.id === "typhoonTrack" && (
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                Track data from GDACS/JTWC (not an official PAG-ASA bulletin).
+                Blue line = path; shaded areas = forecast cone / alert zones.
               </p>
             )}
           </div>

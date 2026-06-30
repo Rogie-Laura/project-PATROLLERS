@@ -33,6 +33,7 @@ import {
   getConnectionState,
 } from "@/lib/connectionState";
 import WeatherMapLayer from "@/components/WeatherMapLayer";
+import CycloneTrackLayer from "@/components/CycloneTrackLayer";
 import { MAP_WEATHER_OVERLAY_NONE } from "@/lib/mapWeatherOverlay";
 
 function patrolKey(location) {
@@ -394,6 +395,7 @@ export default function PatrolMap({
         />
 
         <WeatherMapLayer overlayId={weatherOverlay} />
+        <CycloneTrackLayer overlayId={weatherOverlay} />
 
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />

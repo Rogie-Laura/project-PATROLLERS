@@ -8,6 +8,7 @@ import {
   MAP_WEATHER_OVERLAY_NONE,
   MAP_WEATHER_OVERLAY_PRECIPITATION,
   MAP_WEATHER_OVERLAY_RAIN_RADAR,
+  MAP_WEATHER_OVERLAY_TYPHOON_TRACK,
 } from "@/lib/mapWeatherOverlay";
 
 const OWM_LAYER_BY_OVERLAY = {
@@ -96,7 +97,10 @@ export default function WeatherMapLayer({ overlayId = MAP_WEATHER_OVERLAY_NONE }
 
     if (overlayId === MAP_WEATHER_OVERLAY_RAIN_RADAR) {
       mountRainRadar().catch(() => {});
-    } else {
+    } else if (
+      overlayId !== MAP_WEATHER_OVERLAY_TYPHOON_TRACK &&
+      OWM_LAYER_BY_OVERLAY[overlayId]
+    ) {
       mountOpenWeatherLayer();
     }
 
