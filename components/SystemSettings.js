@@ -270,9 +270,7 @@ function TierCostPanel({
           value={intFmt(estimate.realtimeMessages)}
         />
         <EstimatorRow label="Realtime overage" value={usd(estimate.rtCost)} />
-        {estimate.egressCost > 0 && (
-          <EstimatorRow label="Egress overage" value={usd(estimate.egressCost)} />
-        )}
+        <EstimatorRow label="Egress overage" value={usd(estimate.egressCost)} />
         <div className="my-1 border-t border-border/50" />
         <EstimatorRow label="Usage subtotal" value={both(estimate.subtotal)} />
         <EstimatorRow label="Safety buffer (20%)" value={both(estimate.buffer)} />
@@ -304,11 +302,16 @@ function CostEstimatorCard() {
   const rate = Math.max(1, n(fx) || COST.fxRate);
 
   const usageParams = { locMinN, hbSecN, hoursN, monitorsN };
-  const independentParams = independentUsageParams(usageParams);
+  const regionParams = independentUsageParams(usageParams);
+  const billedUsageParams = {
+    ...usageParams,
+    freeMessageAllowance: 0,
+    egressFreeGB: 0,
+  };
 
-  const region = estimateMonthlyCost(regionPhonesN, independentParams);
-  const station = estimateMonthlyCost(stationPhonesN, independentParams);
-  const provincial = estimateMonthlyCost(provincialPhonesN, independentParams);
+  const region = estimateMonthlyCost(regionPhonesN, regionParams);
+  const provincial = estimateMonthlyCost(provincialPhonesN, billedUsageParams);
+  const station = estimateMonthlyCost(stationPhonesN, billedUsageParams);
 
   const platformBase = COST.supaBase + COST.vercelBase;
 
@@ -343,14 +346,6 @@ function CostEstimatorCard() {
           {...panelProps}
         />
         <TierCostPanel
-          title="Station"
-          badge="SCC"
-          phones={stationPhones}
-          onPhonesChange={setStationPhones}
-          estimate={station}
-          {...panelProps}
-        />
-        <TierCostPanel
           title="Provincial"
           badge="PCC"
           phones={provincialPhones}
@@ -358,11 +353,20 @@ function CostEstimatorCard() {
           estimate={provincial}
           {...panelProps}
         />
+        <TierCostPanel
+          title="Station"
+          badge="SCC"
+          phones={stationPhones}
+          onPhonesChange={setStationPhones}
+          estimate={station}
+          {...panelProps}
+        />
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
         Each panel is independent — e.g. enter 100 phones for Cavite PCC, or 80 for Laguna, one at
-        a time. Region includes platform base (Vercel + Supabase Pro). RCC, SCC, and PCC each include
+        a time. Region includes platform base (Vercel + Supabase Pro) and the included free tier.
+        SCC and PCC bill usage from their own phone count (no free-tier credit). All tiers include
         server maintenance ({usd(COST.maintenance)}/month). Realtime payload assumed ~{COST.avgRtKb} KB/change.
         PHP conversion defaults to {COST.fxRate} ₱/$ and can be edited above.
       </p>
