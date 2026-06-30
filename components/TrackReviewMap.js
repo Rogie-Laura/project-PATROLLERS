@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -12,7 +12,6 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
-import { getPatrolMarkerColor } from "@/lib/patrolStatusLabels";
 import {
   CALABARZON_CENTER,
   CALABARZON_ZOOM,
@@ -43,6 +42,8 @@ function endpointIcon(color) {
 
 const startIcon = endpointIcon("#22c55e");
 const endIcon = endpointIcon("#ef4444");
+const TRACK_LINE_COLOR = "#facc15";
+const TRACK_POINT_COLOR = "#3b82f6";
 
 function FitToTrack({ positions }) {
   const map = useMap();
@@ -156,7 +157,7 @@ export default function TrackReviewMap({
       {positions.length > 1 && (
         <Polyline
           positions={positions}
-          pathOptions={{ color: "#22c55e", weight: 4, opacity: 0.85 }}
+          pathOptions={{ color: TRACK_LINE_COLOR, weight: 2, opacity: 0.9 }}
         />
       )}
 
@@ -168,19 +169,16 @@ export default function TrackReviewMap({
         const isEndpoint = index === 0 || index === points.length - 1;
         if (isEndpoint) return null;
 
-        const color = showPatrolStatus
-          ? getPatrolMarkerColor(point.patrol_status)
-          : "#22c55e";
-
         return (
           <CircleMarker
             key={point.id ?? index}
             center={[lat, lng]}
-            radius={3}
+            radius={4}
             pathOptions={{
-              color,
-              fillColor: color,
-              fillOpacity: 0.8,
+              color: "#ffffff",
+              weight: 1,
+              fillColor: TRACK_POINT_COLOR,
+              fillOpacity: 0.95,
             }}
           >
             <Popup>
@@ -209,7 +207,7 @@ export default function TrackReviewMap({
       {end && positions.length > 1 && (
         <Marker position={end} icon={endIcon}>
           <Popup>
-            <strong>Latest</strong>
+            <strong>Current location</strong>
             <br />
             <small>
               {new Date(points[points.length - 1].created_at).toLocaleString()}
