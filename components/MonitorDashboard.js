@@ -14,6 +14,7 @@ import { getUnitKey } from "@/lib/dispatchUnits";
 import { callResponseFromRow } from "@/lib/callResponses";
 import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
+import { useMapWeatherOverlay } from "@/lib/useMapWeatherOverlay";
 import MapViewOverlays from "@/components/MapViewOverlays";
 import {
   clearCallResponseSession,
@@ -60,6 +61,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
+  const { weatherOverlay, setWeatherOverlay } = useMapWeatherOverlay();
   const showPatrolStatus = mapViewLayers.patrolStatus;
   const [selectedPatrol, setSelectedPatrol] = useState(null);
 
@@ -742,6 +744,8 @@ export default function MonitorDashboard({ user, onLogout }) {
         allIncidentsChecked={showAllIncidents}
         allIncidentsCount={subordinateIncidents.length}
         onAllIncidentsChange={setShowAllIncidents}
+        weatherOverlay={weatherOverlay}
+        onWeatherOverlayChange={setWeatherOverlay}
       />
 
       <section className="relative min-h-0 flex-1 overflow-hidden">
@@ -762,6 +766,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             incidentRadiusRings={incidentRadiusRings}
             nowMs={nowMs}
             locationIntervalSeconds={intervalSeconds}
+            weatherOverlay={weatherOverlay}
           />
 
           {error && (

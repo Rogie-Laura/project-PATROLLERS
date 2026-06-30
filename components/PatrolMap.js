@@ -32,6 +32,8 @@ import {
   formatMonitorLinkSummary,
   getConnectionState,
 } from "@/lib/connectionState";
+import WeatherMapLayer from "@/components/WeatherMapLayer";
+import { MAP_WEATHER_OVERLAY_NONE } from "@/lib/mapWeatherOverlay";
 
 function patrolKey(location) {
   return location.access_token_id || location.user_id || location.id;
@@ -354,6 +356,7 @@ export default function PatrolMap({
   incidentRadiusRings = INCIDENT_RADIUS_RINGS,
   nowMs = Date.now(),
   locationIntervalSeconds = 180,
+  weatherOverlay = MAP_WEATHER_OVERLAY_NONE,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -389,6 +392,8 @@ export default function PatrolMap({
           minZoom={MAP_MIN_ZOOM}
           noWrap
         />
+
+        <WeatherMapLayer overlayId={weatherOverlay} />
 
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />

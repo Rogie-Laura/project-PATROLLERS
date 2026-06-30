@@ -6,6 +6,10 @@ import AddCallResponsePopover from "@/components/AddCallResponsePopover";
 import { canAccessSettings, canManageAccessTokens } from "@/lib/mobile/adminRoles";
 import { BASEMAPS, getBasemapById } from "@/lib/mapBasemaps";
 import { MAP_VIEW_LAYERS } from "@/lib/mapViewLayers";
+import {
+  MAP_WEATHER_OVERLAY_NONE,
+  MAP_WEATHER_OVERLAY_OPTIONS,
+} from "@/lib/mapWeatherOverlay";
 
 function MapIcon() {
   return (
@@ -219,8 +223,52 @@ function LayersIcon() {
   );
 }
 
-function MapOverlayModal({ open, onClose }) {
+function MapOverlayModal({
+  open,
+  onClose,
+  weatherOverlay,
+  onWeatherOverlayChange,
+}) {
+  const [weatherStatus, setWeatherStatus] = useState({
+    rainRadar: true,
+    openWeatherMap: false,
+  });
+  const [statusLoading, setStatusLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    setStatusLoading(true);
+
+    fetch("/api/weather/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        setWeatherStatus({
+          rainRadar: data?.rainRadar !== false,
+          openWeatherMap: Boolean(data?.openWeatherMap),
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWeatherStatus({ rainRadar: true, openWeatherMap: false });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setStatusLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   if (!open) return null;
+
+  const activeOption =
+    MAP_WEATHER_OVERLAY_OPTIONS.find((option) => option.id === weatherOverlay) ??
+    MAP_WEATHER_OVERLAY_OPTIONS[0];
 
   return (
     <div
@@ -241,7 +289,7 @@ function MapOverlayModal({ open, onClose }) {
               Map Overlay
             </h2>
             <p className="mt-1 text-xs text-muted">
-              Configure additional map layers and overlays.
+              Add weather layers on top of the command map.
             </p>
           </div>
           <button
@@ -253,14 +301,46 @@ function MapOverlayModal({ open, onClose }) {
             ✕
           </button>
         </div>
-        <div className="px-5 py-6">
-          <div className="rounded-lg border border-dashed border-accent/30 bg-accent/5 px-4 py-8 text-center">
-            <p className="text-sm font-medium text-accent">Ongoing development</p>
+
+        <div className="space-y-4 px-5 py-5">
+          <div>
+            <label
+              htmlFor="map-weather-overlay"
+              className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-muted"
+            >
+              Weather
+            </label>
+            <select
+              id="map-weather-overlay"
+              value={weatherOverlay ?? MAP_WEATHER_OVERLAY_NONE}
+              disabled={!onWeatherOverlayChange || statusLoading}
+              onChange={(e) => onWeatherOverlayChange?.(e.target.value)}
+              className="w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent disabled:opacity-60"
+            >
+              {MAP_WEATHER_OVERLAY_OPTIONS.map((option) => {
+                const disabled =
+                  option.requiresOpenWeatherMap && !weatherStatus.openWeatherMap;
+                return (
+                  <option key={option.id} value={option.id} disabled={disabled}>
+                    {option.label}
+                    {disabled ? " (API key required)" : ""}
+                  </option>
+                );
+              })}
+            </select>
             <p className="mt-2 text-xs leading-relaxed text-muted">
-              Map overlay settings will be available here in a future update.
+              {activeOption?.description}
             </p>
+            {!weatherStatus.openWeatherMap && (
+              <p className="mt-2 text-[11px] leading-relaxed text-amber-200/90">
+                Cloud and precipitation layers need{" "}
+                <code className="text-accent">OPENWEATHERMAP_API_KEY</code> in
+                Vercel env. Rain radar works without a key.
+              </p>
+            )}
           </div>
         </div>
+
         <div className="flex justify-end border-t border-border/60 px-5 py-3">
           <button
             type="button"
@@ -527,6 +607,8 @@ export default function MapToolbar({
   allIncidentsChecked = false,
   allIncidentsCount = 0,
   onAllIncidentsChange,
+  weatherOverlay,
+  onWeatherOverlayChange,
 }) {
   const canManageTokens = canManageAccessTokens(user?.role);
   const items = NAV_ITEMS.filter((item) => {
@@ -538,7 +620,12 @@ export default function MapToolbar({
 
   return (
     <div className="relative z-[600] flex shrink-0 items-center gap-2 overflow-visible border-b border-border/60 bg-card/90 px-3 py-1 sm:px-4">
-      <MapOverlayModal open={mapOverlayOpen} onClose={() => setMapOverlayOpen(false)} />
+      <MapOverlayModal
+        open={mapOverlayOpen}
+        onClose={() => setMapOverlayOpen(false)}
+        weatherOverlay={weatherOverlay}
+        onWeatherOverlayChange={onWeatherOverlayChange}
+      />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {
           const isActive = item.id === active;
