@@ -24,13 +24,19 @@ function SearchIcon() {
 
 export default function PatrolSearchBar({
   locations = [],
+  query = "",
+  onQueryChange,
   onSelectPatrol,
+  filteredCount = null,
+  totalCount = null,
   placeholder = "Office, unit, plate, name…",
 }) {
-  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const rootRef = useRef(null);
+
+  const trimmedQuery = query.trim();
+  const filterActive = trimmedQuery.length >= 2;
 
   const results = useMemo(
     () => searchPatrolLocations(locations, query, 10),
@@ -56,7 +62,12 @@ export default function PatrolSearchBar({
   function handleSelect(location) {
     if (!location) return;
     onSelectPatrol?.(location);
-    setQuery("");
+    setOpen(false);
+    setActiveIndex(-1);
+  }
+
+  function handleClear() {
+    onQueryChange?.("");
     setOpen(false);
     setActiveIndex(-1);
   }
@@ -68,8 +79,12 @@ export default function PatrolSearchBar({
     }
 
     if (event.key === "Escape") {
-      setOpen(false);
-      setActiveIndex(-1);
+      if (query) {
+        handleClear();
+      } else {
+        setOpen(false);
+        setActiveIndex(-1);
+      }
       return;
     }
 
@@ -95,7 +110,7 @@ export default function PatrolSearchBar({
     }
   }
 
-  const showDropdown = open && query.trim().length >= 2;
+  const showDropdown = open && filterActive;
 
   return (
     <div ref={rootRef} className="relative w-full">
@@ -106,7 +121,7 @@ export default function PatrolSearchBar({
         type="search"
         value={query}
         onChange={(event) => {
-          setQuery(event.target.value);
+          onQueryChange?.(event.target.value);
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
@@ -116,8 +131,28 @@ export default function PatrolSearchBar({
         aria-expanded={showDropdown}
         aria-controls="patrol-search-results"
         autoComplete="off"
-        className="w-full rounded-md border border-border/60 bg-background/60 py-1 pl-7 pr-2 text-[11px] text-foreground placeholder:text-muted/70 outline-none focus:border-accent sm:text-xs"
+        className="w-full rounded-md border border-border/60 bg-background/60 py-1 pl-7 pr-7 text-[11px] text-foreground placeholder:text-muted/70 outline-none focus:border-accent sm:text-xs"
       />
+      {query ? (
+        <button
+          type="button"
+          onClick={handleClear}
+          aria-label="Clear search"
+          title="Clear search"
+          className="absolute inset-y-0 right-1.5 my-auto flex h-5 w-5 items-center justify-center rounded text-muted transition hover:bg-background/80 hover:text-foreground"
+        >
+          ×
+        </button>
+      ) : null}
+
+      {filterActive &&
+      filteredCount != null &&
+      totalCount != null &&
+      filteredCount < totalCount ? (
+        <p className="pointer-events-none absolute right-0 top-full z-[650] mt-0.5 whitespace-nowrap text-[10px] text-accent">
+          {filteredCount} of {totalCount} on map
+        </p>
+      ) : null}
 
       {showDropdown && (
         <div

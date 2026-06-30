@@ -618,6 +618,9 @@ export default function MapToolbar({
   onWeatherOverlayChange,
   patrolLocations,
   onPatrolSearchSelect,
+  patrolSearchQuery = "",
+  onPatrolSearchQueryChange,
+  patrolSearchFilteredCount = null,
 }) {
   const canManageTokens = canManageAccessTokens(user?.role);
   const items = NAV_ITEMS.filter((item) => {
@@ -768,10 +771,14 @@ export default function MapToolbar({
       )}
 
       <div className="ml-auto w-36 shrink-0 sm:w-64">
-        {patrolLocations && onPatrolSearchSelect ? (
+        {patrolLocations && onPatrolSearchSelect && onPatrolSearchQueryChange ? (
           <PatrolSearchBar
             locations={patrolLocations}
+            query={patrolSearchQuery}
+            onQueryChange={onPatrolSearchQueryChange}
             onSelectPatrol={onPatrolSearchSelect}
+            filteredCount={patrolSearchFilteredCount}
+            totalCount={patrolLocations.length}
           />
         ) : (
           <div className="relative">

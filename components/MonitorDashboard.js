@@ -33,6 +33,7 @@ import {
   COMMAND_FEATURE_KEYS,
   DEFAULT_COMMAND_FEATURE_FLAGS,
 } from "@/lib/auth/commandFeatureFlags";
+import { filterPatrolLocations } from "@/lib/patrolSearch";
 import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
@@ -148,6 +149,15 @@ export default function MonitorDashboard({ user, onLogout }) {
     : null;
 
   const [flyToPatrolTarget, setFlyToPatrolTarget] = useState(null);
+  const [patrolSearchQuery, setPatrolSearchQuery] = useState("");
+
+  const mapLocations = useMemo(
+    () => filterPatrolLocations(latestLocations, patrolSearchQuery),
+    [latestLocations, patrolSearchQuery]
+  );
+
+  const patrolSearchFilteredCount =
+    patrolSearchQuery.trim().length >= 2 ? mapLocations.length : null;
 
   const handleSelectPatrol = useCallback((location) => {
     setSelectedPatrol(location);
@@ -221,6 +231,15 @@ export default function MonitorDashboard({ user, onLogout }) {
     );
     if (updated) setSelectedPatrol(updated);
   }, [latestLocations, selectedPatrolKey]);
+
+  useEffect(() => {
+    if (!selectedPatrolKey) return;
+    if (patrolSearchQuery.trim().length < 2) return;
+    const stillVisible = mapLocations.some(
+      (loc) => (loc.access_token_id || loc.user_id) === selectedPatrolKey
+    );
+    if (!stillVisible) setSelectedPatrol(null);
+  }, [mapLocations, patrolSearchQuery, selectedPatrolKey]);
 
   useEffect(() => {
     let active = true;
@@ -748,12 +767,15 @@ export default function MonitorDashboard({ user, onLogout }) {
         onWeatherOverlayChange={setWeatherOverlay}
         patrolLocations={latestLocations}
         onPatrolSearchSelect={handleSelectPatrolFromList}
+        patrolSearchQuery={patrolSearchQuery}
+        onPatrolSearchQueryChange={setPatrolSearchQuery}
+        patrolSearchFilteredCount={patrolSearchFilteredCount}
       />
 
       <section className="relative min-h-0 flex-1 overflow-hidden">
         <div ref={mapAreaRef} className="absolute inset-0 overflow-hidden">
           <PatrolMap
-            locations={latestLocations}
+            locations={mapLocations}
             basemapId={basemapId}
             showPatrolStatus={showPatrolStatus}
             selectedPatrolKey={selectedPatrolKey}
@@ -779,7 +801,7 @@ export default function MonitorDashboard({ user, onLogout }) {
 
           <MapViewOverlays
             layers={mapViewLayers}
-            locations={latestLocations}
+            locations={mapLocations}
             nowMs={nowMs}
             intervalSeconds={intervalSeconds}
             mapAreaSize={mapAreaSize}
