@@ -7,6 +7,7 @@ import MapToolbar from "@/components/MapToolbar";
 import MonitorHeader from "@/components/MonitorHeader";
 import CallResponsePanel from "@/components/CallResponsePanel";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
+import { trackReviewHref } from "@/lib/trackReview";
 import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
 import PatrolStatusFloatingPanel from "@/components/PatrolStatusFloatingPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
@@ -949,6 +950,9 @@ export default function MonitorDashboard({ user, onLogout }) {
                 nowMs={nowMs}
                 intervalSeconds={intervalSeconds}
                 onForceLocation={() => setForceLocationOpen(true)}
+                reviewTrackHref={
+                  selectedPatrolKey ? trackReviewHref(selectedPatrolKey) : null
+                }
                 onClose={() => {
                   setSelectedPatrol(null);
                 }}

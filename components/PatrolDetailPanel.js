@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { normalizePersonnelOnBoard } from "@/lib/personnelOnBoard";
 import {
   formatShiftRange,
@@ -43,6 +44,7 @@ export default function PatrolDetailPanel({
   intervalSeconds = 180,
   onClose,
   onForceLocation,
+  reviewTrackHref = null,
 }) {
   if (!location) return null;
 
@@ -237,6 +239,17 @@ export default function PatrolDetailPanel({
             >
               Force fresh GPS (silent)
             </button>
+          </section>
+        )}
+
+        {reviewTrackHref && (
+          <section className="border-b border-border/60 px-4 py-3">
+            <Link
+              href={reviewTrackHref}
+              className="block w-full rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-center text-xs font-medium text-foreground transition hover:border-accent hover:bg-accent/10"
+            >
+              Review Track
+            </Link>
           </section>
         )}
 

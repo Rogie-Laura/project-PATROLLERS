@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import MonitorHeader from "@/components/MonitorHeader";
 import MapToolbar from "@/components/MapToolbar";
 import TrackReview from "@/components/TrackReview";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
+import { readTrackReviewUnitKey } from "@/lib/trackReview";
 
-export default function TrackReviewPage() {
+function TrackReviewPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialUnitKey = readTrackReviewUnitKey(searchParams);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
@@ -79,8 +82,25 @@ export default function TrackReviewPage() {
       <TrackReview
         basemapId={basemapId}
         showPatrolStatus={mapViewLayers.patrolStatus}
-        mapViewLayers={mapViewLayers}
+        initialUnitKey={initialUnitKey}
       />
     </main>
+  );
+}
+
+export default function TrackReviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-background">
+          <div className="text-center">
+            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            <p className="text-sm text-muted">Loading...</p>
+          </div>
+        </main>
+      }
+    >
+      <TrackReviewPageContent />
+    </Suspense>
   );
 }
