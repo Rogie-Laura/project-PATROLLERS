@@ -6,6 +6,7 @@ import {
   COMMAND_LEVELS,
   DEFAULT_COMMAND_FEATURE_FLAGS,
 } from "@/lib/auth/commandFeatureFlags";
+import TokenConflictMonitor from "@/components/TokenConflictMonitor";
 import {
   MAX_INCIDENT_RADIUS_CIRCLES,
   MAX_RADIUS_KM,
@@ -651,7 +652,7 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="mx-auto max-w-4xl space-y-4">
         <div>
           <h1 className="text-lg font-semibold text-foreground">
             {fullAccess ? "System Settings" : "Response radius settings"}
@@ -986,6 +987,13 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
         </SettingCard>
 
         <CostEstimatorCard />
+
+        <SettingCard
+          title="Token conflict monitor"
+          description="Detect access tokens where two or more GPS sources compete on the map (likely two phones scanned the same QR). Review flagged units, inspect Wi-Fi vs mobile data clusters, then deactivate or release device binding as needed."
+        >
+          <TokenConflictMonitor />
+        </SettingCard>
 
         <SettingCard
           title="Access & administration"
