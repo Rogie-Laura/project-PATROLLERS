@@ -74,11 +74,8 @@ body {
     drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
 
-.patrol-marker-glow--stale {
-  filter:
-    drop-shadow(0 0 2px rgba(156, 163, 175, 0.55))
-    drop-shadow(0 0 6px rgba(156, 163, 175, 0.35))
-    drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+.patrol-marker-glow--plain {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
 .incident-marker {
