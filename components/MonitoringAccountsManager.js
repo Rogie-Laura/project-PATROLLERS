@@ -340,33 +340,42 @@ function EditModal({ account, onClose, onSaved, onError }) {
   );
 }
 
-export default function MonitoringAccountsManager() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+function summarizeCreateForm(form) {
+  const roleLabel =
+    ROLE_OPTIONS.find((option) => option.value === form.role)?.label || form.role;
+  const lines = [
+    { label: "Email", value: form.email.trim() },
+    { label: "Role", value: roleLabel },
+  ];
+
+  if (form.rank.trim()) lines.push({ label: "Rank", value: form.rank.trim() });
+  if (form.full_name.trim()) {
+    lines.push({ label: "Full name", value: form.full_name.trim() });
+  }
+  if (form.badge_number.trim()) {
+    lines.push({ label: "Badge number", value: form.badge_number.trim() });
+  }
+  if (form.office.trim()) lines.push({ label: "Office", value: form.office.trim() });
+  if (form.unit.trim()) lines.push({ label: "Unit", value: form.unit.trim() });
+  if (form.subscription_expires_at) {
+    lines.push({
+      label: "Subscription expires",
+      value: formatDateOnly(form.subscription_expires_at),
+    });
+  }
+
+  return lines;
+}
+
+function CreateAccountModal({ onClose, onCreated, onError }) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [step, setStep] = useState("form");
   const [creating, setCreating] = useState(false);
-  const [created, setCreated] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
-  const [togglingId, setTogglingId] = useState(null);
-  const [editing, setEditing] = useState(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const loadUsers = useCallback(async () => {
-    setError("");
-    const res = await fetch("/api/admin/users");
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Could not load accounts.");
-    setUsers(data.users ?? []);
-  }, []);
+  const roleHint = useMemo(() => scopeHint(form.role), [form.role]);
+  const summary = useMemo(() => summarizeCreateForm(form), [form]);
 
-  useEffect(() => {
-    loadUsers()
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [loadUsers]);
-
-  function updateForm(field, value) {
+  function update(field, value) {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
       if (field === "role") {
@@ -387,11 +396,15 @@ export default function MonitoringAccountsManager() {
     });
   }
 
-  async function handleCreate(e) {
+  function handleReview(e) {
     e.preventDefault();
+    onError("");
+    setStep("confirm");
+  }
+
+  async function handleConfirmCreate() {
     setCreating(true);
-    setError("");
-    setCreated(null);
+    onError("");
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
@@ -400,16 +413,218 @@ export default function MonitoringAccountsManager() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not create account.");
-      setCreated(data.user);
-      setForm(EMPTY_FORM);
-      setShowCreateForm(false);
-      await loadUsers();
+      onCreated(data.user);
+      onClose();
     } catch (err) {
-      setError(err.message);
+      onError(err.message);
+      setStep("form");
     } finally {
       setCreating(false);
     }
   }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border/70 bg-card p-5 shadow-xl sm:p-6"
+      >
+        {step === "form" ? (
+          <>
+            <h3 className="text-base font-semibold text-foreground sm:text-lg">
+              Create new account
+            </h3>
+            <p className="mt-1 text-sm text-muted">
+              Rank, full name, and badge number are optional. Email, role, and
+              password are required.
+            </p>
+
+            <form onSubmit={handleReview} className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className={fieldLabelClassName}>
+                  Rank <span className="font-normal text-muted">(optional)</span>
+                  <input
+                    type="text"
+                    value={form.rank}
+                    onChange={(e) => update("rank", e.target.value)}
+                    placeholder="e.g. PSSg"
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Full name <span className="font-normal text-muted">(optional)</span>
+                  <input
+                    type="text"
+                    value={form.full_name}
+                    onChange={(e) => update("full_name", e.target.value)}
+                    placeholder="Complete name"
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Email (login) <span className="text-accent">*</span>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    placeholder="name@example.com"
+                    required
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Badge number <span className="font-normal text-muted">(optional)</span>
+                  <input
+                    type="text"
+                    value={form.badge_number}
+                    onChange={(e) => update("badge_number", e.target.value)}
+                    placeholder="Leave blank if none"
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Role <span className="text-accent">*</span>
+                  <select
+                    value={form.role}
+                    onChange={(e) => update("role", e.target.value)}
+                    className={selectClassName}
+                  >
+                    {ROLE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={fieldLabelClassName}>
+                  Password <span className="text-accent">*</span>
+                  <input
+                    type="text"
+                    value={form.password}
+                    onChange={(e) => update("password", e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    required
+                    minLength={6}
+                    className={fieldInputClassName}
+                  />
+                </label>
+              </div>
+
+              <OfficeUnitFields
+                role={form.role}
+                office={form.office}
+                unit={form.unit}
+                onOfficeChange={(value) => update("office", value)}
+                onUnitChange={(value) => update("unit", value)}
+              />
+
+              <label className={fieldLabelClassName}>
+                Subscription expires on{" "}
+                <span className="font-normal text-muted">(optional)</span>
+                <input
+                  type="date"
+                  value={form.subscription_expires_at}
+                  onChange={(e) => update("subscription_expires_at", e.target.value)}
+                  className={fieldInputClassName}
+                />
+              </label>
+
+              <p className="text-sm text-muted">{roleHint}</p>
+
+              <div className="flex justify-end gap-3 border-t border-border/60 pt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-lg border border-border/70 px-4 py-2.5 text-sm font-medium text-muted transition hover:bg-background/80 hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-accent-dark"
+                >
+                  Review account
+                </button>
+              </div>
+            </form>
+          </>
+        ) : (
+          <>
+            <h3 className="text-base font-semibold text-foreground sm:text-lg">
+              Create this account?
+            </h3>
+            <p className="mt-1 text-sm text-muted">
+              Please confirm the details below before creating the account.
+            </p>
+
+            <div className="mt-5 rounded-lg border border-border/60 bg-background/40 p-4">
+              <dl className="space-y-3">
+                {summary.map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <dt className="text-sm text-muted">{label}</dt>
+                    <dd className="text-sm font-medium text-foreground sm:text-right">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={creating}
+                onClick={() => setStep("form")}
+                className="rounded-lg border border-border/70 px-4 py-2.5 text-sm font-medium text-muted transition hover:bg-background/80 hover:text-foreground disabled:opacity-50"
+              >
+                No, go back
+              </button>
+              <button
+                type="button"
+                disabled={creating}
+                onClick={handleConfirmCreate}
+                className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+              >
+                {creating ? "Creating..." : "Yes, create account"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function MonitoringAccountsManager() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [created, setCreated] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const loadUsers = useCallback(async () => {
+    setError("");
+    const res = await fetch("/api/admin/users");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load accounts.");
+    setUsers(data.users ?? []);
+  }, []);
+
+  useEffect(() => {
+    loadUsers()
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [loadUsers]);
 
   async function handleToggleActive(account) {
     const nextActive = !(account.is_active !== false);
@@ -453,8 +668,6 @@ export default function MonitoringAccountsManager() {
     }
   }
 
-  const roleHint = useMemo(() => scopeHint(form.role), [form.role]);
-
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {editing && (
@@ -464,6 +677,18 @@ export default function MonitoringAccountsManager() {
           onError={setError}
           onSaved={() => {
             setEditing(null);
+            loadUsers().catch((err) => setError(err.message));
+          }}
+        />
+      )}
+
+      {createModalOpen && (
+        <CreateAccountModal
+          onClose={() => setCreateModalOpen(false)}
+          onError={setError}
+          onCreated={(user) => {
+            setCreated(user);
+            setCreateModalOpen(false);
             loadUsers().catch((err) => setError(err.message));
           }}
         />
@@ -483,10 +708,10 @@ export default function MonitoringAccountsManager() {
             </div>
             <button
               type="button"
-              onClick={() => setShowCreateForm((open) => !open)}
+              onClick={() => setCreateModalOpen(true)}
               className="shrink-0 rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/20"
             >
-              {showCreateForm ? "Hide create form" : "Create new account"}
+              Create new account
             </button>
           </div>
 
@@ -529,7 +754,7 @@ export default function MonitoringAccountsManager() {
                 No monitoring accounts yet. Click{" "}
                 <button
                   type="button"
-                  onClick={() => setShowCreateForm(true)}
+                  onClick={() => setCreateModalOpen(true)}
                   className="font-medium text-accent underline-offset-2 hover:underline"
                 >
                   Create new account
@@ -648,122 +873,6 @@ export default function MonitoringAccountsManager() {
               </div>
             )}
           </section>
-
-          {showCreateForm && (
-            <section className="rounded-xl border border-border/70 bg-background/30 p-4 sm:p-5">
-              <h3 className="text-sm font-semibold text-foreground sm:text-base">
-                Create new account
-              </h3>
-              <p className="mt-1 text-sm text-muted">
-                Rank, full name, and badge number are optional and can be left blank.
-              </p>
-
-              <form onSubmit={handleCreate} className="mt-4 space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <label className={fieldLabelClassName}>
-                    Rank <span className="font-normal text-muted">(optional)</span>
-                    <input
-                      type="text"
-                      value={form.rank}
-                      onChange={(e) => updateForm("rank", e.target.value)}
-                      placeholder="e.g. PSSg"
-                      className={fieldInputClassName}
-                    />
-                  </label>
-                  <label className={fieldLabelClassName}>
-                    Full name <span className="font-normal text-muted">(optional)</span>
-                    <input
-                      type="text"
-                      value={form.full_name}
-                      onChange={(e) => updateForm("full_name", e.target.value)}
-                      placeholder="Complete name"
-                      className={fieldInputClassName}
-                    />
-                  </label>
-                  <label className={fieldLabelClassName}>
-                    Email (login) <span className="text-accent">*</span>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => updateForm("email", e.target.value)}
-                      placeholder="name@example.com"
-                      required
-                      className={fieldInputClassName}
-                    />
-                  </label>
-                  <label className={fieldLabelClassName}>
-                    Badge number <span className="font-normal text-muted">(optional)</span>
-                    <input
-                      type="text"
-                      value={form.badge_number}
-                      onChange={(e) => updateForm("badge_number", e.target.value)}
-                      placeholder="Leave blank if none"
-                      className={fieldInputClassName}
-                    />
-                  </label>
-                  <label className={fieldLabelClassName}>
-                    Role <span className="text-accent">*</span>
-                    <select
-                      value={form.role}
-                      onChange={(e) => updateForm("role", e.target.value)}
-                      className={selectClassName}
-                    >
-                      {ROLE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className={fieldLabelClassName}>
-                    Password <span className="text-accent">*</span>
-                    <input
-                      type="text"
-                      value={form.password}
-                      onChange={(e) => updateForm("password", e.target.value)}
-                      placeholder="Minimum 6 characters"
-                      required
-                      className={fieldInputClassName}
-                    />
-                  </label>
-                </div>
-
-                <OfficeUnitFields
-                  role={form.role}
-                  office={form.office}
-                  unit={form.unit}
-                  onOfficeChange={(value) => updateForm("office", value)}
-                  onUnitChange={(value) => updateForm("unit", value)}
-                />
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <label className={fieldLabelClassName}>
-                    Subscription expires on{" "}
-                    <span className="font-normal text-muted">(optional)</span>
-                    <input
-                      type="date"
-                      value={form.subscription_expires_at}
-                      onChange={(e) =>
-                        updateForm("subscription_expires_at", e.target.value)
-                      }
-                      className={fieldInputClassName}
-                    />
-                  </label>
-                </div>
-
-                <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted">{roleHint}</p>
-                  <button
-                    type="submit"
-                    disabled={creating}
-                    className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50 sm:text-base"
-                  >
-                    {creating ? "Creating..." : "Create account"}
-                  </button>
-                </div>
-              </form>
-            </section>
-          )}
         </div>
       </div>
     </div>
