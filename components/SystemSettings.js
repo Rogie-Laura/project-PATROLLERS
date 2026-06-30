@@ -255,7 +255,7 @@ function TierCostPanel({
   usd,
   intFmt,
 }) {
-  const tierTotal = estimate.total + platformBase;
+  const tierTotal = estimate.total + platformBase + COST.maintenance;
 
   return (
     <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-3">
@@ -278,9 +278,9 @@ function TierCostPanel({
           <>
             <EstimatorRow label="Supabase Pro (base $25)" value={usd(COST.supaBase)} />
             <EstimatorRow label="Vercel Pro (base)" value={usd(COST.vercelBase)} />
-            <EstimatorRow label="Server maintenance (fixed)" value={usd(COST.maintenance)} />
           </>
         )}
+        <EstimatorRow label="Server maintenance (fixed)" value={usd(COST.maintenance)} />
         <EstimatorRow
           label="Realtime messages / month"
           value={intFmt(estimate.realtimeMessages)}
@@ -329,13 +329,13 @@ function CostEstimatorCard() {
       office,
       label: provinceLabel(office),
       estimate,
-      total: estimate.total,
+      total: estimate.total + COST.maintenance,
     };
   });
 
-  const platformBase = COST.supaBase + COST.vercelBase + COST.maintenance;
-  const regionTotal = region.total + platformBase;
-  const stationTotal = station.total;
+  const platformBase = COST.supaBase + COST.vercelBase;
+  const regionTotal = region.total + platformBase + COST.maintenance;
+  const stationTotal = station.total + COST.maintenance;
   const provinceTotal = ppoEstimates.reduce((sum, ppo) => sum + ppo.total, 0);
   const grandTotal = regionTotal + stationTotal + provinceTotal;
 
@@ -413,9 +413,10 @@ function CostEstimatorCard() {
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
         Each unit is computed on its own phone count with no cost sharing. Region includes the
-        platform base (Vercel + Supabase Pro) and server maintenance ({usd(COST.maintenance)}/month).
-        Each line applies the full included realtime and egress allowance to that unit only.
-        Realtime payload assumed ~{COST.avgRtKb} KB/change. PHP conversion uses a fixed {rate} ₱/$ rate.
+        platform base (Vercel + Supabase Pro). Every unit includes server maintenance
+        ({usd(COST.maintenance)}/month). Each line applies the full included realtime and egress
+        allowance to that unit only. Realtime payload assumed ~{COST.avgRtKb} KB/change.
+        PHP conversion uses a fixed {rate} ₱/$ rate.
       </p>
     </SettingCard>
   );
