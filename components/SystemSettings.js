@@ -218,61 +218,42 @@ function estimateMonthlyCost(
   };
 }
 
-function CostEstimatorCard() {
-  const [stationPhones, setStationPhones] = useState("250");
-  const [provincePhones, setProvincePhones] = useState("50");
-  const [locMin, setLocMin] = useState("3");
-  const [hbSec, setHbSec] = useState("60");
-  const [hours, setHours] = useState("24");
-  const [monitors, setMonitors] = useState("1");
-  const [fx, setFx] = useState("58");
-  const [regionPaysPlatform, setRegionPaysPlatform] = useState(true);
+function TierCostPanel({
+  title,
+  badge,
+  phones,
+  onPhonesChange,
+  estimate,
+  platformBase = 0,
+  both,
+  usd,
+  intFmt,
+}) {
+  const tierTotal = estimate.total + platformBase;
 
-  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-  const stationPhonesN = Math.max(0, n(stationPhones));
-  const provincePhonesN = Math.max(0, n(provincePhones));
-  const locMinN = Math.max(0.5, n(locMin) || 3);
-  const hbSecN = Math.max(10, n(hbSec) || 60);
-  const hoursN = Math.min(24, Math.max(1, n(hours) || 24));
-  const monitorsN = Math.max(1, n(monitors) || 1);
-  const rate = Math.max(1, n(fx) || 58);
+  return (
+    <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-3">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+          {badge}
+        </span>
+      </div>
 
-  const usageParams = { locMinN, hbSecN, hoursN, monitorsN };
-  const totalPhones = stationPhonesN + provincePhonesN;
-  const stationShare = totalPhones > 0 ? stationPhonesN / totalPhones : 1;
-  const provinceShare = totalPhones > 0 ? provincePhonesN / totalPhones : 0;
-  const station = estimateMonthlyCost(stationPhonesN, {
-    ...usageParams,
-    freeMessageAllowance: COST.rtIncludedMsg * stationShare,
-    egressFreeGB: COST.egressIncludedGB * stationShare,
-  });
-  const province = estimateMonthlyCost(provincePhonesN, {
-    ...usageParams,
-    freeMessageAllowance: COST.rtIncludedMsg * provinceShare,
-    egressFreeGB: COST.egressIncludedGB * provinceShare,
-  });
-  const platformBase = regionPaysPlatform ? COST.supaBase + COST.vercelBase : 0;
-  const fleetTotal = station.total + province.total;
-  const grandTotal = platformBase + fleetTotal;
+      <EstimatorInput
+        label="Mobile phones"
+        value={phones}
+        onChange={onPhonesChange}
+        suffix="units"
+      />
 
-  const usd = (x) => `$${x.toFixed(2)}`;
-  const php = (x) => `\u20b1${Math.round(x * rate).toLocaleString("en-US")}`;
-  const both = (x) => `${usd(x)}  (${php(x)})`;
-  const intFmt = (x) => Math.round(x).toLocaleString("en-US");
-
-  function FleetCostPanel({ title, badge, estimate }) {
-    return (
-      <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-            {badge}
-          </span>
-        </div>
-        <EstimatorRow
-          label="Mobile phones"
-          value={`${intFmt(estimate.phonesN)} units`}
-        />
+      <div className="mt-3">
+        {platformBase > 0 && (
+          <>
+            <EstimatorRow label="Supabase Pro (base $25)" value={usd(COST.supaBase)} />
+            <EstimatorRow label="Vercel Pro (base)" value={usd(COST.vercelBase)} />
+          </>
+        )}
         <EstimatorRow
           label="Realtime messages / month"
           value={intFmt(estimate.realtimeMessages)}
@@ -282,32 +263,74 @@ function CostEstimatorCard() {
           <EstimatorRow label="Egress overage" value={usd(estimate.egressCost)} />
         )}
         <div className="my-1 border-t border-border/50" />
-        <EstimatorRow label="Subtotal" value={both(estimate.subtotal)} />
+        <EstimatorRow label="Usage subtotal" value={both(estimate.subtotal)} />
         <EstimatorRow label="Safety buffer (20%)" value={both(estimate.buffer)} />
         <div className="my-1 border-t border-border/50" />
-        <EstimatorRow label="Monthly cost" value={both(estimate.total)} strong />
+        <EstimatorRow label="Monthly cost" value={both(tierTotal)} strong />
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+function CostEstimatorCard() {
+  const [regionPhones, setRegionPhones] = useState("0");
+  const [stationPhones, setStationPhones] = useState("250");
+  const [provincePhones, setProvincePhones] = useState("50");
+  const [locMin, setLocMin] = useState("3");
+  const [hbSec, setHbSec] = useState("60");
+  const [hours, setHours] = useState("24");
+  const [monitors, setMonitors] = useState("1");
+  const [fx, setFx] = useState("58");
+
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const regionPhonesN = Math.max(0, n(regionPhones));
+  const stationPhonesN = Math.max(0, n(stationPhones));
+  const provincePhonesN = Math.max(0, n(provincePhones));
+  const locMinN = Math.max(0.5, n(locMin) || 3);
+  const hbSecN = Math.max(10, n(hbSec) || 60);
+  const hoursN = Math.min(24, Math.max(1, n(hours) || 24));
+  const monitorsN = Math.max(1, n(monitors) || 1);
+  const rate = Math.max(1, n(fx) || 58);
+
+  const usageParams = { locMinN, hbSecN, hoursN, monitorsN };
+  const totalPhones = regionPhonesN + stationPhonesN + provincePhonesN;
+  const share = (phonesN) => (totalPhones > 0 ? phonesN / totalPhones : phonesN > 0 ? 1 : 0);
+
+  const region = estimateMonthlyCost(regionPhonesN, {
+    ...usageParams,
+    freeMessageAllowance: COST.rtIncludedMsg * share(regionPhonesN),
+    egressFreeGB: COST.egressIncludedGB * share(regionPhonesN),
+  });
+  const station = estimateMonthlyCost(stationPhonesN, {
+    ...usageParams,
+    freeMessageAllowance: COST.rtIncludedMsg * share(stationPhonesN),
+    egressFreeGB: COST.egressIncludedGB * share(stationPhonesN),
+  });
+  const province = estimateMonthlyCost(provincePhonesN, {
+    ...usageParams,
+    freeMessageAllowance: COST.rtIncludedMsg * share(provincePhonesN),
+    egressFreeGB: COST.egressIncludedGB * share(provincePhonesN),
+  });
+
+  const platformBase = COST.supaBase + COST.vercelBase;
+  const regionTotal = region.total + platformBase;
+  const stationTotal = station.total;
+  const provinceTotal = province.total;
+  const grandTotal = regionTotal + stationTotal + provinceTotal;
+
+  const usd = (x) => `$${x.toFixed(2)}`;
+  const php = (x) => `\u20b1${Math.round(x * rate).toLocaleString("en-US")}`;
+  const both = (x) => `${usd(x)}  (${php(x)})`;
+  const intFmt = (x) => Math.round(x).toLocaleString("en-US");
+
+  const panelProps = { both, usd, intFmt };
 
   return (
     <SettingCard
       title="Monthly cost estimator"
-      description="Estimate Supabase + Vercel usage separately for station (SCC) and provincial (PCC) mobile fleets. Enter phone counts for each tier — costs are not shared or split between them."
+      description="Enter mobile phone counts separately for Region (RCC), Station (SCC), and Provincial (PCC). Each tier shows its own monthly cost — nothing is shared or split between them."
     >
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <EstimatorInput
-          label="Station phones (SCC)"
-          value={stationPhones}
-          onChange={setStationPhones}
-          suffix="units"
-        />
-        <EstimatorInput
-          label="Provincial phones (PCC)"
-          value={provincePhones}
-          onChange={setProvincePhones}
-          suffix="units"
-        />
         <EstimatorInput label="Location interval" value={locMin} onChange={setLocMin} step={0.5} suffix="min" />
         <EstimatorInput label="Heartbeat interval" value={hbSec} onChange={setHbSec} step={5} suffix="sec" />
         <EstimatorInput label="Active hours/day" value={hours} onChange={setHours} suffix="h" />
@@ -315,49 +338,48 @@ function CostEstimatorCard() {
         <EstimatorInput label="FX rate" value={fx} onChange={setFx} suffix="₱/$" />
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <FleetCostPanel
-          title="Station cost"
-          badge="SCC"
-          estimate={station}
+      <div className="mt-4 grid gap-3 xl:grid-cols-3">
+        <TierCostPanel
+          title="Region"
+          badge="RCC"
+          phones={regionPhones}
+          onPhonesChange={setRegionPhones}
+          estimate={region}
+          platformBase={platformBase}
+          {...panelProps}
         />
-        <FleetCostPanel
-          title="Provincial cost"
+        <TierCostPanel
+          title="Station"
+          badge="SCC"
+          phones={stationPhones}
+          onPhonesChange={setStationPhones}
+          estimate={station}
+          {...panelProps}
+        />
+        <TierCostPanel
+          title="Provincial"
           badge="PCC"
+          phones={provincePhones}
+          onPhonesChange={setProvincePhones}
           estimate={province}
+          {...panelProps}
         />
       </div>
 
       <div className="mt-4 rounded-lg border border-border/50 bg-background/40 px-3 py-2">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-foreground">Region total</h3>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={regionPaysPlatform}
-              onChange={(e) => setRegionPaysPlatform(e.target.checked)}
-              className="h-4 w-4 accent-accent"
-            />
-            <span className="text-xs text-muted">Include platform base once</span>
-          </label>
-        </div>
-        {regionPaysPlatform && (
-          <EstimatorRow
-            label={`Platform base (Vercel ${usd(COST.vercelBase)} + Supabase ${usd(COST.supaBase)})`}
-            value={both(platformBase)}
-          />
-        )}
-        <EstimatorRow label="All station phones" value={both(station.total)} />
-        <EstimatorRow label="All provincial phones" value={both(province.total)} />
+        <h3 className="mb-2 text-sm font-semibold text-foreground">Combined total</h3>
+        <EstimatorRow label="Region (RCC)" value={both(regionTotal)} />
+        <EstimatorRow label="Station (SCC)" value={both(stationTotal)} />
+        <EstimatorRow label="Provincial (PCC)" value={both(provinceTotal)} />
         <div className="my-1 border-t border-border/50" />
         <EstimatorRow label="Estimated monthly total" value={both(grandTotal)} strong />
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
-        Station and provincial estimates use the same GPS and heartbeat assumptions but are billed
-        independently from each tier&apos;s phone count. The {intFmt(COST.rtIncludedMsg)} free
-        realtime messages and {COST.egressIncludedGB} GB egress apply once at the platform level;
-        overage above that is shown per tier. Realtime payload assumed ~{COST.avgRtKb} KB/change.
+        Region includes the one-time platform base (Vercel + Supabase Pro). Station and provincial
+        lines cover usage from their own phone counts only. The {intFmt(COST.rtIncludedMsg)} free
+        realtime messages are allocated across all three tiers by phone share. Realtime payload
+        assumed ~{COST.avgRtKb} KB/change.
       </p>
     </SettingCard>
   );
