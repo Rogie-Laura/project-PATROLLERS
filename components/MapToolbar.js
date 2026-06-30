@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import AddCallResponsePopover from "@/components/AddCallResponsePopover";
+import PatrolSearchBar from "@/components/PatrolSearchBar";
 import { canAccessSettings, canManageAccessTokens } from "@/lib/mobile/adminRoles";
 import { BASEMAPS, getBasemapById } from "@/lib/mapBasemaps";
 import { MAP_VIEW_LAYERS } from "@/lib/mapViewLayers";
@@ -615,6 +616,8 @@ export default function MapToolbar({
   onAllIncidentsChange,
   weatherOverlay,
   onWeatherOverlayChange,
+  patrolLocations,
+  onPatrolSearchSelect,
 }) {
   const canManageTokens = canManageAccessTokens(user?.role);
   const items = NAV_ITEMS.filter((item) => {
@@ -764,32 +767,39 @@ export default function MapToolbar({
         </>
       )}
 
-      <div className="ml-auto w-28 shrink-0 sm:w-56">
-        <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-muted">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-3.5 w-3.5"
-              aria-hidden
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </span>
-          <input
-            type="search"
-            disabled
-            placeholder="Search..."
-            aria-label="Search patrol or location"
-            className="w-full rounded-md border border-border/60 bg-background/60 py-1 pl-7 pr-2 text-[11px] text-foreground placeholder:text-muted/70 disabled:cursor-not-allowed disabled:opacity-60 sm:text-xs"
+      <div className="ml-auto w-36 shrink-0 sm:w-64">
+        {patrolLocations && onPatrolSearchSelect ? (
+          <PatrolSearchBar
+            locations={patrolLocations}
+            onSelectPatrol={onPatrolSearchSelect}
           />
-        </div>
+        ) : (
+          <div className="relative">
+            <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-muted">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3.5 w-3.5"
+                aria-hidden
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              disabled
+              placeholder="Search..."
+              aria-label="Search patrol or location"
+              className="w-full rounded-md border border-border/60 bg-background/60 py-1 pl-7 pr-2 text-[11px] text-foreground placeholder:text-muted/70 disabled:cursor-not-allowed disabled:opacity-60 sm:text-xs"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

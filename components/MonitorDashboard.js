@@ -746,6 +746,8 @@ export default function MonitorDashboard({ user, onLogout }) {
         onAllIncidentsChange={setShowAllIncidents}
         weatherOverlay={weatherOverlay}
         onWeatherOverlayChange={setWeatherOverlay}
+        patrolLocations={latestLocations}
+        onPatrolSearchSelect={handleSelectPatrolFromList}
       />
 
       <section className="relative min-h-0 flex-1 overflow-hidden">
