@@ -67,7 +67,7 @@ function StatusBadge({ account }) {
   const status = subscriptionStatus(account);
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
         STATUS_STYLES[status] ?? STATUS_STYLES.inactive
       }`}
     >
@@ -83,7 +83,11 @@ function scopeHint(role) {
 }
 
 const selectClassName =
-  "mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent";
+  "mt-1.5 w-full rounded-lg border border-border/80 bg-background/80 px-3.5 py-2.5 text-sm sm:text-base text-foreground outline-none focus:border-accent";
+
+const fieldInputClassName = selectClassName;
+
+const fieldLabelClassName = "block text-sm font-medium text-muted";
 
 function OfficeUnitFields({ role, office, unit, onOfficeChange, onUnitChange }) {
   const offices = useMemo(() => officeSelectOptions(office), [office]);
@@ -97,9 +101,9 @@ function OfficeUnitFields({ role, office, unit, onOfficeChange, onUnitChange }) 
   if (!showOffice && !showUnit) return null;
 
   return (
-    <div className={`grid gap-3 ${showUnit ? "grid-cols-2" : "grid-cols-1"}`}>
+    <div className={`grid gap-4 ${showUnit ? "md:grid-cols-2" : "grid-cols-1"}`}>
       {showOffice && (
-        <label className="text-xs text-muted">
+        <label className={fieldLabelClassName}>
           Office
           <select
             value={office}
@@ -117,7 +121,7 @@ function OfficeUnitFields({ role, office, unit, onOfficeChange, onUnitChange }) 
         </label>
       )}
       {showUnit && (
-        <label className="text-xs text-muted">
+        <label className={fieldLabelClassName}>
           Unit / Station
           <select
             value={unit}
@@ -219,18 +223,18 @@ function EditModal({ account, onClose, onSaved, onError }) {
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={handleSave}
-        className="w-full max-w-md rounded-xl border border-border/70 bg-card p-5 shadow-xl"
+        className="w-full max-w-3xl rounded-xl border border-border/70 bg-card p-5 shadow-xl sm:p-6"
       >
-        <h3 className="text-sm font-semibold text-foreground">Edit account</h3>
-        <p className="mt-1 text-xs text-muted">{form.email}</p>
+        <h3 className="text-base font-semibold text-foreground">Edit account</h3>
+        <p className="mt-1 text-sm text-muted">{form.email}</p>
 
-        <div className="mt-4 grid grid-cols-1 gap-3">
-          <label className="text-xs text-muted">
+        <div className="mt-5 grid grid-cols-1 gap-4">
+          <label className={fieldLabelClassName}>
             Role
             <select
               value={form.role}
               onChange={(e) => update("role", e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              className={selectClassName}
             >
               {ROLE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -239,7 +243,7 @@ function EditModal({ account, onClose, onSaved, onError }) {
               ))}
             </select>
           </label>
-          <p className="-mt-1 text-[11px] text-muted">{scopeHint(form.role)}</p>
+          <p className="-mt-2 text-xs text-muted sm:text-sm">{scopeHint(form.role)}</p>
 
           <OfficeUnitFields
             role={form.role}
@@ -249,39 +253,39 @@ function EditModal({ account, onClose, onSaved, onError }) {
             onUnitChange={(value) => update("unit", value)}
           />
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs text-muted">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className={fieldLabelClassName}>
               Rank
               <input
                 value={form.rank}
                 onChange={(e) => update("rank", e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                className={fieldInputClassName}
               />
             </label>
-            <label className="text-xs text-muted">
+            <label className={fieldLabelClassName}>
               Full name
               <input
                 value={form.full_name}
                 onChange={(e) => update("full_name", e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                className={fieldInputClassName}
               />
             </label>
           </div>
 
-          <label className="text-xs text-muted">
+          <label className={fieldLabelClassName}>
             New password (leave blank to keep current)
             <input
               type="text"
               value={form.password}
               onChange={(e) => update("password", e.target.value)}
               placeholder="••••••"
-              className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              className={fieldInputClassName}
             />
           </label>
 
-          <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+          <div className="rounded-lg border border-border/60 bg-background/40 p-4">
             <label className="flex cursor-pointer items-center justify-between gap-3">
-              <span className="text-xs font-medium text-foreground">
+              <span className="text-sm font-medium text-foreground">
                 Account active
               </span>
               <input
@@ -291,7 +295,7 @@ function EditModal({ account, onClose, onSaved, onError }) {
                 className="h-4 w-4 accent-accent"
               />
             </label>
-            <label className="mt-3 block text-xs text-muted">
+            <label className={`${fieldLabelClassName} mt-4`}>
               Subscription expires on (leave blank = never)
               <input
                 type="date"
@@ -299,28 +303,28 @@ function EditModal({ account, onClose, onSaved, onError }) {
                 onChange={(e) =>
                   update("subscription_expires_at", e.target.value)
                 }
-                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+                className={fieldInputClassName}
               />
             </label>
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-2 text-xs text-muted sm:text-sm">
               After this date the account is automatically blocked from signing
               in until you renew it.
             </p>
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-border/70 px-4 py-2 text-sm font-medium text-muted transition hover:bg-background/80 hover:text-foreground"
+            className="rounded-lg border border-border/70 px-4 py-2.5 text-sm font-medium text-muted transition hover:bg-background/80 hover:text-foreground"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save changes"}
           </button>
@@ -457,61 +461,91 @@ export default function MonitoringAccountsManager() {
         />
       )}
 
-      <div className="border-b border-border/60 bg-card/90 px-4 py-3 sm:px-6">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="text-base font-semibold text-foreground sm:text-lg">
+      <div className="border-b border-border/60 bg-card/90 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="mx-auto max-w-7xl">
+          <h2 className="text-lg font-semibold text-foreground sm:text-xl">
             Monitoring Accounts
           </h2>
-          <p className="mt-1 text-xs text-muted sm:text-sm">
+          <p className="mt-1 text-sm text-muted">
             Create RCC, PCC, and Station sign-ins. Each account only sees markers
             within its scope and cannot open Access Tokens or System Settings.
           </p>
 
-          <form
-            onSubmit={handleCreate}
-            className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            <input
-              type="text"
-              value={form.rank}
-              onChange={(e) => updateForm("rank", e.target.value)}
-              placeholder="Rank (e.g. PSSg)"
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            />
-            <input
-              type="text"
-              value={form.full_name}
-              onChange={(e) => updateForm("full_name", e.target.value)}
-              placeholder="Full name"
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            />
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => updateForm("email", e.target.value)}
-              placeholder="Email (login)"
-              required
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            />
-            <input
-              type="text"
-              value={form.badge_number}
-              onChange={(e) => updateForm("badge_number", e.target.value)}
-              placeholder="Badge number (optional)"
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            />
-            <select
-              value={form.role}
-              onChange={(e) => updateForm("role", e.target.value)}
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            >
-              {ROLE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <div className="sm:col-span-2 lg:col-span-4">
+          <div className="mt-5 rounded-xl border border-border/70 bg-background/30 p-4 sm:p-5">
+            <h3 className="text-sm font-semibold text-foreground sm:text-base">
+              Create new account
+            </h3>
+
+            <form onSubmit={handleCreate} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className={fieldLabelClassName}>
+                  Rank
+                  <input
+                    type="text"
+                    value={form.rank}
+                    onChange={(e) => updateForm("rank", e.target.value)}
+                    placeholder="e.g. PSSg"
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Full name
+                  <input
+                    type="text"
+                    value={form.full_name}
+                    onChange={(e) => updateForm("full_name", e.target.value)}
+                    placeholder="Complete name"
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Email (login)
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => updateForm("email", e.target.value)}
+                    placeholder="name@example.com"
+                    required
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Badge number
+                  <input
+                    type="text"
+                    value={form.badge_number}
+                    onChange={(e) => updateForm("badge_number", e.target.value)}
+                    placeholder="Optional"
+                    className={fieldInputClassName}
+                  />
+                </label>
+                <label className={fieldLabelClassName}>
+                  Role
+                  <select
+                    value={form.role}
+                    onChange={(e) => updateForm("role", e.target.value)}
+                    className={selectClassName}
+                  >
+                    {ROLE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={fieldLabelClassName}>
+                  Password
+                  <input
+                    type="text"
+                    value={form.password}
+                    onChange={(e) => updateForm("password", e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    required
+                    className={fieldInputClassName}
+                  />
+                </label>
+              </div>
+
               <OfficeUnitFields
                 role={form.role}
                 office={form.office}
@@ -519,42 +553,39 @@ export default function MonitoringAccountsManager() {
                 onOfficeChange={(value) => updateForm("office", value)}
                 onUnitChange={(value) => updateForm("unit", value)}
               />
-            </div>
-            <input
-              type="text"
-              value={form.password}
-              onChange={(e) => updateForm("password", e.target.value)}
-              placeholder="Password (min 6)"
-              required
-              className="w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-            />
-            <label className="text-xs text-muted sm:col-span-2 lg:col-span-2">
-              Subscription expires on (optional)
-              <input
-                type="date"
-                value={form.subscription_expires_at}
-                onChange={(e) =>
-                  updateForm("subscription_expires_at", e.target.value)
-                }
-                className="mt-1 w-full rounded-lg border border-border/80 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
-              />
-            </label>
-            <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] text-muted">{roleHint}</p>
-              <button
-                type="submit"
-                disabled={creating}
-                className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
-              >
-                {creating ? "Creating..." : "Create account"}
-              </button>
-            </div>
-          </form>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className={fieldLabelClassName}>
+                  Subscription expires on
+                  <input
+                    type="date"
+                    value={form.subscription_expires_at}
+                    onChange={(e) =>
+                      updateForm("subscription_expires_at", e.target.value)
+                    }
+                    className={fieldInputClassName}
+                  />
+                  <span className="mt-1 block text-xs text-muted">Optional</span>
+                </label>
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted">{roleHint}</p>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50 sm:text-base"
+                >
+                  {creating ? "Creating..." : "Create account"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6">
-        <div className="mx-auto max-w-6xl">
+      <div className="min-h-0 flex-1 overflow-auto px-4 py-5 sm:px-6">
+        <div className="mx-auto max-w-7xl">
           {created && (
             <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-foreground">
               <p className="font-medium text-accent">Account created</p>
@@ -584,54 +615,54 @@ export default function MonitoringAccountsManager() {
           ) : (
             <div className="overflow-hidden rounded-xl border border-border/70 bg-card/80">
               <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="border-b border-border/70 bg-background/40 text-xs uppercase tracking-wide text-muted">
+                <table className="min-w-[960px] w-full text-left">
+                  <thead className="border-b border-border/70 bg-background/40 text-xs uppercase tracking-wide text-muted sm:text-sm">
                     <tr>
-                      <th className="px-4 py-3 font-medium">Name</th>
-                      <th className="px-4 py-3 font-medium">Email</th>
-                      <th className="px-4 py-3 font-medium">Role</th>
-                      <th className="px-4 py-3 font-medium">Office</th>
-                      <th className="px-4 py-3 font-medium">Unit</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Action</th>
+                      <th className="px-5 py-4 font-medium">Name</th>
+                      <th className="min-w-[220px] px-5 py-4 font-medium">Email</th>
+                      <th className="px-5 py-4 font-medium">Role</th>
+                      <th className="min-w-[160px] px-5 py-4 font-medium">Office</th>
+                      <th className="min-w-[160px] px-5 py-4 font-medium">Unit</th>
+                      <th className="min-w-[140px] px-5 py-4 font-medium">Status</th>
+                      <th className="min-w-[220px] px-5 py-4 font-medium">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/60">
+                  <tbody className="divide-y divide-border/60 text-sm sm:text-base">
                     {users.map((row) => {
                       const isAdmin = row.role === "System Administrator";
                       return (
                         <tr key={row.id} className="text-foreground/90">
-                          <td className="px-4 py-3 align-top">
-                            <div className="font-medium text-foreground">
+                          <td className="px-5 py-4 align-top">
+                            <div className="font-semibold text-foreground">
                               {row.rank_fullname || row.full_name || "—"}
                             </div>
-                            <div className="mt-1 text-[11px] text-muted">
+                            <div className="mt-1 text-xs text-muted sm:text-sm">
                               {formatDate(row.created_at)}
                             </div>
                           </td>
-                          <td className="px-4 py-3 align-top">{row.email || "—"}</td>
-                          <td className="px-4 py-3 align-top">
-                            <span className="inline-flex rounded-full bg-accent/15 px-2.5 py-1 text-[11px] font-medium text-accent">
+                          <td className="px-5 py-4 align-top break-words">{row.email || "—"}</td>
+                          <td className="px-5 py-4 align-top">
+                            <span className="inline-flex rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent sm:text-sm">
                               {row.role}
                             </span>
                           </td>
-                          <td className="px-4 py-3 align-top">{row.office || "—"}</td>
-                          <td className="px-4 py-3 align-top">{row.unit || "—"}</td>
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-5 py-4 align-top break-words">{row.office || "—"}</td>
+                          <td className="px-5 py-4 align-top break-words">{row.unit || "—"}</td>
+                          <td className="px-5 py-4 align-top">
                             {isAdmin ? (
-                              <span className="text-[11px] text-muted">—</span>
+                              <span className="text-sm text-muted">—</span>
                             ) : (
                               <div>
                                 <StatusBadge account={row} />
-                                <div className="mt-1 text-[11px] text-muted">
+                                <div className="mt-1.5 text-xs text-muted sm:text-sm">
                                   {formatDateOnly(row.subscription_expires_at)}
                                 </div>
                               </div>
                             )}
                           </td>
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-5 py-4 align-top">
                             {isAdmin ? (
-                              <span className="text-[11px] text-muted">
+                              <span className="text-sm text-muted">
                                 System Administrator
                               </span>
                             ) : (
@@ -640,7 +671,7 @@ export default function MonitoringAccountsManager() {
                                   type="button"
                                   disabled={togglingId === row.id}
                                   onClick={() => handleToggleActive(row)}
-                                  className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition disabled:opacity-50 sm:text-xs ${
+                                  className={`rounded-md border px-3.5 py-2 text-xs font-medium transition disabled:opacity-50 sm:text-sm ${
                                     row.is_active !== false
                                       ? "border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
                                       : "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
@@ -655,7 +686,7 @@ export default function MonitoringAccountsManager() {
                                 <button
                                   type="button"
                                   onClick={() => setEditing(row)}
-                                  className="rounded-md border border-accent/30 px-3 py-1.5 text-[11px] font-medium text-accent transition hover:bg-accent/10 sm:text-xs"
+                                  className="rounded-md border border-accent/30 px-3.5 py-2 text-xs font-medium text-accent transition hover:bg-accent/10 sm:text-sm"
                                 >
                                   Edit
                                 </button>
@@ -663,7 +694,7 @@ export default function MonitoringAccountsManager() {
                                   type="button"
                                   disabled={deletingId === row.id}
                                   onClick={() => handleDelete(row)}
-                                  className="rounded-md border border-red-500/30 px-3 py-1.5 text-[11px] font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50 sm:text-xs"
+                                  className="rounded-md border border-red-500/30 px-3.5 py-2 text-xs font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50 sm:text-sm"
                                 >
                                   {deletingId === row.id ? "Deleting..." : "Delete"}
                                 </button>
