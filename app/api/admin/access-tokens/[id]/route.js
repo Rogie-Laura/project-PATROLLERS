@@ -70,14 +70,26 @@ export async function PATCH(request, { params }) {
     update.label = String(body.label ?? "").trim() || null;
   }
 
-  if (Object.keys(update).length === 0) {
+  if (Object.keys(update).length === 0 && body?.release_device !== true) {
     return NextResponse.json(
-      { error: "Provide is_active, station, or label to update." },
+      { error: "Provide is_active, station, label, or release_device to update." },
       { status: 400 }
     );
   }
 
   const admin = createAdminClient();
+
+  if (body?.release_device === true) {
+    await admin
+      .from("mobile_device_profiles")
+      .update({ bound_device_id: null, device_bound_at: null })
+      .eq("access_token_id", id);
+  }
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ ok: true, released_device: body?.release_device === true });
+  }
+
   const { data, error } = await admin
     .from("access_tokens")
     .update(update)
@@ -91,6 +103,13 @@ export async function PATCH(request, { params }) {
 
   if (!data) {
     return NextResponse.json({ error: "Access token not found." }, { status: 404 });
+  }
+
+  if (typeof body?.is_active === "boolean" && body.is_active === false) {
+    await admin
+      .from("mobile_device_profiles")
+      .update({ bound_device_id: null, device_bound_at: null })
+      .eq("access_token_id", id);
   }
 
   return NextResponse.json({ ok: true, token: data });

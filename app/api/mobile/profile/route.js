@@ -6,12 +6,17 @@ import {
   resolveAccessToken,
 } from "@/lib/mobile/accessToken";
 import {
+  assertMobileDeviceBinding,
+  extractDeviceIdFromRequest,
+  TOKEN_IN_USE_CODE,
+} from "@/lib/mobile/deviceBinding";
+import {
   normalizeDutyShifts,
   normalizeVisibilityPoints,
 } from "@/lib/mobile/dutyDetail";
 import { pushLocationSnapshot } from "@/lib/mobile/pushLocationSnapshot";
 
-async function requireAccessToken(request) {
+async function requireAccessToken(request, body = null) {
   const token = extractBearerToken(request);
   if (!token) {
     return {
@@ -32,7 +37,18 @@ async function requireAccessToken(request) {
     };
   }
 
-  return { accessToken };
+  const deviceId = extractDeviceIdFromRequest(request, body);
+  const bindingError = await assertMobileDeviceBinding(accessToken.id, deviceId);
+  if (bindingError) {
+    return {
+      error: NextResponse.json(
+        { error: bindingError.error, code: bindingError.code ?? TOKEN_IN_USE_CODE },
+        { status: bindingError.status }
+      ),
+    };
+  }
+
+  return { accessToken, token };
 }
 
 function profileResponse(row) {
@@ -73,15 +89,15 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
-  const auth = await requireAccessToken(request);
-  if (auth.error) return auth.error;
-
   let body;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
+
+  const auth = await requireAccessToken(request, body);
+  if (auth.error) return auth.error;
 
   const payload = {
     access_token_id: auth.accessToken.id,
@@ -116,15 +132,15 @@ export async function PUT(request) {
 }
 
 export async function PATCH(request) {
-  const auth = await requireAccessToken(request);
-  if (auth.error) return auth.error;
-
   let body;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
+
+  const auth = await requireAccessToken(request, body);
+  if (auth.error) return auth.error;
 
   const hasPersonnel = Object.prototype.hasOwnProperty.call(
     body,

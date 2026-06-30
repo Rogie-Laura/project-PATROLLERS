@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { extractBearerToken } from "@/lib/mobile/accessToken";
+import { extractBearerToken, resolveAccessToken } from "@/lib/mobile/accessToken";
+import {
+  assertMobileDeviceBinding,
+  extractDeviceIdFromRequest,
+  TOKEN_IN_USE_CODE,
+} from "@/lib/mobile/deviceBinding";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +23,23 @@ export async function POST(request) {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const accessToken = await resolveAccessToken(token);
+  if (!accessToken) {
+    return NextResponse.json(
+      { error: "Invalid or inactive access token." },
+      { status: 401 }
+    );
+  }
+
+  const deviceId = extractDeviceIdFromRequest(request, body);
+  const bindingError = await assertMobileDeviceBinding(accessToken.id, deviceId);
+  if (bindingError) {
+    return NextResponse.json(
+      { error: bindingError.error, code: bindingError.code ?? TOKEN_IN_USE_CODE },
+      { status: bindingError.status }
+    );
   }
 
   const fcmToken = String(body?.fcm_token ?? "").trim();
