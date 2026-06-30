@@ -13,6 +13,7 @@ import {
   MIN_RADIUS_KM,
   createDefaultRadiusRingSlots,
 } from "@/lib/incidentRadiusRings";
+import { officeOptions } from "@/lib/offices";
 
 function SettingCard({ title, description, children }) {
   return (
@@ -149,9 +150,33 @@ const COST = {
   egressPerGB: 0.09,
   vercelBase: 20, // Vercel Pro platform fee
   maintenance: 2.5, // Server maintenance (fixed monthly)
+  fxRate: 61, // Fixed PHP per USD
   avgRtKb: 0.8, // assumed realtime payload per change
   safety: 0.2, // 20% safety buffer
 };
+
+const PROVINCE_PHONE_DEFAULTS = {
+  "Cavite PPO": "100",
+  "Laguna PPO": "80",
+};
+
+function createProvincePhoneState() {
+  return Object.fromEntries(
+    officeOptions.map((office) => [office, PROVINCE_PHONE_DEFAULTS[office] ?? "0"])
+  );
+}
+
+function provinceLabel(office) {
+  return office.replace(" PPO", "");
+}
+
+function independentUsageParams(usageParams) {
+  return {
+    ...usageParams,
+    freeMessageAllowance: COST.rtIncludedMsg,
+    egressFreeGB: COST.egressIncludedGB,
+  };
+}
 
 function EstimatorInput({ label, value, onChange, min = 0, step = 1, suffix }) {
   return (
@@ -277,47 +302,41 @@ function TierCostPanel({
 function CostEstimatorCard() {
   const [regionPhones, setRegionPhones] = useState("0");
   const [stationPhones, setStationPhones] = useState("250");
-  const [provincePhones, setProvincePhones] = useState("50");
+  const [ppoPhones, setPpoPhones] = useState(createProvincePhoneState);
   const [locMin, setLocMin] = useState("3");
   const [hbSec, setHbSec] = useState("60");
   const [hours, setHours] = useState("24");
   const [monitors, setMonitors] = useState("1");
-  const [fx, setFx] = useState("58");
 
   const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const regionPhonesN = Math.max(0, n(regionPhones));
   const stationPhonesN = Math.max(0, n(stationPhones));
-  const provincePhonesN = Math.max(0, n(provincePhones));
   const locMinN = Math.max(0.5, n(locMin) || 3);
   const hbSecN = Math.max(10, n(hbSec) || 60);
   const hoursN = Math.min(24, Math.max(1, n(hours) || 24));
   const monitorsN = Math.max(1, n(monitors) || 1);
-  const rate = Math.max(1, n(fx) || 58);
+  const rate = COST.fxRate;
 
   const usageParams = { locMinN, hbSecN, hoursN, monitorsN };
-  const totalPhones = regionPhonesN + stationPhonesN + provincePhonesN;
-  const share = (phonesN) => (totalPhones > 0 ? phonesN / totalPhones : phonesN > 0 ? 1 : 0);
+  const independentParams = independentUsageParams(usageParams);
 
-  const region = estimateMonthlyCost(regionPhonesN, {
-    ...usageParams,
-    freeMessageAllowance: COST.rtIncludedMsg * share(regionPhonesN),
-    egressFreeGB: COST.egressIncludedGB * share(regionPhonesN),
-  });
-  const station = estimateMonthlyCost(stationPhonesN, {
-    ...usageParams,
-    freeMessageAllowance: COST.rtIncludedMsg * share(stationPhonesN),
-    egressFreeGB: COST.egressIncludedGB * share(stationPhonesN),
-  });
-  const province = estimateMonthlyCost(provincePhonesN, {
-    ...usageParams,
-    freeMessageAllowance: COST.rtIncludedMsg * share(provincePhonesN),
-    egressFreeGB: COST.egressIncludedGB * share(provincePhonesN),
+  const region = estimateMonthlyCost(regionPhonesN, independentParams);
+  const station = estimateMonthlyCost(stationPhonesN, independentParams);
+  const ppoEstimates = officeOptions.map((office) => {
+    const phonesN = Math.max(0, n(ppoPhones[office]));
+    const estimate = estimateMonthlyCost(phonesN, independentParams);
+    return {
+      office,
+      label: provinceLabel(office),
+      estimate,
+      total: estimate.total,
+    };
   });
 
   const platformBase = COST.supaBase + COST.vercelBase + COST.maintenance;
   const regionTotal = region.total + platformBase;
   const stationTotal = station.total;
-  const provinceTotal = province.total;
+  const provinceTotal = ppoEstimates.reduce((sum, ppo) => sum + ppo.total, 0);
   const grandTotal = regionTotal + stationTotal + provinceTotal;
 
   const usd = (x) => `$${x.toFixed(2)}`;
@@ -326,21 +345,24 @@ function CostEstimatorCard() {
   const intFmt = (x) => Math.round(x).toLocaleString("en-US");
 
   const panelProps = { both, usd, intFmt };
+  const setPpoPhone = (office, value) => {
+    setPpoPhones((prev) => ({ ...prev, [office]: value }));
+  };
 
   return (
     <SettingCard
       title="Monthly cost estimator"
-      description="Enter mobile phone counts separately for Region (RCC), Station (SCC), and Provincial (PCC). Each tier shows its own monthly cost — nothing is shared or split between them."
+      description="Independent estimates for Region (RCC), Station (SCC), and each Provincial PPO (Cavite, Laguna, Rizal, Batangas, Quezon). Enter phone counts per unit — no shared or split costs between them."
     >
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <EstimatorInput label="Location interval" value={locMin} onChange={setLocMin} step={0.5} suffix="min" />
         <EstimatorInput label="Heartbeat interval" value={hbSec} onChange={setHbSec} step={5} suffix="sec" />
         <EstimatorInput label="Active hours/day" value={hours} onChange={setHours} suffix="h" />
         <EstimatorInput label="Monitors open" value={monitors} onChange={setMonitors} suffix="open" />
-        <EstimatorInput label="FX rate" value={fx} onChange={setFx} suffix="₱/$" />
       </div>
+      <p className="mt-2 text-[11px] text-muted">FX rate fixed at {rate} ₱/$</p>
 
-      <div className="mt-4 grid gap-3 xl:grid-cols-3">
+      <div className="mt-4 grid gap-3 lg:grid-cols-2">
         <TierCostPanel
           title="Region"
           badge="RCC"
@@ -358,30 +380,42 @@ function CostEstimatorCard() {
           estimate={station}
           {...panelProps}
         />
-        <TierCostPanel
-          title="Provincial"
-          badge="PCC"
-          phones={provincePhones}
-          onPhonesChange={setProvincePhones}
-          estimate={province}
-          {...panelProps}
-        />
+      </div>
+
+      <div className="mt-5">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Provincial (PCC) — per PPO</h3>
+        <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+          {ppoEstimates.map(({ office, label, estimate }) => (
+            <TierCostPanel
+              key={office}
+              title={label}
+              badge="PCC"
+              phones={ppoPhones[office]}
+              onPhonesChange={(value) => setPpoPhone(office, value)}
+              estimate={estimate}
+              {...panelProps}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 rounded-lg border border-border/50 bg-background/40 px-3 py-2">
         <h3 className="mb-2 text-sm font-semibold text-foreground">Combined total</h3>
         <EstimatorRow label="Region (RCC)" value={both(regionTotal)} />
         <EstimatorRow label="Station (SCC)" value={both(stationTotal)} />
-        <EstimatorRow label="Provincial (PCC)" value={both(provinceTotal)} />
+        {ppoEstimates.map(({ office, label, total }) => (
+          <EstimatorRow key={office} label={`${label} (PCC)`} value={both(total)} />
+        ))}
+        <EstimatorRow label="All provincial PPOs" value={both(provinceTotal)} />
         <div className="my-1 border-t border-border/50" />
         <EstimatorRow label="Estimated monthly total" value={both(grandTotal)} strong />
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
-        Region includes the platform base (Vercel + Supabase Pro) and a fixed server maintenance
-        fee of {usd(COST.maintenance)}/month. Station and provincial lines cover usage from their
-        own phone counts only. The {intFmt(COST.rtIncludedMsg)} free realtime messages are allocated
-        across all three tiers by phone share. Realtime payload assumed ~{COST.avgRtKb} KB/change.
+        Each unit is computed on its own phone count with no cost sharing. Region includes the
+        platform base (Vercel + Supabase Pro) and server maintenance ({usd(COST.maintenance)}/month).
+        Each line applies the full included realtime and egress allowance to that unit only.
+        Realtime payload assumed ~{COST.avgRtKb} KB/change. PHP conversion uses a fixed {rate} ₱/$ rate.
       </p>
     </SettingCard>
   );
