@@ -42,7 +42,7 @@ function endpointIcon(color) {
 
 const startIcon = endpointIcon("#22c55e");
 const endIcon = endpointIcon("#ef4444");
-const TRACK_LINE_COLOR = "#facc15";
+const TRACK_LINE_COLOR = "#111827";
 const TRACK_POINT_COLOR = "#3b82f6";
 
 function FitToTrack({ positions }) {
