@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SMART_LOCATOR_MENU } from "@/lib/smartLocator/categories";
+import { getSmartLocatorPlotIcon } from "@/lib/smartLocator/icons";
 
 const MAIN_WIDTH = 200;
 const SUB_WIDTH = 210;
@@ -53,6 +54,29 @@ function computeSubmenuPosition({
   top = clamp(top, 0, maxTop);
 
   return { left, top, width: SUB_WIDTH, maxHeight: subHeight };
+}
+
+function PlotMenuIcon({ category, subcategory, color }) {
+  const src = getSmartLocatorPlotIcon(category, subcategory);
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        className="h-3.5 w-3.5 shrink-0 object-contain"
+        draggable={false}
+      />
+    );
+  }
+
+  return (
+    <span
+      className="h-2 w-2 shrink-0 rounded-full"
+      style={{ backgroundColor: color }}
+      aria-hidden
+    />
+  );
 }
 
 export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
@@ -139,10 +163,7 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
               }`}
             >
               <span className="flex min-w-0 items-center gap-1.5">
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: group.color }}
-                />
+                <PlotMenuIcon category={group.key} color={group.color} />
                 <span className="truncate">{group.label}</span>
               </span>
               <span className="shrink-0 text-[10px] text-muted">›</span>
@@ -173,9 +194,14 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
                     subcategoryLabel: entry.label,
                   })
                 }
-                className="block w-full px-2 py-1 text-left text-[11px] leading-tight text-foreground transition hover:bg-background/80"
+                className="flex w-full items-center gap-1.5 px-2 py-1 text-left text-[11px] leading-tight text-foreground transition hover:bg-background/80"
               >
-                {entry.label}
+                <PlotMenuIcon
+                  category={activeGroup.key}
+                  subcategory={entry.key}
+                  color={activeGroup.color}
+                />
+                <span className="min-w-0 truncate">{entry.label}</span>
               </button>
             ))}
           </div>

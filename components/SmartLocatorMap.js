@@ -231,7 +231,7 @@ export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }
           <Marker
             key={point.id}
             position={[point.latitude, point.longitude]}
-            icon={createSmartLocatorIcon(point.category)}
+            icon={createSmartLocatorIcon(point.category, point.subcategory)}
           >
             <Popup>
               <div className="min-w-[180px] space-y-2 text-sm">
