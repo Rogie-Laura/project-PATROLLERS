@@ -662,9 +662,9 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
       }
 
       applySettings(data.settings);
-      setSuccess(
+        setSuccess(
         commandAccessSuspended
-          ? "RCC, PCC, and SCC monitoring pages will now show the billing unavailable message."
+          ? "RCC, PCC, and SCC monitoring pages will now show the Supabase and Vercel billing message."
           : "Command center access restored for RCC, PCC, and SCC accounts."
       );
     } catch (err) {
@@ -1052,7 +1052,7 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
 
         <SettingCard
           title="Command center access"
-          description="Suspend the monitoring map for RCC, PCC, and SCC when platform on-demand billing is insufficient. System Administrator accounts are not affected and can still manage settings."
+          description="Suspend the monitoring map for RCC, PCC, and SCC when Supabase or Vercel on-demand billing is unpaid or unfunded. System Administrator accounts are not affected and can still manage settings."
         >
           <form onSubmit={handleSaveCommandAccess} className="space-y-3">
             <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/50 bg-background/40 px-3 py-3">
@@ -1068,8 +1068,8 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
                   Show billing unavailable page
                 </strong>{" "}
                 — RCC, PCC, and SCC users see a message that monitoring is
-                temporarily unavailable due to insufficient on-demand billing.
-                Patrol mobile apps are not blocked by this toggle.
+                temporarily unavailable until Supabase and Vercel on-demand
+                billing is paid. Patrol mobile apps are not blocked by this toggle.
               </span>
             </label>
             <button
