@@ -15,6 +15,27 @@ import { CALABARZON_BOUNDS, CALABARZON_CENTER, MAP_MIN_ZOOM, MAX_BOUNDS_VISCOSIT
 import { createSmartLocatorIcon } from "@/lib/smartLocator/markers";
 import { smartLocatorCategoryLabel } from "@/lib/smartLocator/categories";
 
+function boundsFromRings(rings) {
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+
+  for (const ring of rings) {
+    for (const [lat, lng] of ring) {
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    }
+  }
+
+  return [
+    [minLat, minLng],
+    [maxLat, maxLng],
+  ];
+}
+
 function CalabarzonInitialView({ boundary }) {
   const map = useMap();
   const initializedRef = useRef(false);
@@ -22,8 +43,8 @@ function CalabarzonInitialView({ boundary }) {
   useEffect(() => {
     if (initializedRef.current) return;
 
-    if (boundary?.ring?.length) {
-      map.fitBounds(boundary.ring, { padding: [32, 32] });
+    if (boundary?.rings?.length) {
+      map.fitBounds(boundsFromRings(boundary.rings), { padding: [32, 32] });
     } else {
       map.fitBounds(CALABARZON_BOUNDS, { padding: [24, 24] });
     }
@@ -251,9 +272,10 @@ export default function SmartLocatorMap({
           }}
         />
 
-        {boundary?.ring?.length ? (
+        {boundary?.rings?.map((ring, index) => (
           <Polygon
-            positions={boundary.ring}
+            key={`${boundary.key}-${index}`}
+            positions={ring}
             pathOptions={{
               color: "#22c55e",
               weight: 3,
@@ -263,7 +285,7 @@ export default function SmartLocatorMap({
               fillOpacity: 0.08,
             }}
           />
-        ) : null}
+        ))}
 
         {points.map((point) => (
           <Marker
