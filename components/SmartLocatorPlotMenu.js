@@ -59,10 +59,6 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
           ref={mainRef}
           className="max-h-[min(70vh,420px)] min-w-[240px] overflow-y-auto rounded-lg border border-border/70 bg-card py-1 shadow-xl"
         >
-          <p className="border-b border-border/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-            Plot on map
-          </p>
-
           {SMART_LOCATOR_MENU.map((group) => (
             <button
               key={group.key}
@@ -97,9 +93,6 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
             }}
             onMouseLeave={() => setActiveGroupKey(null)}
           >
-            <p className="border-b border-border/60 px-3 py-2 text-[11px] font-semibold text-foreground">
-              {activeGroup.label}
-            </p>
             {activeGroup.items.map((entry) => (
               <button
                 key={entry.key}
