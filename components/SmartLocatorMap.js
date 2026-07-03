@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   Marker,
+  Polygon,
   Popup,
   TileLayer,
   useMap,
@@ -14,15 +15,21 @@ import { CALABARZON_BOUNDS, CALABARZON_CENTER, MAP_MIN_ZOOM, MAX_BOUNDS_VISCOSIT
 import { createSmartLocatorIcon } from "@/lib/smartLocator/markers";
 import { smartLocatorCategoryLabel } from "@/lib/smartLocator/categories";
 
-function CalabarzonInitialView() {
+function CalabarzonInitialView({ boundary }) {
   const map = useMap();
   const initializedRef = useRef(false);
 
   useEffect(() => {
     if (initializedRef.current) return;
-    map.fitBounds(CALABARZON_BOUNDS, { padding: [24, 24] });
+
+    if (boundary?.ring?.length) {
+      map.fitBounds(boundary.ring, { padding: [32, 32] });
+    } else {
+      map.fitBounds(CALABARZON_BOUNDS, { padding: [24, 24] });
+    }
+
     initializedRef.current = true;
-  }, [map]);
+  }, [map, boundary]);
 
   return null;
 }
@@ -158,6 +165,7 @@ function PlotDialog({
 
 export default function SmartLocatorMap({
   points,
+  boundary,
   legend,
   onCreatePoint,
   onDeletePoint,
@@ -234,7 +242,7 @@ export default function SmartLocatorMap({
         scrollWheelZoom
       >
         <TileLayer url={basemap.url} attribution={basemap.attribution} />
-        <CalabarzonInitialView />
+        <CalabarzonInitialView boundary={boundary} />
         <InvalidateOnResize />
         <MapRightClickHandler
           onContextMenu={(payload) => {
@@ -242,6 +250,20 @@ export default function SmartLocatorMap({
             setDraft(null);
           }}
         />
+
+        {boundary?.ring?.length ? (
+          <Polygon
+            positions={boundary.ring}
+            pathOptions={{
+              color: "#22c55e",
+              weight: 3,
+              opacity: 0.95,
+              dashArray: "8 6",
+              fillColor: "#22c55e",
+              fillOpacity: 0.08,
+            }}
+          />
+        ) : null}
 
         {points.map((point) => (
           <Marker
@@ -307,7 +329,22 @@ export default function SmartLocatorMap({
         </div>
       )}
 
-      <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] max-w-[220px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm">
+      <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] max-w-[240px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm">
+        {boundary ? (
+          <>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-accent">
+              Unit boundary
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium text-foreground">
+              {boundary.label}
+            </p>
+            <p className="text-[10px] text-muted">
+              {boundary.office}
+              {boundary.unit ? ` / ${boundary.unit}` : ""}
+            </p>
+            <div className="my-2 border-t border-border/50" />
+          </>
+        ) : null}
         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
           Categories
         </p>

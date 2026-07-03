@@ -7,6 +7,8 @@ export default function SmartLocatorHeader({
   signingOut = false,
   pointCount = 0,
 }) {
+  const scopeLabel = [user?.office, user?.unit].filter(Boolean).join(" / ");
+
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:px-4">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -28,6 +30,12 @@ export default function SmartLocatorHeader({
       </div>
 
       <div className="hidden items-center gap-2 text-xs text-muted sm:flex">
+        {scopeLabel ? (
+          <>
+            <span>{scopeLabel}</span>
+            <span aria-hidden>·</span>
+          </>
+        ) : null}
         <span>{pointCount} plotted</span>
         <span aria-hidden>·</span>
         <span>Right-click map to plot</span>

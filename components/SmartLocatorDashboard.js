@@ -16,6 +16,7 @@ const SmartLocatorMap = dynamic(() => import("@/components/SmartLocatorMap"), {
 
 export default function SmartLocatorDashboard({ user, onLogout }) {
   const [points, setPoints] = useState([]);
+  const [boundary, setBoundary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
@@ -23,10 +24,19 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const loadPoints = useCallback(async () => {
     setError("");
     try {
-      const res = await fetch("/api/smart-locator/points");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not load map points.");
-      setPoints(data.points ?? []);
+      const [pointsRes, boundaryRes] = await Promise.all([
+        fetch("/api/smart-locator/points"),
+        fetch("/api/smart-locator/boundary"),
+      ]);
+      const pointsData = await pointsRes.json();
+      const boundaryData = boundaryRes.ok ? await boundaryRes.json() : null;
+
+      if (!pointsRes.ok) {
+        throw new Error(pointsData.error || "Could not load map points.");
+      }
+
+      setPoints(pointsData.points ?? []);
+      setBoundary(boundaryData?.boundary ?? null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -88,6 +98,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
         ) : (
           <SmartLocatorMap
             points={points}
+            boundary={boundary}
             legend={legend}
             onCreatePoint={handleCreatePoint}
             onDeletePoint={handleDeletePoint}
