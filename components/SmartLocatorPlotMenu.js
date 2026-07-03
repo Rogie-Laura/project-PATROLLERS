@@ -1,12 +1,64 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SMART_LOCATOR_MENU } from "@/lib/smartLocator/categories";
+
+const MAIN_WIDTH = 200;
+const SUB_WIDTH = 210;
+const MAIN_ROW_HEIGHT = 26;
+const SUB_ROW_HEIGHT = 24;
+const MENU_MAX_HEIGHT = 360;
+const VIEWPORT_PADDING = 8;
+const SUBMENU_GAP = 4;
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function estimateMenuHeight(rowCount, rowHeight) {
+  return Math.min(rowCount * rowHeight + 6, MENU_MAX_HEIGHT);
+}
+
+function computeMainPosition(menu, viewportWidth, viewportHeight) {
+  const mainHeight = estimateMenuHeight(SMART_LOCATOR_MENU.length, MAIN_ROW_HEIGHT);
+
+  return {
+    left: clamp(menu.clientX, VIEWPORT_PADDING, viewportWidth - MAIN_WIDTH - VIEWPORT_PADDING),
+    top: clamp(menu.clientY, VIEWPORT_PADDING, viewportHeight - mainHeight - VIEWPORT_PADDING),
+    height: mainHeight,
+  };
+}
+
+function computeSubmenuPosition({
+  mainLeft,
+  mainTop,
+  submenuTop,
+  itemCount,
+  viewportWidth,
+  viewportHeight,
+}) {
+  const subHeight = estimateMenuHeight(itemCount, SUB_ROW_HEIGHT);
+  const openToRight = mainLeft + MAIN_WIDTH + SUB_WIDTH + VIEWPORT_PADDING <= viewportWidth;
+  const left = openToRight ? MAIN_WIDTH + SUBMENU_GAP : -SUB_WIDTH - SUBMENU_GAP;
+
+  let top = submenuTop;
+  const viewportSubTop = mainTop + top;
+  const overflowBottom = viewportSubTop + subHeight - (viewportHeight - VIEWPORT_PADDING);
+
+  if (overflowBottom > 0) {
+    top = Math.max(0, top - overflowBottom);
+  }
+
+  const maxTop = Math.max(0, viewportHeight - VIEWPORT_PADDING - mainTop - subHeight);
+  top = clamp(top, 0, maxTop);
+
+  return { left, top, width: SUB_WIDTH, maxHeight: subHeight };
+}
 
 export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
   const [activeGroupKey, setActiveGroupKey] = useState(null);
-  const mainRef = useRef(null);
   const [submenuTop, setSubmenuTop] = useState(0);
+  const mainRef = useRef(null);
 
   useEffect(() => {
     if (!menu) {
@@ -22,15 +74,29 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  if (!menu) return null;
-
-  const activeGroup = SMART_LOCATOR_MENU.find((group) => group.key === activeGroupKey);
   const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
   const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800;
-  const mainLeft = Math.min(menu.clientX, viewportWidth - 280);
-  const mainTop = Math.min(menu.clientY, viewportHeight - 420);
-  const submenuLeft = mainLeft + 248;
-  const submenuWidth = 260;
+
+  const mainPosition = useMemo(() => {
+    if (!menu) return null;
+    return computeMainPosition(menu, viewportWidth, viewportHeight);
+  }, [menu, viewportWidth, viewportHeight]);
+
+  const activeGroup = SMART_LOCATOR_MENU.find((group) => group.key === activeGroupKey);
+
+  const submenuPosition = useMemo(() => {
+    if (!menu || !mainPosition || !activeGroup) return null;
+    return computeSubmenuPosition({
+      mainLeft: mainPosition.left,
+      mainTop: mainPosition.top,
+      submenuTop,
+      itemCount: activeGroup.items.length,
+      viewportWidth,
+      viewportHeight,
+    });
+  }, [menu, mainPosition, activeGroup, submenuTop, viewportWidth, viewportHeight]);
+
+  if (!menu || !mainPosition) return null;
 
   function handleGroupEnter(groupKey, button) {
     setActiveGroupKey(groupKey);
@@ -52,12 +118,13 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
 
       <div
         className="fixed z-[1500]"
-        style={{ left: mainLeft, top: mainTop }}
+        style={{ left: mainPosition.left, top: mainPosition.top }}
         onClick={(event) => event.stopPropagation()}
       >
         <div
           ref={mainRef}
-          className="max-h-[min(70vh,420px)] min-w-[240px] overflow-y-auto rounded-lg border border-border/70 bg-card py-1 shadow-xl"
+          className="overflow-y-auto rounded-lg border border-border/70 bg-card py-0.5 shadow-xl"
+          style={{ width: MAIN_WIDTH, maxHeight: mainPosition.height }}
         >
           {SMART_LOCATOR_MENU.map((group) => (
             <button
@@ -65,31 +132,32 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
               type="button"
               onMouseEnter={(event) => handleGroupEnter(group.key, event.currentTarget)}
               onFocus={(event) => handleGroupEnter(group.key, event.currentTarget)}
-              className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition ${
+              className={`flex w-full items-center justify-between gap-1.5 px-2 py-1 text-left text-[11px] leading-tight transition ${
                 activeGroupKey === group.key
                   ? "bg-accent/10 text-foreground"
                   : "text-foreground hover:bg-background/80"
               }`}
             >
-              <span className="flex min-w-0 items-center gap-2">
+              <span className="flex min-w-0 items-center gap-1.5">
                 <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  className="h-2 w-2 shrink-0 rounded-full"
                   style={{ backgroundColor: group.color }}
                 />
                 <span className="truncate">{group.label}</span>
               </span>
-              <span className="shrink-0 text-xs text-muted">›</span>
+              <span className="shrink-0 text-[10px] text-muted">›</span>
             </button>
           ))}
         </div>
 
-        {activeGroup && (
+        {activeGroup && submenuPosition && (
           <div
-            className="absolute max-h-[min(70vh,420px)] min-w-[240px] overflow-y-auto rounded-lg border border-border/70 bg-card py-1 shadow-xl"
+            className="absolute overflow-y-auto rounded-lg border border-border/70 bg-card py-0.5 shadow-xl"
             style={{
-              left: submenuLeft + submenuWidth > viewportWidth ? -submenuWidth - 8 : 248,
-              top: submenuTop,
-              width: submenuWidth,
+              left: submenuPosition.left,
+              top: submenuPosition.top,
+              width: submenuPosition.width,
+              maxHeight: submenuPosition.maxHeight,
             }}
             onMouseLeave={() => setActiveGroupKey(null)}
           >
@@ -105,7 +173,7 @@ export default function SmartLocatorPlotMenu({ menu, onSelect, onClose }) {
                     subcategoryLabel: entry.label,
                   })
                 }
-                className="block w-full px-3 py-2 text-left text-sm text-foreground transition hover:bg-background/80"
+                className="block w-full px-2 py-1 text-left text-[11px] leading-tight text-foreground transition hover:bg-background/80"
               >
                 {entry.label}
               </button>
