@@ -23,12 +23,20 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
+  const username = String(body?.username ?? "").trim().toLowerCase();
   const email = String(body?.email ?? "").trim().toLowerCase();
   const password = String(body?.password ?? "");
 
-  if (!email || !password) {
+  const loginField = username ? "username" : email ? "email" : null;
+  const loginValue = username || email;
+
+  if (!loginField || !password) {
     return NextResponse.json(
-      { error: "Enter your email and password." },
+      {
+        error: username || !email
+          ? "Enter your username and password."
+          : "Enter your email and password.",
+      },
       { status: 400 }
     );
   }
@@ -38,7 +46,7 @@ export async function POST(request) {
   const { data: user, error } = await admin
     .from("user")
     .select("*")
-    .eq("email", email)
+    .eq(loginField, loginValue)
     .maybeSingle();
 
   if (error) {
@@ -50,7 +58,12 @@ export async function POST(request) {
 
   if (!user || !verifyPassword(password, user.password)) {
     return NextResponse.json(
-      { error: "Invalid email or password." },
+      {
+        error:
+          loginField === "username"
+            ? "Invalid username or password."
+            : "Invalid email or password.",
+      },
       { status: 401 }
     );
   }

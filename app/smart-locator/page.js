@@ -9,7 +9,7 @@ import { isCommandCenterRole } from "@/lib/auth/roles";
 export default function SmartLocatorPage() {
   const [user, setUser] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -51,7 +51,7 @@ export default function SmartLocatorPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
 
@@ -135,20 +135,17 @@ export default function SmartLocatorPage() {
           <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
             <div>
               <label className="mb-0.5 block text-xs font-medium text-foreground/90 sm:mb-1 sm:text-sm">
-                Email Address
+                Username
               </label>
               <div className="relative">
-                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted">
-                  @
-                </span>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={inputClassName}
-                  placeholder="Enter your email"
-                  autoComplete="email"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className={`${inputClassName} pl-3`}
+                  placeholder="Enter your username"
+                  autoComplete="username"
                 />
               </div>
             </div>
