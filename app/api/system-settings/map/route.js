@@ -21,5 +21,6 @@ export async function GET() {
     command_feature_flags: normalizeCommandFeatureFlags(
       settings.command_feature_flags
     ),
+    command_access_suspended: Boolean(settings.command_access_suspended),
   });
 }

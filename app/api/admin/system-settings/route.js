@@ -19,6 +19,7 @@ import {
   updateLocationIntervalSeconds,
   updateMobileAppRelease,
   updateCommandFeatureFlags,
+  updateCommandAccessSuspended,
 } from "@/lib/mobile/systemSettings";
 import { parseMobileReleaseInput } from "@/lib/mobile/appRelease";
 import { formatRadiusRingsSummary } from "@/lib/incidentRadiusRings";
@@ -61,6 +62,7 @@ function settingsPayload(settings) {
     command_feature_flags: normalizeCommandFeatureFlags(
       settings.command_feature_flags
     ),
+    command_access_suspended: Boolean(settings.command_access_suspended),
   };
 }
 
@@ -106,13 +108,15 @@ export async function PATCH(request) {
     body?.mobile_update_required != null ||
     body?.mobile_release_notes != null;
   const hasCommandFeatureFlags = body?.command_feature_flags != null;
+  const hasCommandAccessSuspended = body?.command_access_suspended != null;
 
   if (
     !hasInterval &&
     !hasDirections &&
     !hasRadiusRings &&
     !hasMobileRelease &&
-    !hasCommandFeatureFlags
+    !hasCommandFeatureFlags &&
+    !hasCommandAccessSuspended
   ) {
     return NextResponse.json(
       { error: "No settings to update." },
@@ -120,7 +124,14 @@ export async function PATCH(request) {
     );
   }
 
-  if ((hasInterval || hasDirections || hasMobileRelease || hasCommandFeatureFlags) && !fullAccess) {
+  if (
+    (hasInterval ||
+      hasDirections ||
+      hasMobileRelease ||
+      hasCommandFeatureFlags ||
+      hasCommandAccessSuspended) &&
+    !fullAccess
+  ) {
     return NextResponse.json(
       { error: "Only a system administrator can change those settings." },
       { status: 403 }
@@ -241,6 +252,17 @@ export async function PATCH(request) {
     } catch (error) {
       return NextResponse.json(
         { error: error.message ?? "Could not save command feature flags." },
+        { status: 500 }
+      );
+    }
+  }
+
+  if (hasCommandAccessSuspended) {
+    try {
+      await updateCommandAccessSuspended(body.command_access_suspended, user.id);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error.message ?? "Could not save command access setting." },
         { status: 500 }
       );
     }

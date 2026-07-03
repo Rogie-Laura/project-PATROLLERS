@@ -432,6 +432,7 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
   const [savingRadius, setSavingRadius] = useState(false);
   const [savingMobileRelease, setSavingMobileRelease] = useState(false);
   const [savingCommandFeatures, setSavingCommandFeatures] = useState(false);
+  const [savingCommandAccess, setSavingCommandAccess] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -453,6 +454,7 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
   const [commandFeatureFlags, setCommandFeatureFlags] = useState(
     DEFAULT_COMMAND_FEATURE_FLAGS
   );
+  const [commandAccessSuspended, setCommandAccessSuspended] = useState(false);
 
   const [value, setValue] = useState("30");
   const [unit, setUnit] = useState("minutes");
@@ -480,6 +482,7 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
     if (settings.command_feature_flags) {
       setCommandFeatureFlags(settings.command_feature_flags);
     }
+    setCommandAccessSuspended(Boolean(settings.command_access_suspended));
 
     if (seconds % 60 === 0 && seconds >= 60) {
       setUnit("minutes");
@@ -636,6 +639,38 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
       setError(err.message ?? "Could not save mobile release settings.");
     } finally {
       setSavingMobileRelease(false);
+    }
+  }
+
+  async function handleSaveCommandAccess(event) {
+    event.preventDefault();
+    setSavingCommandAccess(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command_access_suspended: commandAccessSuspended }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not save command access setting.");
+      }
+
+      applySettings(data.settings);
+      setSuccess(
+        commandAccessSuspended
+          ? "RCC, PCC, and SCC monitoring pages will now show the billing unavailable message."
+          : "Command center access restored for RCC, PCC, and SCC accounts."
+      );
+    } catch (err) {
+      setError(err.message ?? "Could not save command access setting.");
+    } finally {
+      setSavingCommandAccess(false);
     }
   }
 
@@ -1013,6 +1048,38 @@ export default function SystemSettings({ fullAccess = false, userRole = "" }) {
             Flutter, (2) build signed release APK, (3) upload to HTTPS, (4) save settings here.
             First APK with this feature must be installed manually once; later updates are one-tap.
           </p>
+        </SettingCard>
+
+        <SettingCard
+          title="Command center access"
+          description="Suspend the monitoring map for RCC, PCC, and SCC when platform on-demand billing is insufficient. System Administrator accounts are not affected and can still manage settings."
+        >
+          <form onSubmit={handleSaveCommandAccess} className="space-y-3">
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/50 bg-background/40 px-3 py-3">
+              <input
+                type="checkbox"
+                checked={commandAccessSuspended}
+                disabled={loading || savingCommandAccess}
+                onChange={(e) => setCommandAccessSuspended(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-accent"
+              />
+              <span className="text-xs leading-relaxed text-muted">
+                <strong className="text-foreground">
+                  Show billing unavailable page
+                </strong>{" "}
+                — RCC, PCC, and SCC users see a message that monitoring is
+                temporarily unavailable due to insufficient on-demand billing.
+                Patrol mobile apps are not blocked by this toggle.
+              </span>
+            </label>
+            <button
+              type="submit"
+              disabled={loading || savingCommandAccess}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-background transition hover:bg-accent-dark disabled:opacity-50"
+            >
+              {savingCommandAccess ? "Saving..." : "Save command access"}
+            </button>
+          </form>
         </SettingCard>
 
         <SettingCard

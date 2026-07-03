@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import MonitorHeader from "@/components/MonitorHeader";
 import MapToolbar from "@/components/MapToolbar";
 import TrackReview from "@/components/TrackReview";
+import CommandBillingUnavailable from "@/components/CommandBillingUnavailable";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
 import { readTrackReviewUnitKey } from "@/lib/trackReview";
+import { useCommandBillingGate } from "@/lib/useCommandBillingGate";
 
 function TrackReviewPageContent() {
   const router = useRouter();
@@ -18,6 +20,8 @@ function TrackReviewPageContent() {
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
+  const { loading: billingGateLoading, blocked: billingBlocked, message: billingMessage } =
+    useCommandBillingGate(user);
 
   useEffect(() => {
     let active = true;
@@ -62,6 +66,28 @@ function TrackReviewPageContent() {
   }
 
   if (!user) return null;
+
+  if (billingGateLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="text-sm text-muted">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (billingBlocked) {
+    return (
+      <CommandBillingUnavailable
+        user={user}
+        onSignOut={handleSignOut}
+        signingOut={signingOut}
+        message={billingMessage}
+      />
+    );
+  }
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden bg-background">

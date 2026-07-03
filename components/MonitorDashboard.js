@@ -45,6 +45,8 @@ import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
 import ForceLocationPanel from "@/components/ForceLocationPanel";
 import GenerateReportPanel from "@/components/GenerateReportPanel";
+import CommandBillingUnavailable from "@/components/CommandBillingUnavailable";
+import { useCommandBillingGate } from "@/lib/useCommandBillingGate";
 
 /** Full map refresh interval (backup if a Realtime message is missed). */
 const MONITOR_LOCATIONS_REFRESH_MS = 90_000;
@@ -62,6 +64,8 @@ export default function MonitorDashboard({ user, onLogout }) {
   const supabase = createClient();
   const onLogoutRef = useRef(onLogout);
   onLogoutRef.current = onLogout;
+  const { loading: billingGateLoading, blocked: billingBlocked, message: billingMessage } =
+    useCommandBillingGate(user);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -753,6 +757,28 @@ export default function MonitorDashboard({ user, onLogout }) {
 
   const activeCallId = selectedCallId ?? callResponses[0]?.id ?? null;
   const activeDispatches = activeCallId ? dispatchByCallId[activeCallId] ?? [] : [];
+
+  if (billingGateLoading) {
+    return (
+      <main className="flex h-dvh items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <p className="text-sm text-muted">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (billingBlocked) {
+    return (
+      <CommandBillingUnavailable
+        user={user}
+        onSignOut={handleSignOut}
+        signingOut={signingOut}
+        message={billingMessage}
+      />
+    );
+  }
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden bg-background">
