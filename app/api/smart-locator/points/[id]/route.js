@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isCommandCenterRole } from "@/lib/auth/roles";
-import { normalizeSmartLocatorCategory } from "@/lib/smartLocator/categories";
+import { normalizeSmartLocatorSelection } from "@/lib/smartLocator/categories";
 import { canManagePoint } from "@/lib/smartLocator/scope";
 import { pointFromRow } from "@/lib/smartLocator/points";
 
 const SELECT_FIELDS =
-  "id, category, label, description, latitude, longitude, office, unit, created_by, created_at, updated_at";
+  "id, category, subcategory, label, description, latitude, longitude, office, unit, created_by, created_at, updated_at";
 
 async function authorizeSmartLocator(request) {
   const user = await getCurrentUser(request);
@@ -81,12 +81,16 @@ export async function PATCH(request, { params }) {
 
     const update = { updated_at: new Date().toISOString() };
 
-    if (body?.category != null) {
-      const category = normalizeSmartLocatorCategory(body.category);
-      if (!category) {
+    if (body?.category != null || body?.subcategory != null) {
+      const selection = normalizeSmartLocatorSelection(
+        body?.category ?? existing.category,
+        body?.subcategory ?? existing.subcategory
+      );
+      if (!selection) {
         return NextResponse.json({ error: "Invalid category." }, { status: 400 });
       }
-      update.category = category;
+      update.category = selection.category;
+      update.subcategory = selection.subcategory;
     }
 
     if (body?.label != null) {

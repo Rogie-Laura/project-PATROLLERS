@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isCommandCenterRole } from "@/lib/auth/roles";
-import { normalizeSmartLocatorCategory } from "@/lib/smartLocator/categories";
+import { normalizeSmartLocatorSelection } from "@/lib/smartLocator/categories";
 import { filterPointsForUser, scopeFromUser } from "@/lib/smartLocator/scope";
 import { pointFromRow } from "@/lib/smartLocator/points";
 
 const SELECT_FIELDS =
-  "id, category, label, description, latitude, longitude, office, unit, created_by, created_at, updated_at";
+  "id, category, subcategory, label, description, latitude, longitude, office, unit, created_by, created_at, updated_at";
 
 async function authorizeSmartLocator(request) {
   const user = await getCurrentUser(request);
@@ -74,8 +74,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const category = normalizeSmartLocatorCategory(body?.category);
-  if (!category) {
+  const selection = normalizeSmartLocatorSelection(body?.category, body?.subcategory);
+  if (!selection) {
     return NextResponse.json({ error: "Invalid category." }, { status: 400 });
   }
 
@@ -96,7 +96,8 @@ export async function POST(request) {
   const { data, error: dbError } = await admin
     .from("smart_locator_points")
     .insert({
-      category,
+      category: selection.category,
+      subcategory: selection.subcategory,
       label,
       description: description || null,
       latitude: coords.latitude,

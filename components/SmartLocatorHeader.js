@@ -1,14 +1,7 @@
 import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
 
-export default function SmartLocatorHeader({
-  user,
-  onSignOut,
-  signingOut = false,
-  pointCount = 0,
-}) {
-  const scopeLabel = [user?.office, user?.unit].filter(Boolean).join(" / ");
-
+export default function SmartLocatorHeader({ user, onSignOut, signingOut = false }) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:px-4">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -27,18 +20,6 @@ export default function SmartLocatorHeader({
             Smart Locator
           </p>
         </div>
-      </div>
-
-      <div className="hidden items-center gap-2 text-xs text-muted sm:flex">
-        {scopeLabel ? (
-          <>
-            <span>{scopeLabel}</span>
-            <span aria-hidden>·</span>
-          </>
-        ) : null}
-        <span>{pointCount} plotted</span>
-        <span aria-hidden>·</span>
-        <span>Right-click map to plot</span>
       </div>
 
       <AccountCard user={user} onSignOut={onSignOut} signingOut={signingOut} />

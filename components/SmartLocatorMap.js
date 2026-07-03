@@ -4,53 +4,31 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   Marker,
-  Polygon,
   Popup,
   TileLayer,
   useMap,
   useMapEvents,
 } from "react-leaflet";
+import SmartLocatorPlotMenu from "@/components/SmartLocatorPlotMenu";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
-import { CALABARZON_BOUNDS, CALABARZON_CENTER, MAP_MIN_ZOOM, MAX_BOUNDS_VISCOSITY, PHILIPPINES_BOUNDS } from "@/lib/mapBounds";
+import {
+  CALABARZON_BOUNDS,
+  CALABARZON_CENTER,
+  MAP_MIN_ZOOM,
+  MAX_BOUNDS_VISCOSITY,
+  PHILIPPINES_BOUNDS,
+} from "@/lib/mapBounds";
 import { createSmartLocatorIcon } from "@/lib/smartLocator/markers";
-import { smartLocatorCategoryLabel } from "@/lib/smartLocator/categories";
 
-function boundsFromRings(rings) {
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  let minLng = Infinity;
-  let maxLng = -Infinity;
-
-  for (const ring of rings) {
-    for (const [lat, lng] of ring) {
-      minLat = Math.min(minLat, lat);
-      maxLat = Math.max(maxLat, lat);
-      minLng = Math.min(minLng, lng);
-      maxLng = Math.max(maxLng, lng);
-    }
-  }
-
-  return [
-    [minLat, minLng],
-    [maxLat, maxLng],
-  ];
-}
-
-function CalabarzonInitialView({ boundary }) {
+function CalabarzonInitialView() {
   const map = useMap();
   const initializedRef = useRef(false);
 
   useEffect(() => {
     if (initializedRef.current) return;
-
-    if (boundary?.rings?.length) {
-      map.fitBounds(boundsFromRings(boundary.rings), { padding: [32, 32] });
-    } else {
-      map.fitBounds(CALABARZON_BOUNDS, { padding: [24, 24] });
-    }
-
+    map.fitBounds(CALABARZON_BOUNDS, { padding: [24, 24] });
     initializedRef.current = true;
-  }, [map, boundary]);
+  }, [map]);
 
   return null;
 }
@@ -105,31 +83,23 @@ function MapRightClickHandler({ onContextMenu }) {
   return null;
 }
 
-function PlotDialog({
-  draft,
-  saving,
-  error,
-  onChange,
-  onCancel,
-  onSubmit,
-}) {
+function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
   if (!draft) return null;
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4">
       <div
         className="w-full max-w-md rounded-xl border border-border/70 bg-card p-5 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <h3 className="text-base font-semibold text-foreground">Plot on map</h3>
-        <p className="mt-1 text-sm text-muted">
-          {smartLocatorCategoryLabel(draft.category)}
-        </p>
+        <p className="mt-1 text-sm text-muted">{draft.categoryLabel}</p>
+        <p className="text-sm font-medium text-foreground">{draft.subcategoryLabel}</p>
 
         <form
           className="mt-4 space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
+          onSubmit={(event) => {
+            event.preventDefault();
             onSubmit();
           }}
         >
@@ -138,8 +108,8 @@ function PlotDialog({
             <input
               autoFocus
               value={draft.label}
-              onChange={(e) => onChange({ label: e.target.value })}
-              placeholder="e.g. Meralco substation"
+              onChange={(event) => onChange({ label: event.target.value })}
+              placeholder="Enter location name"
               className="mt-1 w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
             />
           </label>
@@ -148,7 +118,7 @@ function PlotDialog({
             Notes <span className="font-normal">(optional)</span>
             <textarea
               value={draft.description}
-              onChange={(e) => onChange({ description: e.target.value })}
+              onChange={(event) => onChange({ description: event.target.value })}
               rows={3}
               placeholder="Additional details..."
               className="mt-1 w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
@@ -156,9 +126,7 @@ function PlotDialog({
           </label>
 
           {error && (
-            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
-              {error}
-            </p>
+            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
@@ -184,32 +152,20 @@ function PlotDialog({
   );
 }
 
-export default function SmartLocatorMap({
-  points,
-  boundary,
-  legend,
-  onCreatePoint,
-  onDeletePoint,
-}) {
+export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }) {
   const basemap = useMemo(() => getBasemapById(DEFAULT_BASEMAP_ID), []);
   const [menu, setMenu] = useState(null);
   const [draft, setDraft] = useState(null);
   const [plotError, setPlotError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
 
-  useEffect(() => {
-    function closeMenus() {
-      setMenu(null);
-    }
-    window.addEventListener("click", closeMenus);
-    return () => window.removeEventListener("click", closeMenus);
-  }, []);
-
-  function openPlotDialog(category) {
+  function openPlotDialog(selection) {
     if (!menu) return;
     setDraft({
-      category,
+      category: selection.category,
+      subcategory: selection.subcategory,
+      categoryLabel: selection.categoryLabel,
+      subcategoryLabel: selection.subcategoryLabel,
       latitude: menu.lat,
       longitude: menu.lng,
       label: "",
@@ -224,15 +180,15 @@ export default function SmartLocatorMap({
     setSaving(true);
     setPlotError("");
     try {
-      const point = await onCreatePoint({
+      await onCreatePoint({
         category: draft.category,
+        subcategory: draft.subcategory,
         latitude: draft.latitude,
         longitude: draft.longitude,
         label: draft.label,
         description: draft.description,
       });
       setDraft(null);
-      setSelectedId(point.id);
     } catch (err) {
       setPlotError(err.message);
     } finally {
@@ -245,7 +201,6 @@ export default function SmartLocatorMap({
     if (!confirmed) return;
     try {
       await onDeletePoint(point.id);
-      if (selectedId === point.id) setSelectedId(null);
     } catch (err) {
       window.alert(err.message);
     }
@@ -263,7 +218,7 @@ export default function SmartLocatorMap({
         scrollWheelZoom
       >
         <TileLayer url={basemap.url} attribution={basemap.attribution} />
-        <CalabarzonInitialView boundary={boundary} />
+        <CalabarzonInitialView />
         <InvalidateOnResize />
         <MapRightClickHandler
           onContextMenu={(payload) => {
@@ -272,29 +227,11 @@ export default function SmartLocatorMap({
           }}
         />
 
-        {boundary?.rings?.map((ring, index) => (
-          <Polygon
-            key={`${boundary.key}-${index}`}
-            positions={ring}
-            pathOptions={{
-              color: "#22c55e",
-              weight: 3,
-              opacity: 0.95,
-              dashArray: "8 6",
-              fillColor: "#22c55e",
-              fillOpacity: 0.08,
-            }}
-          />
-        ))}
-
         {points.map((point) => (
           <Marker
             key={point.id}
             position={[point.latitude, point.longitude]}
             icon={createSmartLocatorIcon(point.category)}
-            eventHandlers={{
-              click: () => setSelectedId(point.id),
-            }}
           >
             <Popup>
               <div className="min-w-[180px] space-y-2 text-sm">
@@ -307,11 +244,6 @@ export default function SmartLocatorMap({
                 {point.description ? (
                   <p className="text-xs text-muted">{point.description}</p>
                 ) : null}
-                {(point.office || point.unit) && (
-                  <p className="text-[11px] text-muted">
-                    {[point.office, point.unit].filter(Boolean).join(" / ")}
-                  </p>
-                )}
                 <button
                   type="button"
                   onClick={() => handleDelete(point)}
@@ -325,63 +257,11 @@ export default function SmartLocatorMap({
         ))}
       </MapContainer>
 
-      {menu && (
-        <div
-          className="fixed z-[1500] min-w-[220px] overflow-hidden rounded-lg border border-border/70 bg-card py-1 shadow-xl"
-          style={{ left: menu.clientX, top: menu.clientY }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <p className="border-b border-border/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-            Plot on map
-          </p>
-          {legend.map((category) => (
-            <button
-              key={category.key}
-              type="button"
-              onClick={() => openPlotDialog(category.key)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition hover:bg-background/80"
-            >
-              <span
-                className="h-3 w-3 shrink-0 rounded-full"
-                style={{ backgroundColor: category.color }}
-              />
-              {category.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="pointer-events-none absolute bottom-3 left-3 z-[1000] max-w-[240px] rounded-lg border border-border/60 bg-card/95 px-3 py-2 shadow-lg backdrop-blur-sm">
-        {boundary ? (
-          <>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-accent">
-              Unit boundary
-            </p>
-            <p className="mt-0.5 text-[11px] font-medium text-foreground">
-              {boundary.label}
-            </p>
-            <p className="text-[10px] text-muted">
-              {boundary.office}
-              {boundary.unit ? ` / ${boundary.unit}` : ""}
-            </p>
-            <div className="my-2 border-t border-border/50" />
-          </>
-        ) : null}
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-          Categories
-        </p>
-        <ul className="mt-1 space-y-1">
-          {legend.map((category) => (
-            <li key={category.key} className="flex items-center gap-2 text-[11px] text-foreground">
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: category.color }}
-              />
-              {category.shortLabel}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <SmartLocatorPlotMenu
+        menu={menu}
+        onClose={() => setMenu(null)}
+        onSelect={openPlotDialog}
+      />
 
       <PlotDialog
         draft={draft}
