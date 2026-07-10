@@ -344,6 +344,15 @@ function PatrolMarker({
   );
 }
 
+function filterLocationsByPatrolType(locations, visiblePatrolTypes) {
+  if (!visiblePatrolTypes) return locations;
+
+  return locations.filter((location) => {
+    const typeId = getPatrolUnitType(location);
+    return visiblePatrolTypes[typeId] !== false;
+  });
+}
+
 export default function PatrolMap({
   locations,
   basemapId = DEFAULT_BASEMAP_ID,
@@ -365,18 +374,18 @@ export default function PatrolMap({
   establishments = [],
   showTaalDangerZones = false,
   showStormSurge = false,
+  visiblePatrolTypes = null,
 }) {
   const basemap = getBasemapById(basemapId);
 
-  const parsedLocations = useMemo(
-    () =>
-      locations.map((loc) => ({
-        ...loc,
-        latitude: toNumber(loc.latitude),
-        longitude: toNumber(loc.longitude),
-      })),
-    [locations]
-  );
+  const parsedLocations = useMemo(() => {
+    const normalized = locations.map((loc) => ({
+      ...loc,
+      latitude: toNumber(loc.latitude),
+      longitude: toNumber(loc.longitude),
+    }));
+    return filterLocationsByPatrolType(normalized, visiblePatrolTypes);
+  }, [locations, visiblePatrolTypes]);
 
   return (
     <div className="relative h-full min-h-[400px] w-full">
@@ -389,6 +398,7 @@ export default function PatrolMap({
         maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
         className="h-full w-full"
         scrollWheelZoom
+        zoomControl={false}
         preferCanvas
         worldCopyJump={false}
       >

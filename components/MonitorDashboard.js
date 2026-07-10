@@ -20,6 +20,8 @@ import { useEstablishmentOverlay } from "@/lib/useEstablishmentOverlay";
 import { useTaalDangerZoneOverlay } from "@/lib/useTaalDangerZoneOverlay";
 import { useHydrometOverlay } from "@/lib/useHydrometOverlay";
 import MapViewOverlays from "@/components/MapViewOverlays";
+import MapPatrolLegendPanel from "@/components/MapPatrolLegendPanel";
+import { usePatrolTypeVisibility } from "@/lib/usePatrolTypeVisibility";
 import {
   clearCallResponseSession,
   useCallResponseSession,
@@ -75,6 +77,8 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
+  const { visibility: patrolTypeVisibility, setVisibility: setPatrolTypeVisibility } =
+    usePatrolTypeVisibility();
   const { weatherOverlay, setWeatherOverlay } = useMapWeatherOverlay();
   const [showEstablishments, setShowEstablishments] = useEstablishmentOverlay();
   const [showTaalDangerZones, setShowTaalDangerZones] = useTaalDangerZoneOverlay();
@@ -897,6 +901,13 @@ export default function MonitorDashboard({ user, onLogout }) {
             establishments={establishments}
             showTaalDangerZones={showTaalDangerZones}
             showStormSurge={showStormSurge}
+            visiblePatrolTypes={patrolTypeVisibility}
+          />
+
+          <MapPatrolLegendPanel
+            locations={mapLocations}
+            visibility={patrolTypeVisibility}
+            onVisibilityChange={setPatrolTypeVisibility}
           />
 
           {error && (
