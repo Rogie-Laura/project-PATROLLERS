@@ -17,6 +17,7 @@ import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incid
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
 import { useMapWeatherOverlay } from "@/lib/useMapWeatherOverlay";
 import { useEstablishmentOverlay } from "@/lib/useEstablishmentOverlay";
+import { useTaalHazardOverlay } from "@/lib/useTaalHazardOverlay";
 import MapViewOverlays from "@/components/MapViewOverlays";
 import {
   clearCallResponseSession,
@@ -75,6 +76,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
   const { weatherOverlay, setWeatherOverlay } = useMapWeatherOverlay();
   const [showEstablishments, setShowEstablishments] = useEstablishmentOverlay();
+  const { taalHazardLayers, toggleTaalHazardLayer } = useTaalHazardOverlay();
   const [establishments, setEstablishments] = useState([]);
   const [establishmentsLoading, setEstablishmentsLoading] = useState(false);
   const [establishmentsError, setEstablishmentsError] = useState(null);
@@ -859,6 +861,8 @@ export default function MonitorDashboard({ user, onLogout }) {
         establishmentsLoading={establishmentsLoading}
         establishmentsCount={establishments.length}
         establishmentsError={establishmentsError}
+        taalHazardLayers={taalHazardLayers}
+        onToggleTaalHazardLayer={toggleTaalHazardLayer}
         patrolLocations={latestLocations}
         onPatrolSearchSelect={handleSelectPatrolFromList}
         patrolSearchQuery={patrolSearchQuery}
@@ -887,6 +891,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             weatherOverlay={weatherOverlay}
             showEstablishments={showEstablishments}
             establishments={establishments}
+            taalHazardLayers={taalHazardLayers}
           />
 
           {error && (
