@@ -1,6 +1,5 @@
 import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
-import PatrolUnitCountBar from "@/components/PatrolUnitCountBar";
 
 export default function MonitorHeader({
   user,
@@ -31,8 +30,6 @@ export default function MonitorHeader({
           </h1>
         </div>
       </div>
-
-      <PatrolUnitCountBar locations={locations} />
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <AccountCard user={user} onSignOut={onSignOut} signingOut={signingOut} />

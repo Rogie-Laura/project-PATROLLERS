@@ -19,7 +19,6 @@ import { useMapWeatherOverlay } from "@/lib/useMapWeatherOverlay";
 import { useEstablishmentOverlay } from "@/lib/useEstablishmentOverlay";
 import { useTaalDangerZoneOverlay } from "@/lib/useTaalDangerZoneOverlay";
 import { useHydrometOverlay } from "@/lib/useHydrometOverlay";
-import MapViewOverlays from "@/components/MapViewOverlays";
 import MapPatrolLegendPanel from "@/components/MapPatrolLegendPanel";
 import { usePatrolTypeVisibility } from "@/lib/usePatrolTypeVisibility";
 import {
@@ -76,7 +75,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
-  const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
+  const { layers: mapViewLayers } = useMapViewOptions();
   const { visibility: patrolTypeVisibility, setVisibility: setPatrolTypeVisibility } =
     usePatrolTypeVisibility();
   const { weatherOverlay, setWeatherOverlay } = useMapWeatherOverlay();
@@ -88,16 +87,6 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [establishmentsError, setEstablishmentsError] = useState(null);
   const showPatrolStatus = mapViewLayers.patrolStatus;
   const [selectedPatrol, setSelectedPatrol] = useState(null);
-
-  const handleMapViewLayerChange = useCallback(
-    (id, value) => {
-      setMapViewLayer(id, value);
-      if (id === "patrolStatus" && !value) {
-        setSelectedPatrol(null);
-      }
-    },
-    [setMapViewLayer]
-  );
   const [callResponseOpen, setCallResponseOpen] = useState(false);
   const [callResponsePlace, setCallResponsePlace] = useState(null);
   const [callResponses, setCallResponses] = useState([]);
@@ -854,8 +843,6 @@ export default function MonitorDashboard({ user, onLogout }) {
         callResponsePlace={callResponsePlace}
         onCallResponsePlaceChange={setCallResponsePlace}
         onAddIncidentMarker={handleAddCallResponse}
-        mapViewLayers={mapViewLayers}
-        onMapViewLayerChange={handleMapViewLayerChange}
         showAllIncidentsToggle={showOverview}
         allIncidentsChecked={showAllIncidents}
         allIncidentsCount={subordinateIncidents.length}
@@ -904,24 +891,16 @@ export default function MonitorDashboard({ user, onLogout }) {
             visiblePatrolTypes={patrolTypeVisibility}
           />
 
-          <MapPatrolLegendPanel
-            locations={mapLocations}
-            visibility={patrolTypeVisibility}
-            onVisibilityChange={setPatrolTypeVisibility}
-          />
-
           {error && (
             <div className="pointer-events-none absolute left-1/2 top-4 z-[500] max-w-sm -translate-x-1/2 rounded-lg border border-red-500/30 bg-card/95 px-4 py-2 text-center text-sm text-red-400 shadow-lg backdrop-blur-sm">
               {error}
             </div>
           )}
 
-          <MapViewOverlays
-            layers={mapViewLayers}
+          <MapPatrolLegendPanel
             locations={mapLocations}
-            nowMs={nowMs}
-            intervalSeconds={intervalSeconds}
-            mapAreaSize={mapAreaSize}
+            visibility={patrolTypeVisibility}
+            onVisibilityChange={setPatrolTypeVisibility}
           />
 
           {forceLocationOpen && forceLocationEnabled && (

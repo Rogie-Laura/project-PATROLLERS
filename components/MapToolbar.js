@@ -6,7 +6,6 @@ import AddCallResponsePopover from "@/components/AddCallResponsePopover";
 import PatrolSearchBar from "@/components/PatrolSearchBar";
 import { canAccessSettings, canManageAccessTokens } from "@/lib/mobile/adminRoles";
 import { BASEMAPS, getBasemapById } from "@/lib/mapBasemaps";
-import { MAP_VIEW_LAYERS } from "@/lib/mapViewLayers";
 import {
   MAP_WEATHER_OVERLAY_NONE,
   MAP_WEATHER_OVERLAY_OPTIONS,
@@ -240,6 +239,10 @@ function MapOverlayModal({
   onShowTaalDangerZonesChange,
   showStormSurge = false,
   onShowStormSurgeChange,
+  showAllIncidentsToggle = false,
+  allIncidentsChecked = false,
+  allIncidentsCount = 0,
+  onAllIncidentsChange,
 }) {
   const [weatherStatus, setWeatherStatus] = useState({
     rainRadar: true,
@@ -451,6 +454,33 @@ function MapOverlayModal({
               </span>
             </label>
           </div>
+
+          {showAllIncidentsToggle && (
+            <div className="rounded-lg border border-border/60 bg-background/40 px-4 py-3">
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 rounded border-border/70 accent-accent"
+                  checked={Boolean(allIncidentsChecked)}
+                  disabled={!onAllIncidentsChange}
+                  onChange={(e) => onAllIncidentsChange?.(e.target.checked)}
+                />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    Show all incident response
+                    {allIncidentsCount > 0 && (
+                      <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                        {allIncidentsCount}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted">
+                    Include incident response panels from subordinate command levels.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end border-t border-border/60 px-5 py-3">
@@ -463,134 +493,6 @@ function MapOverlayModal({
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ViewIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5 shrink-0 opacity-80"
-      aria-hidden
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function MapViewPicker({
-  layers,
-  onLayerChange,
-  showAllIncidentsToggle = false,
-  allIncidentsChecked = false,
-  allIncidentsCount = 0,
-  onAllIncidentsChange,
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-
-  const activeCount =
-    MAP_VIEW_LAYERS.filter(({ id }) => layers[id]).length +
-    (showAllIncidentsToggle && allIncidentsChecked ? 1 : 0);
-  const hasIncidentAlert =
-    showAllIncidentsToggle && !allIncidentsChecked && allIncidentsCount > 0;
-
-  useEffect(() => {
-    if (!open) return undefined;
-
-    function handlePointerDown(event) {
-      if (rootRef.current && !rootRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        aria-controls="map-view-options"
-        aria-label={`View map layers. ${activeCount} visible`}
-        title="View map layers"
-        className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium leading-none transition sm:text-[11px] ${
-          open || activeCount > 0
-            ? "border-accent/50 bg-accent/15 text-accent"
-            : "border-border/60 bg-background/50 text-foreground hover:bg-background/80"
-        }`}
-      >
-        <ViewIcon />
-        <span className="whitespace-nowrap">View</span>
-        {hasIncidentAlert && (
-          <span className="relative flex h-2 w-2" aria-label="New incident response">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-          </span>
-        )}
-        <ChevronDownIcon open={open} />
-      </button>
-
-      {open && (
-        <div
-          id="map-view-options"
-          role="group"
-          aria-label="Map view options"
-          className="absolute right-0 top-full z-[750] mt-1 min-w-[12.5rem] rounded-md border border-border/70 bg-card/95 py-1 shadow-lg backdrop-blur-sm"
-        >
-          <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-            Map layers
-          </p>
-          {MAP_VIEW_LAYERS.map((layer) => (
-            <label
-              key={layer.id}
-              className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-background/80 sm:text-xs"
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(layers[layer.id])}
-                onChange={(e) => onLayerChange(layer.id, e.target.checked)}
-                className="h-3.5 w-3.5 shrink-0 rounded border-border/80 accent-accent"
-              />
-              <span className="min-w-0 flex-1">{layer.label}</span>
-            </label>
-          ))}
-
-          {showAllIncidentsToggle && (
-            <>
-              <div className="my-1 border-t border-border/60" />
-              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                Incident response
-              </p>
-              <label className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-background/80 sm:text-xs">
-                <input
-                  type="checkbox"
-                  checked={Boolean(allIncidentsChecked)}
-                  onChange={(e) => onAllIncidentsChange?.(e.target.checked)}
-                  className="h-3.5 w-3.5 shrink-0 rounded border-border/80 accent-accent"
-                />
-                <span className="min-w-0 flex-1">Show all incident response</span>
-                {allIncidentsCount > 0 && (
-                  <span className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
-                    {allIncidentsCount}
-                  </span>
-                )}
-              </label>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -713,8 +615,6 @@ export default function MapToolbar({
   callResponsePlace = null,
   onCallResponsePlaceChange,
   onAddIncidentMarker,
-  mapViewLayers,
-  onMapViewLayerChange,
   showAllIncidentsToggle = false,
   allIncidentsChecked = false,
   allIncidentsCount = 0,
@@ -760,6 +660,10 @@ export default function MapToolbar({
         onShowTaalDangerZonesChange={onShowTaalDangerZonesChange}
         showStormSurge={showStormSurge}
         onShowStormSurgeChange={onShowStormSurgeChange}
+        showAllIncidentsToggle={showAllIncidentsToggle}
+        allIncidentsChecked={allIncidentsChecked}
+        allIncidentsCount={allIncidentsCount}
+        onAllIncidentsChange={onAllIncidentsChange}
       />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {
@@ -868,28 +772,16 @@ export default function MapToolbar({
             ) : null}
           </div>
 
-          {mapViewLayers && onMapViewLayerChange && (
-            <>
-              <ToolbarSeparator />
-              <MapViewPicker
-                layers={mapViewLayers}
-                onLayerChange={onMapViewLayerChange}
-                showAllIncidentsToggle={showAllIncidentsToggle}
-                allIncidentsChecked={allIncidentsChecked}
-                allIncidentsCount={allIncidentsCount}
-                onAllIncidentsChange={onAllIncidentsChange}
-              />
-              <button
-                type="button"
-                onClick={() => setMapOverlayOpen(true)}
-                title="Map overlay settings"
-                className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[10px] font-medium text-muted transition hover:bg-background/80 hover:text-foreground sm:text-[11px]"
-              >
-                <LayersIcon />
-                <span className="whitespace-nowrap">Map Overlay</span>
-              </button>
-            </>
-          )}
+          <ToolbarSeparator />
+          <button
+            type="button"
+            onClick={() => setMapOverlayOpen(true)}
+            title="Map overlay settings"
+            className="flex shrink-0 items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[10px] font-medium text-muted transition hover:bg-background/80 hover:text-foreground sm:text-[11px]"
+          >
+            <LayersIcon />
+            <span className="whitespace-nowrap">Map Overlay</span>
+          </button>
         </>
       )}
 

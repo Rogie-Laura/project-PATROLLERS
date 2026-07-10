@@ -19,7 +19,7 @@ function TrackReviewPageContent() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
-  const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
+  const { layers: mapViewLayers } = useMapViewOptions();
   const { loading: billingGateLoading, blocked: billingBlocked, message: billingMessage } =
     useCommandBillingGate(user);
 
@@ -102,8 +102,6 @@ function TrackReviewPageContent() {
         showBasemap
         basemapId={basemapId}
         onBasemapChange={setBasemapId}
-        mapViewLayers={mapViewLayers}
-        onMapViewLayerChange={setMapViewLayer}
       />
       <TrackReview
         basemapId={basemapId}

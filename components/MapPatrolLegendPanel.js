@@ -57,15 +57,6 @@ export default function MapPatrolLegendPanel({
 
   return (
     <>
-      {open && (
-        <button
-          type="button"
-          className="absolute inset-0 z-[540] cursor-default bg-black/20"
-          aria-label="Close map legend panel"
-          onClick={handleClose}
-        />
-      )}
-
       <div className="pointer-events-none absolute left-3 top-3 z-[550] flex flex-col items-start gap-2">
         <button
           type="button"
