@@ -35,7 +35,7 @@ import {
 import WeatherMapLayer from "@/components/WeatherMapLayer";
 import CycloneTrackLayer from "@/components/CycloneTrackLayer";
 import EstablishmentMapLayer from "@/components/EstablishmentMapLayer";
-import TaalHazardMapLayer from "@/components/TaalHazardMapLayer";
+import TaalDangerZoneMapLayer from "@/components/TaalDangerZoneMapLayer";
 import { MAP_WEATHER_OVERLAY_NONE } from "@/lib/mapWeatherOverlay";
 
 function patrolKey(location) {
@@ -362,7 +362,7 @@ export default function PatrolMap({
   weatherOverlay = MAP_WEATHER_OVERLAY_NONE,
   showEstablishments = false,
   establishments = [],
-  taalHazardLayers = [],
+  showTaalDangerZones = false,
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -406,7 +406,7 @@ export default function PatrolMap({
           enabled={showEstablishments}
           establishments={establishments}
         />
-        <TaalHazardMapLayer layerIds={taalHazardLayers} />
+        <TaalDangerZoneMapLayer enabled={showTaalDangerZones} />
 
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />

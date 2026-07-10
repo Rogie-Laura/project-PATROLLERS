@@ -11,7 +11,7 @@ import {
   MAP_WEATHER_OVERLAY_NONE,
   MAP_WEATHER_OVERLAY_OPTIONS,
 } from "@/lib/mapWeatherOverlay";
-import { TAAL_HAZARD_LAYER_OPTIONS } from "@/lib/mapTaalHazardOverlay";
+import { TAAL_DANGER_ZONE_RINGS } from "@/lib/mapTaalDangerZones";
 
 function MapIcon() {
   return (
@@ -235,8 +235,8 @@ function MapOverlayModal({
   establishmentsLoading = false,
   establishmentsCount = 0,
   establishmentsError = null,
-  taalHazardLayers = [],
-  onToggleTaalHazardLayer,
+  showTaalDangerZones = false,
+  onShowTaalDangerZonesChange,
 }) {
   const [weatherStatus, setWeatherStatus] = useState({
     rainRadar: true,
@@ -355,42 +355,29 @@ function MapOverlayModal({
             )}
           </div>
 
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-              Taal Volcano Hazards
-            </p>
-            <div className="space-y-2 rounded-lg border border-border/60 bg-background/40 px-4 py-3">
-              {TAAL_HAZARD_LAYER_OPTIONS.filter((option) => option.id !== "none").map(
-                (option) => (
-                  <label key={option.id} className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 size-4 rounded border-border/70 accent-red-500"
-                      checked={taalHazardLayers.includes(option.id)}
-                      disabled={!onToggleTaalHazardLayer}
-                      onChange={() => onToggleTaalHazardLayer?.(option.id)}
-                    />
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <span
-                          className="inline-block size-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: option.color }}
-                          aria-hidden
-                        />
-                        {option.label}
-                      </span>
-                      <span className="mt-0.5 block text-xs leading-relaxed text-muted">
-                        {option.description}
-                      </span>
-                    </span>
-                  </label>
-                ),
-              )}
-            </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-muted">
-              Source: PHIVOLCS Batangas provincial hazard maps (2020–2025). For
-              official reference only — not a real-time alert.
-            </p>
+          <div className="rounded-lg border border-border/60 bg-background/40 px-4 py-3">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 rounded border-border/70 accent-red-500"
+                checked={showTaalDangerZones}
+                disabled={!onShowTaalDangerZonesChange}
+                onChange={(e) => onShowTaalDangerZonesChange?.(e.target.checked)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  Taal Danger Zones (km)
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted">
+                  Concentric rings from Taal main crater:{" "}
+                  {TAAL_DANGER_ZONE_RINGS.map((ring) => ring.label).join(", ")}.
+                </span>
+                <span className="mt-2 block text-[11px] leading-relaxed text-muted">
+                  PHIVOLCS reference radii for planning — not a live alert level
+                  bulletin.
+                </span>
+              </span>
+            </label>
           </div>
 
           <div className="rounded-lg border border-border/60 bg-background/40 px-4 py-3">
@@ -700,8 +687,8 @@ export default function MapToolbar({
   establishmentsLoading = false,
   establishmentsCount = 0,
   establishmentsError = null,
-  taalHazardLayers = [],
-  onToggleTaalHazardLayer,
+  showTaalDangerZones = false,
+  onShowTaalDangerZonesChange,
   patrolLocations,
   onPatrolSearchSelect,
   patrolSearchQuery = "",
@@ -728,8 +715,8 @@ export default function MapToolbar({
         establishmentsLoading={establishmentsLoading}
         establishmentsCount={establishmentsCount}
         establishmentsError={establishmentsError}
-        taalHazardLayers={taalHazardLayers}
-        onToggleTaalHazardLayer={onToggleTaalHazardLayer}
+        showTaalDangerZones={showTaalDangerZones}
+        onShowTaalDangerZonesChange={onShowTaalDangerZonesChange}
       />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {
