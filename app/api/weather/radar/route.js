@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const RAINVIEWER_META_URL = "https://api.rainviewer.com/public/weather-maps.json";
+/**
+ * LibreWXR — RainViewer-compatible free weather maps API.
+ * RainViewer free tier (2026+) no longer serves satellite IR or multi-color radar.
+ * @see https://librewxr.net/
+ */
+const WEATHER_MAPS_URL = "https://api.librewxr.net/public/weather-maps.json";
 
-/** NEXRAD Level III — vivid blues→yellow→red, closer to Zoom Earth radar look. */
+/** NEXRAD Level III — vivid blues→yellow→red (Zoom Earth–like). */
 const RADAR_COLOR_SCHEME = 6;
-const TILE_SIZE = 512;
+const TILE_SIZE = 256;
 /** smooth_snow: blur on, snow colors on */
 const RADAR_OPTIONS = "1_1";
 
@@ -21,19 +26,19 @@ function tileTemplate(host, path, { color = 0, options = "0_0" } = {}) {
 
 export async function GET() {
   try {
-    const res = await fetch(RAINVIEWER_META_URL, { next: { revalidate: 300 } });
+    const res = await fetch(WEATHER_MAPS_URL, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 180 },
+    });
     if (!res.ok) {
       return NextResponse.json(
-        { error: "Could not load rain radar metadata." },
+        { error: "Could not load weather map metadata." },
         { status: 502 },
       );
     }
 
     const data = await res.json();
-    const host = String(data?.host ?? "https://tilecache.rainviewer.com").replace(
-      /\/$/,
-      "",
-    );
+    const host = String(data?.host ?? "https://api.librewxr.net").replace(/\/$/, "");
     const radarPast = Array.isArray(data?.radar?.past) ? data.radar.past : [];
     const radarNowcast = Array.isArray(data?.radar?.nowcast)
       ? data.radar.nowcast
@@ -58,6 +63,7 @@ export async function GET() {
 
     return NextResponse.json({
       ok: true,
+      provider: "librewxr",
       host,
       path: radarPath,
       time: radarLatest.time ?? null,
@@ -70,10 +76,11 @@ export async function GET() {
       satelliteTileUrlTemplate: satellitePath
         ? tileTemplate(host, satellitePath, { color: 0, options: "0_0" })
         : null,
+      hasSatellite: Boolean(satellitePath),
     });
   } catch {
     return NextResponse.json(
-      { error: "Could not load rain radar metadata." },
+      { error: "Could not load weather map metadata." },
       { status: 502 },
     );
   }

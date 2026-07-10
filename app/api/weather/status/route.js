@@ -6,7 +6,9 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     rainRadar: true,
+    satelliteIr: true,
     typhoonTrack: true,
     openWeatherMap: Boolean(process.env.OPENWEATHERMAP_API_KEY?.trim()),
+    provider: "librewxr",
   });
 }

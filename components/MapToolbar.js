@@ -353,11 +353,17 @@ function MapOverlayModal({
             )}
             {activeOption?.id === "weatherMap" && (
               <p className="mt-2 text-[11px] leading-relaxed text-muted">
-                Colorful live rain radar (NEXRAD palette) over infrared clouds
-                when available. Tip: set basemap to{" "}
-                <span className="text-foreground">Satellite</span> or{" "}
-                <span className="text-foreground">Carto Dark</span> for a Zoom
+                Satellite IR underlay + NEXRAD rain radar on top (LibreWXR /
+                NOAA). Tip: basemap{" "}
+                <span className="text-foreground">Carto Dark</span> or{" "}
+                <span className="text-foreground">Satellite</span> for a Zoom
                 Earth–like look.
+              </p>
+            )}
+            {activeOption?.id === "satelliteIr" && (
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                Global satellite mosaic (GOES + Himawari + Meteosat). Day =
+                visible clouds; night = infrared cold cloud tops.
               </p>
             )}
             {activeOption?.id === "typhoonTrack" && (

@@ -20,20 +20,16 @@ const OWM_LAYER_BY_OVERLAY = {
 
 const RADAR_TILE_OPTS = {
   opacity: 0.78,
-  maxNativeZoom: 7,
+  maxNativeZoom: 12,
   maxZoom: 19,
-  tileSize: 512,
-  zoomOffset: -1,
-  attribution: "RainViewer",
+  attribution: "LibreWXR",
 };
 
 const SATELLITE_TILE_OPTS = {
-  opacity: 0.58,
-  maxNativeZoom: 7,
+  opacity: 0.72,
+  maxNativeZoom: 8,
   maxZoom: 19,
-  tileSize: 512,
-  zoomOffset: -1,
-  attribution: "RainViewer",
+  attribution: "LibreWXR · NOAA GMGSI",
 };
 
 const CLOUD_FALLBACK_OPTS = {
@@ -84,7 +80,7 @@ export default function WeatherMapLayer({ overlayId = MAP_WEATHER_OVERLAY_NONE }
       radarLayerRef.current = layer;
     }
 
-    async function mountRainViewerLayers({
+    async function mountWeatherLayers({
       radar = false,
       satellite = false,
       cloudFallback = false,
@@ -102,21 +98,15 @@ export default function WeatherMapLayer({ overlayId = MAP_WEATHER_OVERLAY_NONE }
 
       if (satellite && hasSatellite) {
         addUnderlay(data.satelliteTileUrlTemplate, SATELLITE_TILE_OPTS);
-      } else if (cloudFallback && hasOwm) {
+      } else if ((satellite || cloudFallback) && hasOwm && !hasSatellite) {
         addUnderlay(
           `/api/weather/tile?layer=clouds_new&z={z}&x={x}&y={y}`,
           CLOUD_FALLBACK_OPTS,
         );
       }
 
-      if (radar) {
+      if (radar && data?.tileUrlTemplate) {
         addRadar(data.tileUrlTemplate);
-      } else if (satellite && !hasSatellite && hasOwm) {
-        // Satellite IR alone unavailable — show OWM clouds instead.
-        addUnderlay(
-          `/api/weather/tile?layer=clouds_new&z={z}&x={x}&y={y}`,
-          CLOUD_FALLBACK_OPTS,
-        );
       }
 
       refreshTimerRef.current = setInterval(async () => {
@@ -141,7 +131,7 @@ export default function WeatherMapLayer({ overlayId = MAP_WEATHER_OVERLAY_NONE }
         } catch {
           /* keep current frames */
         }
-      }, 5 * 60 * 1000);
+      }, 3 * 60 * 1000);
     }
 
     function mountOpenWeatherLayer() {
@@ -162,17 +152,15 @@ export default function WeatherMapLayer({ overlayId = MAP_WEATHER_OVERLAY_NONE }
     }
 
     if (overlayId === MAP_WEATHER_OVERLAY_WEATHER_MAP) {
-      mountRainViewerLayers({
+      mountWeatherLayers({
         radar: true,
         satellite: true,
         cloudFallback: true,
       }).catch(() => {});
     } else if (overlayId === MAP_WEATHER_OVERLAY_RAIN_RADAR) {
-      mountRainViewerLayers({ radar: true }).catch(() => {});
+      mountWeatherLayers({ radar: true }).catch(() => {});
     } else if (overlayId === MAP_WEATHER_OVERLAY_SATELLITE_IR) {
-      mountRainViewerLayers({ satellite: true, cloudFallback: true }).catch(
-        () => {},
-      );
+      mountWeatherLayers({ satellite: true, cloudFallback: true }).catch(() => {});
     } else if (
       overlayId !== MAP_WEATHER_OVERLAY_TYPHOON_TRACK &&
       OWM_LAYER_BY_OVERLAY[overlayId]
