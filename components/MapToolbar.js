@@ -12,6 +12,10 @@ import {
   MAP_WEATHER_OVERLAY_OPTIONS,
 } from "@/lib/mapWeatherOverlay";
 import { TAAL_DANGER_ZONE_RINGS } from "@/lib/mapTaalDangerZones";
+import {
+  FLOOD_PRONE_OVERLAY,
+  STORM_SURGE_OVERLAY,
+} from "@/lib/mapHydrometOverlay";
 
 function MapIcon() {
   return (
@@ -237,6 +241,10 @@ function MapOverlayModal({
   establishmentsError = null,
   showTaalDangerZones = false,
   onShowTaalDangerZonesChange,
+  showFloodProne = false,
+  onShowFloodProneChange,
+  showStormSurge = false,
+  onShowStormSurgeChange,
 }) {
   const [weatherStatus, setWeatherStatus] = useState({
     rainRadar: true,
@@ -375,6 +383,46 @@ function MapOverlayModal({
                 <span className="mt-2 block text-[11px] leading-relaxed text-muted">
                   PHIVOLCS reference radii for planning — not a live alert level
                   bulletin.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="rounded-lg border border-border/60 bg-background/40 px-4 py-3">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 rounded border-border/70 accent-sky-500"
+                checked={showStormSurge}
+                disabled={!onShowStormSurgeChange}
+                onChange={(e) => onShowStormSurgeChange?.(e.target.checked)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  {STORM_SURGE_OVERLAY.label}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted">
+                  {STORM_SURGE_OVERLAY.description}
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="rounded-lg border border-border/60 bg-background/40 px-4 py-3">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 rounded border-border/70 accent-cyan-600"
+                checked={showFloodProne}
+                disabled={!onShowFloodProneChange}
+                onChange={(e) => onShowFloodProneChange?.(e.target.checked)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  {FLOOD_PRONE_OVERLAY.label}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted">
+                  {FLOOD_PRONE_OVERLAY.description}
                 </span>
               </span>
             </label>
@@ -689,6 +737,10 @@ export default function MapToolbar({
   establishmentsError = null,
   showTaalDangerZones = false,
   onShowTaalDangerZonesChange,
+  showFloodProne = false,
+  onShowFloodProneChange,
+  showStormSurge = false,
+  onShowStormSurgeChange,
   patrolLocations,
   onPatrolSearchSelect,
   patrolSearchQuery = "",
@@ -717,6 +769,10 @@ export default function MapToolbar({
         establishmentsError={establishmentsError}
         showTaalDangerZones={showTaalDangerZones}
         onShowTaalDangerZonesChange={onShowTaalDangerZonesChange}
+        showFloodProne={showFloodProne}
+        onShowFloodProneChange={onShowFloodProneChange}
+        showStormSurge={showStormSurge}
+        onShowStormSurgeChange={onShowStormSurgeChange}
       />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {

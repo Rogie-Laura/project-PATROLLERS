@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:hydromet-overlays": "node scripts/build-calabarzon-hydromet-overlays.mjs",
     "start": "next start",
     "lint": "eslint"
   },
@@ -21,8 +22,12 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.8",
+    "@turf/helpers": "^7.3.5",
+    "@turf/simplify": "^7.3.5",
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.3.3",
+    "jszip": "^3.10.1",
+    "shpjs": "^6.2.0",
     "tailwindcss": "^4.1.8"
   }
 }
