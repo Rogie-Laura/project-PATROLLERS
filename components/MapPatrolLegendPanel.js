@@ -66,12 +66,34 @@ export default function MapPatrolLegendPanel({
         />
       )}
 
-      <div className="pointer-events-none absolute bottom-3 right-3 z-[550] flex items-end justify-end gap-2">
+      <div className="pointer-events-none absolute left-3 top-3 z-[550] flex flex-col items-start gap-2">
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-600/50 bg-zinc-800/95 text-zinc-100 shadow-lg shadow-black/25 backdrop-blur-sm transition hover:border-zinc-500/70 hover:bg-zinc-700/95"
+          aria-label={open ? "Close map legend" : "Open map legend"}
+          aria-expanded={open}
+        >
+          {open ? (
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+          ) : (
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path
+                fillRule="evenodd"
+                d="M2.75 5.75a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+        </button>
+
         <div
           className={`pointer-events-auto flex max-h-[min(72vh,560px)] flex-col overflow-hidden rounded-xl border border-zinc-600/45 bg-zinc-800/92 shadow-lg shadow-black/30 backdrop-blur-sm transition-all duration-300 ease-out ${
             open
-              ? "translate-x-0 opacity-100"
-              : "pointer-events-none translate-x-4 opacity-0"
+              ? "translate-y-0 opacity-100"
+              : "pointer-events-none -translate-y-3 opacity-0"
           }`}
           style={{ width: PANEL_WIDTH }}
           aria-hidden={!open}
@@ -110,28 +132,6 @@ export default function MapPatrolLegendPanel({
             ))}
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={handleToggle}
-          className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-600/50 bg-zinc-800/95 text-zinc-100 shadow-lg shadow-black/25 backdrop-blur-sm transition hover:border-zinc-500/70 hover:bg-zinc-700/95"
-          aria-label={open ? "Close map legend" : "Open map legend"}
-          aria-expanded={open}
-        >
-          {open ? (
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-            </svg>
-          ) : (
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-              <path
-                fillRule="evenodd"
-                d="M2.75 5.75a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75z"
-                clipRule="evenodd"
-              />
-            </svg>
-          )}
-        </button>
       </div>
     </>
   );
