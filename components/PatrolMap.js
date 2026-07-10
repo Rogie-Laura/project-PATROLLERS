@@ -364,7 +364,6 @@ export default function PatrolMap({
   showEstablishments = false,
   establishments = [],
   showTaalDangerZones = false,
-  showFloodProne = false,
   showStormSurge = false,
 }) {
   const basemap = getBasemapById(basemapId);
@@ -410,10 +409,7 @@ export default function PatrolMap({
           establishments={establishments}
         />
         <TaalDangerZoneMapLayer enabled={showTaalDangerZones} />
-        <HydrometHazardMapLayer
-          showFloodProne={showFloodProne}
-          showStormSurge={showStormSurge}
-        />
+        <HydrometHazardMapLayer showStormSurge={showStormSurge} />
 
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />

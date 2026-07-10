@@ -1,5 +1,5 @@
 /**
- * Build CALABARZON flood-prone and storm-surge overlays from Project NOAH shapefiles.
+ * Build CALABARZON storm-surge overlay from Project NOAH shapefiles.
  * Source: https://huggingface.co/datasets/bettergovph/project-noah-hazard-maps
  * Run: npm run build:hydromet-overlays
  */
@@ -15,7 +15,6 @@ const HF_BASE =
 
 const CALABARZON_PROVINCES = ["Cavite", "Batangas", "Laguna", "Rizal", "Quezon"];
 
-const FLOOD_LABELS = { 1: "Low", 2: "Medium", 3: "High" };
 const STORM_SURGE_LABELS = [
   "SSA 1 (2.01–3 m)",
   "SSA 2 (3.01–4 m)",
@@ -60,40 +59,6 @@ async function downloadNoah(relativePath) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-async function buildFloodProneOverlays() {
-  const floodDir = path.join(OUT_DIR, "flood-prone");
-  await fs.mkdir(floodDir, { recursive: true });
-
-  for (const province of CALABARZON_PROVINCES) {
-    console.log(`  flood ${province}`);
-    const geojson = await shp(
-      await downloadNoah(`/Flood/100yr/${encodeURIComponent(province)}.zip`),
-    );
-    const features = (geojson.features ?? [])
-      .filter((feature) => Number(feature.properties?.Var) >= 2)
-      .map((feature) => {
-      const level = Number(feature.properties?.Var);
-      return {
-        type: "Feature",
-        properties: {
-          province,
-          level,
-          label: FLOOD_LABELS[level] ?? `Level ${level}`,
-        },
-        geometry: {
-          ...feature.geometry,
-          coordinates: decimateCoordinates(feature.geometry.coordinates, 250),
-        },
-      };
-    });
-
-    const outPath = path.join(floodDir, `${province.toLowerCase()}.geojson`);
-    await fs.writeFile(outPath, JSON.stringify({ type: "FeatureCollection", features }));
-    const sizeMb = (Buffer.byteLength(JSON.stringify(features)) / (1024 * 1024)).toFixed(2);
-    console.log(`    wrote ${path.basename(outPath)} (${features.length} zones, ${sizeMb} MB)`);
-  }
-}
-
 async function buildStormSurgeOverlay() {
   const features = [];
 
@@ -126,6 +91,7 @@ async function buildStormSurgeOverlay() {
     }
   }
 
+  await fs.mkdir(OUT_DIR, { recursive: true });
   const outPath = path.join(OUT_DIR, "storm-surge.geojson");
   await fs.writeFile(outPath, JSON.stringify({ type: "FeatureCollection", features }));
   const sizeMb = (Buffer.byteLength(JSON.stringify(features)) / (1024 * 1024)).toFixed(2);
@@ -133,9 +99,6 @@ async function buildStormSurgeOverlay() {
 }
 
 async function main() {
-  await fs.mkdir(OUT_DIR, { recursive: true });
-  console.log("Building flood-prone overlays…");
-  await buildFloodProneOverlays();
   console.log("Building storm-surge overlay…");
   await buildStormSurgeOverlay();
   console.log("Done.");

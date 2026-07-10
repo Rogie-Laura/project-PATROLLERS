@@ -12,10 +12,7 @@ import {
   MAP_WEATHER_OVERLAY_OPTIONS,
 } from "@/lib/mapWeatherOverlay";
 import { TAAL_DANGER_ZONE_RINGS } from "@/lib/mapTaalDangerZones";
-import {
-  FLOOD_PRONE_OVERLAY,
-  STORM_SURGE_OVERLAY,
-} from "@/lib/mapHydrometOverlay";
+import { STORM_SURGE_OVERLAY } from "@/lib/mapHydrometOverlay";
 
 function MapIcon() {
   return (
@@ -241,8 +238,6 @@ function MapOverlayModal({
   establishmentsError = null,
   showTaalDangerZones = false,
   onShowTaalDangerZonesChange,
-  showFloodProne = false,
-  onShowFloodProneChange,
   showStormSurge = false,
   onShowStormSurgeChange,
 }) {
@@ -403,26 +398,6 @@ function MapOverlayModal({
                 </span>
                 <span className="mt-1 block text-xs leading-relaxed text-muted">
                   {STORM_SURGE_OVERLAY.description}
-                </span>
-              </span>
-            </label>
-          </div>
-
-          <div className="rounded-lg border border-border/60 bg-background/40 px-4 py-3">
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                className="mt-0.5 size-4 rounded border-border/70 accent-cyan-600"
-                checked={showFloodProne}
-                disabled={!onShowFloodProneChange}
-                onChange={(e) => onShowFloodProneChange?.(e.target.checked)}
-              />
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-foreground">
-                  {FLOOD_PRONE_OVERLAY.label}
-                </span>
-                <span className="mt-1 block text-xs leading-relaxed text-muted">
-                  {FLOOD_PRONE_OVERLAY.description}
                 </span>
               </span>
             </label>
@@ -737,8 +712,6 @@ export default function MapToolbar({
   establishmentsError = null,
   showTaalDangerZones = false,
   onShowTaalDangerZonesChange,
-  showFloodProne = false,
-  onShowFloodProneChange,
   showStormSurge = false,
   onShowStormSurgeChange,
   patrolLocations,
@@ -769,8 +742,6 @@ export default function MapToolbar({
         establishmentsError={establishmentsError}
         showTaalDangerZones={showTaalDangerZones}
         onShowTaalDangerZonesChange={onShowTaalDangerZonesChange}
-        showFloodProne={showFloodProne}
-        onShowFloodProneChange={onShowFloodProneChange}
         showStormSurge={showStormSurge}
         onShowStormSurgeChange={onShowStormSurgeChange}
       />

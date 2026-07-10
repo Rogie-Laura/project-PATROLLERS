@@ -78,8 +78,7 @@ export default function MonitorDashboard({ user, onLogout }) {
   const { weatherOverlay, setWeatherOverlay } = useMapWeatherOverlay();
   const [showEstablishments, setShowEstablishments] = useEstablishmentOverlay();
   const [showTaalDangerZones, setShowTaalDangerZones] = useTaalDangerZoneOverlay();
-  const { showFloodProne, setShowFloodProne, showStormSurge, setShowStormSurge } =
-    useHydrometOverlay();
+  const { showStormSurge, setShowStormSurge } = useHydrometOverlay();
   const [establishments, setEstablishments] = useState([]);
   const [establishmentsLoading, setEstablishmentsLoading] = useState(false);
   const [establishmentsError, setEstablishmentsError] = useState(null);
@@ -866,8 +865,6 @@ export default function MonitorDashboard({ user, onLogout }) {
         establishmentsError={establishmentsError}
         showTaalDangerZones={showTaalDangerZones}
         onShowTaalDangerZonesChange={setShowTaalDangerZones}
-        showFloodProne={showFloodProne}
-        onShowFloodProneChange={setShowFloodProne}
         showStormSurge={showStormSurge}
         onShowStormSurgeChange={setShowStormSurge}
         patrolLocations={latestLocations}
@@ -899,7 +896,6 @@ export default function MonitorDashboard({ user, onLogout }) {
             showEstablishments={showEstablishments}
             establishments={establishments}
             showTaalDangerZones={showTaalDangerZones}
-            showFloodProne={showFloodProne}
             showStormSurge={showStormSurge}
           />
 
