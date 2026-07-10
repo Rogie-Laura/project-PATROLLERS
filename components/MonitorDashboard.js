@@ -8,8 +8,6 @@ import MonitorHeader from "@/components/MonitorHeader";
 import CallResponsePanel from "@/components/CallResponsePanel";
 import PatrolDetailPanel from "@/components/PatrolDetailPanel";
 import { trackReviewHref } from "@/lib/trackReview";
-import PatrolStatusListPanel from "@/components/PatrolStatusListPanel";
-import PatrolStatusFloatingPanel from "@/components/PatrolStatusFloatingPanel";
 import { DEFAULT_BASEMAP_ID } from "@/lib/mapBasemaps";
 import { getUnitKey } from "@/lib/dispatchUnits";
 import { callResponseFromRow } from "@/lib/callResponses";
@@ -44,7 +42,6 @@ import {
   DEFAULT_COMMAND_FEATURE_FLAGS,
 } from "@/lib/auth/commandFeatureFlags";
 import { filterPatrolLocations } from "@/lib/patrolSearch";
-import { usePatrolStatusPopout } from "@/lib/usePatrolStatusPopout";
 import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
 import ForceLocationPanel from "@/components/ForceLocationPanel";
@@ -221,44 +218,6 @@ export default function MonitorDashboard({ user, onLogout }) {
       longitude: location.longitude,
       at: Date.now(),
     });
-  }, []);
-
-  const {
-    detached: patrolStatusDetached,
-    externalOpen: patrolStatusExternalOpen,
-    popoutActive: patrolStatusPopoutActive,
-    popoutBlocked: patrolStatusPopoutBlocked,
-    openDetach: openPatrolStatusDetach,
-    openExternal: openPatrolStatusExternal,
-    closeDetach: closePatrolStatusDetach,
-  } = usePatrolStatusPopout({
-    enabled: showPatrolStatus,
-    selectedPatrolKey,
-    onSelectLocation: handleSelectPatrolFromList,
-  });
-
-  const [externalWindowHintDismissed, setExternalWindowHintDismissed] = useState(false);
-  const mapAreaRef = useRef(null);
-  const [mapAreaSize, setMapAreaSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    if (!patrolStatusExternalOpen) {
-      setExternalWindowHintDismissed(false);
-    }
-  }, [patrolStatusExternalOpen]);
-
-  useEffect(() => {
-    const el = mapAreaRef.current;
-    if (!el) return undefined;
-
-    const update = () => {
-      setMapAreaSize({ width: el.clientWidth, height: el.clientHeight });
-    };
-
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
   }, []);
 
   const flyToCall = callResponses.find((c) => c.id === flyToCallId);
@@ -866,7 +825,7 @@ export default function MonitorDashboard({ user, onLogout }) {
       />
 
       <section className="relative min-h-0 flex-1 overflow-hidden">
-        <div ref={mapAreaRef} className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
           <PatrolMap
             locations={mapLocations}
             basemapId={basemapId}
@@ -953,61 +912,6 @@ export default function MonitorDashboard({ user, onLogout }) {
                     setError(err.message ?? "Could not alert mobile unit.");
                   }
                 }}
-              />
-            </div>
-          </div>
-        )}
-
-        {patrolStatusDetached && !patrolStatusExternalOpen && showPatrolStatus && (
-          <PatrolStatusFloatingPanel
-            locations={latestLocations}
-            selectedPatrolKey={selectedPatrolKey}
-            onSelectPatrol={handleSelectPatrolFromList}
-            nowMs={nowMs}
-            intervalSeconds={intervalSeconds}
-            onDock={closePatrolStatusDetach}
-            onOpenWindow={openPatrolStatusExternal}
-            externalWindowActive={patrolStatusExternalOpen}
-          />
-        )}
-
-        {patrolStatusExternalOpen &&
-          showPatrolStatus &&
-          !externalWindowHintDismissed && (
-          <div className="pointer-events-auto absolute bottom-4 right-4 z-[500] max-w-[260px] rounded-lg border border-border/60 bg-card/95 pr-1 shadow-lg backdrop-blur-sm">
-            <div className="flex items-start gap-1 px-3 py-2">
-              <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted">
-                Patrol status is in a separate window. Use{" "}
-                <span className="font-medium text-foreground">Dock</span> in that window&apos;s
-                title bar, or close the window.
-              </p>
-              <button
-                type="button"
-                onClick={() => setExternalWindowHintDismissed(true)}
-                className="shrink-0 rounded p-0.5 text-muted transition hover:bg-background/80 hover:text-foreground"
-                aria-label="Dismiss reminder"
-                title="Close reminder"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        )}
-
-        {showPatrolStatus &&
-          !patrolStatusPopoutActive &&
-          !selectedPatrol &&
-          !hasActiveCalls && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-[500] w-[min(100%,340px)]">
-            <div className="pointer-events-auto h-full w-full">
-              <PatrolStatusListPanel
-                locations={latestLocations}
-                selectedPatrolKey={selectedPatrolKey}
-                onSelectPatrol={handleSelectPatrolFromList}
-                nowMs={nowMs}
-                intervalSeconds={intervalSeconds}
-                onDetach={openPatrolStatusDetach}
-                detachBlocked={patrolStatusPopoutBlocked}
               />
             </div>
           </div>
