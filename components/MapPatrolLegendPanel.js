@@ -57,38 +57,32 @@ export default function MapPatrolLegendPanel({
 
   return (
     <div className="pointer-events-none absolute inset-y-0 left-0 z-[550]">
+      {/* Behind the drawer so the slide covers it */}
       <button
         type="button"
         onClick={handleToggle}
-        className="pointer-events-auto absolute left-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-600/50 bg-zinc-800/95 text-zinc-100 shadow-lg shadow-black/25 backdrop-blur-sm transition hover:border-zinc-500/70 hover:bg-zinc-700/95"
-        aria-label={open ? "Close map legend" : "Open map legend"}
+        className="pointer-events-auto absolute left-3 top-3 z-0 flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-600/50 bg-zinc-800/95 text-zinc-100 shadow-lg shadow-black/25 backdrop-blur-sm transition hover:border-zinc-500/70 hover:bg-zinc-700/95"
+        aria-label="Open map legend"
         aria-expanded={open}
+        tabIndex={open ? -1 : 0}
       >
-        {open ? (
-          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-          </svg>
-        ) : (
-          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-            <path
-              fillRule="evenodd"
-              d="M2.75 5.75a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )}
+        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+          <path
+            fillRule="evenodd"
+            d="M2.75 5.75a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h13.5a.75.75 0 010 1.5H3.5a.75.75 0 01-.75-.75z"
+            clipRule="evenodd"
+          />
+        </svg>
       </button>
 
       <div
-        className={`pointer-events-auto absolute left-0 top-0 flex max-h-full flex-col overflow-hidden border-r border-zinc-600/45 bg-zinc-800/94 shadow-[8px_0_24px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-transform duration-300 ease-out ${
-          open
-            ? "translate-x-0"
-            : "pointer-events-none -translate-x-full"
+        className={`pointer-events-auto absolute left-0 top-0 z-10 flex max-h-full flex-col overflow-hidden border-r border-zinc-600/45 bg-zinc-800/94 shadow-[8px_0_24px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "pointer-events-none -translate-x-full"
         }`}
         style={{ width: PANEL_WIDTH }}
         aria-hidden={!open}
       >
-        <header className="flex shrink-0 items-center justify-between border-b border-zinc-600/40 bg-zinc-900/50 py-2 pl-14 pr-3.5">
+        <header className="flex shrink-0 items-center justify-between border-b border-zinc-600/40 bg-zinc-900/50 px-3.5 py-2.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-300">
             Map Legend
           </p>
