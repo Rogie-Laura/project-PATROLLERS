@@ -16,6 +16,7 @@ import { callResponseFromRow } from "@/lib/callResponses";
 import { radiusSlotsToMapRings, createDefaultRadiusRingSlots } from "@/lib/incidentRadiusRings";
 import { useMapViewOptions } from "@/lib/useMapViewOptions";
 import { useMapWeatherOverlay } from "@/lib/useMapWeatherOverlay";
+import { useEstablishmentOverlay } from "@/lib/useEstablishmentOverlay";
 import MapViewOverlays from "@/components/MapViewOverlays";
 import {
   clearCallResponseSession,
@@ -73,6 +74,10 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const { layers: mapViewLayers, setLayer: setMapViewLayer } = useMapViewOptions();
   const { weatherOverlay, setWeatherOverlay } = useMapWeatherOverlay();
+  const [showEstablishments, setShowEstablishments] = useEstablishmentOverlay();
+  const [establishments, setEstablishments] = useState([]);
+  const [establishmentsLoading, setEstablishmentsLoading] = useState(false);
+  const [establishmentsError, setEstablishmentsError] = useState(null);
   const showPatrolStatus = mapViewLayers.patrolStatus;
   const [selectedPatrol, setSelectedPatrol] = useState(null);
 
@@ -140,6 +145,40 @@ export default function MonitorDashboard({ user, onLogout }) {
   const [forceLocationOpen, setForceLocationOpen] = useState(false);
   const [generateReportOpen, setGenerateReportOpen] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!showEstablishments) return undefined;
+
+    let cancelled = false;
+    setEstablishmentsLoading(true);
+    setEstablishmentsError(null);
+
+    fetch("/api/monitor/establishments")
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data?.ok) {
+          throw new Error(data?.error ?? "Unable to load establishments.");
+        }
+        if (cancelled) return;
+        setEstablishments(Array.isArray(data.establishments) ? data.establishments : []);
+      })
+      .catch((fetchError) => {
+        if (cancelled) return;
+        setEstablishments([]);
+        setEstablishmentsError(
+          fetchError instanceof Error
+            ? fetchError.message
+            : "Unable to load establishments.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setEstablishmentsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showEstablishments]);
 
   const incidentRadiusRings = useMemo(
     () => radiusSlotsToMapRings(mapRadiusSlots),
@@ -815,6 +854,11 @@ export default function MonitorDashboard({ user, onLogout }) {
         onAllIncidentsChange={setShowAllIncidents}
         weatherOverlay={weatherOverlay}
         onWeatherOverlayChange={setWeatherOverlay}
+        showEstablishments={showEstablishments}
+        onShowEstablishmentsChange={setShowEstablishments}
+        establishmentsLoading={establishmentsLoading}
+        establishmentsCount={establishments.length}
+        establishmentsError={establishmentsError}
         patrolLocations={latestLocations}
         onPatrolSearchSelect={handleSelectPatrolFromList}
         patrolSearchQuery={patrolSearchQuery}
@@ -841,6 +885,8 @@ export default function MonitorDashboard({ user, onLogout }) {
             nowMs={nowMs}
             locationIntervalSeconds={intervalSeconds}
             weatherOverlay={weatherOverlay}
+            showEstablishments={showEstablishments}
+            establishments={establishments}
           />
 
           {error && (

@@ -229,6 +229,11 @@ function MapOverlayModal({
   onClose,
   weatherOverlay,
   onWeatherOverlayChange,
+  showEstablishments = false,
+  onShowEstablishmentsChange,
+  establishmentsLoading = false,
+  establishmentsCount = 0,
+  establishmentsError = null,
 }) {
   const [weatherStatus, setWeatherStatus] = useState({
     rainRadar: true,
@@ -345,6 +350,39 @@ function MapOverlayModal({
                 Blue line = path; shaded areas = forecast cone / alert zones.
               </p>
             )}
+          </div>
+
+          <div className="rounded-lg border border-border/60 bg-background/40 px-4 py-3">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 rounded border-border/70 accent-amber-500"
+                checked={showEstablishments}
+                disabled={!onShowEstablishmentsChange || establishmentsLoading}
+                onChange={(e) => onShowEstablishmentsChange?.(e.target.checked)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-foreground">
+                  Establishments
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted">
+                  Plot PRO4A COMMAND establishments from the latest ROD upload.
+                  {establishmentsCount > 0
+                    ? ` ${establishmentsCount.toLocaleString("en-PH")} points loaded.`
+                    : ""}
+                </span>
+                {establishmentsLoading ? (
+                  <span className="mt-2 block text-[11px] text-amber-200/90">
+                    Loading establishment coordinates…
+                  </span>
+                ) : null}
+                {establishmentsError ? (
+                  <span className="mt-2 block text-[11px] text-red-300/90">
+                    {establishmentsError}
+                  </span>
+                ) : null}
+              </span>
+            </label>
           </div>
         </div>
 
@@ -616,6 +654,11 @@ export default function MapToolbar({
   onAllIncidentsChange,
   weatherOverlay,
   onWeatherOverlayChange,
+  showEstablishments = false,
+  onShowEstablishmentsChange,
+  establishmentsLoading = false,
+  establishmentsCount = 0,
+  establishmentsError = null,
   patrolLocations,
   onPatrolSearchSelect,
   patrolSearchQuery = "",
@@ -637,6 +680,11 @@ export default function MapToolbar({
         onClose={() => setMapOverlayOpen(false)}
         weatherOverlay={weatherOverlay}
         onWeatherOverlayChange={onWeatherOverlayChange}
+        showEstablishments={showEstablishments}
+        onShowEstablishmentsChange={onShowEstablishmentsChange}
+        establishmentsLoading={establishmentsLoading}
+        establishmentsCount={establishmentsCount}
+        establishmentsError={establishmentsError}
       />
       <nav className="flex min-w-0 shrink-0 items-center gap-1">
         {items.map((item) => {

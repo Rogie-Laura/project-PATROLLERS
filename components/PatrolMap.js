@@ -34,6 +34,7 @@ import {
 } from "@/lib/connectionState";
 import WeatherMapLayer from "@/components/WeatherMapLayer";
 import CycloneTrackLayer from "@/components/CycloneTrackLayer";
+import EstablishmentMapLayer from "@/components/EstablishmentMapLayer";
 import { MAP_WEATHER_OVERLAY_NONE } from "@/lib/mapWeatherOverlay";
 
 function patrolKey(location) {
@@ -358,6 +359,8 @@ export default function PatrolMap({
   nowMs = Date.now(),
   locationIntervalSeconds = 180,
   weatherOverlay = MAP_WEATHER_OVERLAY_NONE,
+  showEstablishments = false,
+  establishments = [],
 }) {
   const basemap = getBasemapById(basemapId);
 
@@ -382,6 +385,7 @@ export default function PatrolMap({
         maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
         className="h-full w-full"
         scrollWheelZoom
+        preferCanvas
         worldCopyJump={false}
       >
         <TileLayer
@@ -396,6 +400,10 @@ export default function PatrolMap({
 
         <WeatherMapLayer overlayId={weatherOverlay} />
         <CycloneTrackLayer overlayId={weatherOverlay} />
+        <EstablishmentMapLayer
+          enabled={showEstablishments}
+          establishments={establishments}
+        />
 
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />
