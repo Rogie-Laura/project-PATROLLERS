@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { authorizeCommandCenter } from "@/lib/auth/apiAuth";
-import { fetchLatestEstablishmentMapPoints } from "@/lib/establishments/commandEstablishments";
-import { isCommandSupabaseConfigured } from "@/lib/supabase/commandAdmin";
+import {
+  fetchLatestEstablishmentMapPoints,
+  isEstablishmentsSourceConfigured,
+} from "@/lib/establishments/commandEstablishments";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -11,12 +13,12 @@ export async function GET(request) {
   const { error: authError } = await authorizeCommandCenter(request);
   if (authError) return authError;
 
-  if (!isCommandSupabaseConfigured()) {
+  if (!isEstablishmentsSourceConfigured()) {
     return NextResponse.json(
       {
         ok: false,
         error:
-          "COMMAND Supabase is not configured. Set COMMAND_SUPABASE_URL and COMMAND_SUPABASE_SERVICE_ROLE_KEY.",
+          "Establishments source is not configured. Set PRO4A_COMMAND_API_URL + PATROLLERS_COMMAND_API_KEY, or COMMAND_SUPABASE_URL + COMMAND_SUPABASE_SERVICE_ROLE_KEY.",
       },
       { status: 503 },
     );
