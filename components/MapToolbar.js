@@ -347,7 +347,17 @@ function MapOverlayModal({
               <p className="mt-2 text-[11px] leading-relaxed text-amber-200/90">
                 Cloud and precipitation layers need{" "}
                 <code className="text-accent">OPENWEATHERMAP_API_KEY</code> in
-                Vercel env. Rain radar and typhoon track work without a key.
+                Vercel env. Weather map, rain radar, satellite IR, and typhoon
+                track work without a key.
+              </p>
+            )}
+            {activeOption?.id === "weatherMap" && (
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                Colorful live rain radar (NEXRAD palette) over infrared clouds
+                when available. Tip: set basemap to{" "}
+                <span className="text-foreground">Satellite</span> or{" "}
+                <span className="text-foreground">Carto Dark</span> for a Zoom
+                Earth–like look.
               </p>
             )}
             {activeOption?.id === "typhoonTrack" && (
