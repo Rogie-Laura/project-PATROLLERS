@@ -59,6 +59,7 @@ export default function EducationalInstitutionFormModal({
   );
 
   const canSave =
+    String(draft.schoolName ?? "").trim() &&
     String(draft.principalSupervisor ?? "").trim() &&
     String(draft.contactNumber ?? "").trim() &&
     String(draft.addressLocation ?? "").trim() &&
@@ -74,8 +75,8 @@ export default function EducationalInstitutionFormModal({
     mode === "edit" ? "Save changes?" : "Save Educational Institution marker?";
   const confirmDescription =
     mode === "edit"
-      ? `Update ${draft.typeLabel} — ${draft.addressLocation || "this marker"}?`
-      : `Add ${draft.typeLabel} for ${draft.unit || "this unit"} at the selected location?`;
+      ? `Update ${draft.schoolName || draft.typeLabel} — ${draft.addressLocation || "this marker"}?`
+      : `Add ${draft.schoolName || draft.typeLabel} for ${draft.unit || "this unit"} at the selected location?`;
 
   function setPollingCenter(next) {
     if (next) {
@@ -191,6 +192,18 @@ export default function EducationalInstitutionFormModal({
             </label>
 
             <label className="block text-xs font-medium text-muted">
+              Name of School <span className="text-accent">*</span>
+              <input
+                value={draft.schoolName ?? ""}
+                onChange={(event) =>
+                  onChange({ schoolName: event.target.value })
+                }
+                placeholder="Enter name of school"
+                className="mt-1 w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              />
+            </label>
+
+            <label className="block text-xs font-medium text-muted">
               Principal/School Supervisor <span className="text-accent">*</span>
               <input
                 value={draft.principalSupervisor ?? ""}
@@ -273,10 +286,14 @@ export default function EducationalInstitutionFormModal({
             </div>
 
             {isPollingCenter ? (
-              <div className="space-y-3 border-t border-border/60 pt-3">
-                <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted">
-                  ---Election Data---
-                </p>
+              <div className="space-y-3 rounded-xl border border-accent/30 bg-accent/5 p-3">
+                <div className="flex items-center gap-3" role="separator" aria-label="Election Data">
+                  <span className="h-px flex-1 bg-border/80" />
+                  <span className="shrink-0 rounded-md border border-accent/40 bg-card px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+                    Election Data
+                  </span>
+                  <span className="h-px flex-1 bg-border/80" />
+                </div>
 
                 <label className="block text-xs font-medium text-muted">
                   Number of Voters{" "}

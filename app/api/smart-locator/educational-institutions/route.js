@@ -9,7 +9,7 @@ import {
 import { filterPointsForUser, scopeFromUser } from "@/lib/smartLocator/scope";
 
 const SELECT_FIELDS =
-  "id, type, type_key, unit, office, principal_supervisor, contact_number, address_location, estimated_students, is_polling_center, number_of_voters, personnel, latitude, longitude, created_by, created_at, updated_at";
+  "id, type, type_key, unit, office, school_name, principal_supervisor, contact_number, address_location, estimated_students, is_polling_center, number_of_voters, personnel, latitude, longitude, created_by, created_at, updated_at";
 
 function parseCoordinates(body) {
   const latitude = Number(body?.latitude);
@@ -108,6 +108,16 @@ export async function POST(request) {
     return NextResponse.json({ error: coords.error }, { status: 400 });
   }
 
+  const schoolName = String(
+    body?.schoolName ?? body?.school_name ?? ""
+  ).trim();
+  if (!schoolName) {
+    return NextResponse.json(
+      { error: "Name of School is required." },
+      { status: 400 }
+    );
+  }
+
   const principalSupervisor = String(
     body?.principalSupervisor ?? body?.principal_supervisor ?? ""
   ).trim();
@@ -165,6 +175,7 @@ export async function POST(request) {
       type_key: typeMeta.key,
       unit: scope.unit,
       office: scope.office,
+      school_name: schoolName,
       principal_supervisor: principalSupervisor,
       contact_number: contactNumber,
       address_location: addressLocation,

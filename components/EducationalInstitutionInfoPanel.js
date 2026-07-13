@@ -26,7 +26,7 @@ export default function EducationalInstitutionInfoPanel({
               Educational Institutions
             </p>
             <h2 className="truncate text-sm font-semibold text-foreground">
-              {marker.type}
+              {marker.schoolName || marker.type}
             </h2>
           </div>
           <button
@@ -51,6 +51,7 @@ export default function EducationalInstitutionInfoPanel({
           <InfoRow label="Type" value={marker.type} />
           <InfoRow label="Unit" value={marker.unit || "—"} />
           <InfoRow label="Office" value={marker.office || "—"} />
+          <InfoRow label="Name of School" value={marker.schoolName || "—"} />
           <InfoRow
             label="Principal/School Supervisor"
             value={marker.principalSupervisor || "—"}
@@ -71,10 +72,18 @@ export default function EducationalInstitutionInfoPanel({
 
           {marker.isPollingCenter ? (
             <>
-              <div className="border-t border-border/50 pt-2">
-                <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted">
-                  ---Election Data---
-                </p>
+              <div
+                className="rounded-lg border border-accent/25 bg-accent/5 px-2.5 py-2"
+                role="separator"
+                aria-label="Election Data"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="h-px flex-1 bg-border/70" />
+                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+                    Election Data
+                  </span>
+                  <span className="h-px flex-1 bg-border/70" />
+                </div>
               </div>
               <InfoRow
                 label="Number of Voters"
@@ -146,7 +155,7 @@ export default function EducationalInstitutionInfoPanel({
       <ConfirmDialog
         open={confirmRemove}
         title="Remove Educational Institution marker?"
-        description={`Remove ${marker.type}${
+        description={`Remove ${marker.schoolName || marker.type}${
           marker.addressLocation ? ` — ${marker.addressLocation}` : ""
         } from the map? This cannot be undone.`}
         confirmLabel="Remove"

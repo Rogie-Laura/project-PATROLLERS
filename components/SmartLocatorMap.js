@@ -835,6 +835,7 @@ export default function SmartLocatorMap({
         typeLabel: typeMeta.typeLabel,
         unit: user?.unit ?? "",
         office: user?.office ?? "",
+        schoolName: "",
         principalSupervisor: "",
         contactNumber: "",
         addressLocation: "",
@@ -1061,6 +1062,7 @@ export default function SmartLocatorMap({
     try {
       const payload = {
         typeKey: eduDraft.typeKey,
+        schoolName: eduDraft.schoolName,
         principalSupervisor: eduDraft.principalSupervisor,
         contactNumber: eduDraft.contactNumber,
         addressLocation: eduDraft.addressLocation,
@@ -1356,6 +1358,7 @@ export default function SmartLocatorMap({
               typeLabel: typeMeta?.typeLabel ?? selectedEdu.type,
               unit: selectedEdu.unit,
               office: selectedEdu.office,
+              schoolName: selectedEdu.schoolName ?? "",
               principalSupervisor: selectedEdu.principalSupervisor ?? "",
               contactNumber: selectedEdu.contactNumber ?? "",
               addressLocation: selectedEdu.addressLocation ?? "",

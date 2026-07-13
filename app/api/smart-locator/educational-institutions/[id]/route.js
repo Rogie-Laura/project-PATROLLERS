@@ -9,7 +9,7 @@ import {
 import { canManagePoint } from "@/lib/smartLocator/scope";
 
 const SELECT_FIELDS =
-  "id, type, type_key, unit, office, principal_supervisor, contact_number, address_location, estimated_students, is_polling_center, number_of_voters, personnel, latitude, longitude, created_by, created_at, updated_at";
+  "id, type, type_key, unit, office, school_name, principal_supervisor, contact_number, address_location, estimated_students, is_polling_center, number_of_voters, personnel, latitude, longitude, created_by, created_at, updated_at";
 
 async function loadMarker(admin, id) {
   const { data, error } = await admin
@@ -117,6 +117,19 @@ export async function PATCH(request, { params }) {
       }
       update.type = typeMeta.typeLabel;
       update.type_key = typeMeta.key;
+    }
+
+    if (body?.schoolName != null || body?.school_name != null) {
+      const schoolName = String(
+        body?.schoolName ?? body?.school_name ?? ""
+      ).trim();
+      if (!schoolName) {
+        return NextResponse.json(
+          { error: "Name of School is required." },
+          { status: 400 }
+        );
+      }
+      update.school_name = schoolName;
     }
 
     if (
