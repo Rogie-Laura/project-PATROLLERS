@@ -14,6 +14,9 @@ import SmartLocatorPlotMenu from "@/components/SmartLocatorPlotMenu";
 import SmartLocatorMarkerSizeOptions, {
   useSmartLocatorMarkerSize,
 } from "@/components/SmartLocatorMarkerSizeOptions";
+import PnpEstablishmentFormModal from "@/components/PnpEstablishmentFormModal";
+import PnpEstablishmentInfoPanel from "@/components/PnpEstablishmentInfoPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
   CALABARZON_BOUNDS,
@@ -22,11 +25,16 @@ import {
   MAX_BOUNDS_VISCOSITY,
   PHILIPPINES_BOUNDS,
 } from "@/lib/mapBounds";
+import { canManagePoint } from "@/lib/smartLocator/scope";
 import { createSmartLocatorIcon } from "@/lib/smartLocator/markers";
 import {
   DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET,
   getSmartLocatorMarkerSizePx,
 } from "@/lib/smartLocator/markerSize";
+import {
+  getPnpEstablishmentType,
+  isPnpEstablishmentCategory,
+} from "@/lib/smartLocator/pnpEstablishments";
 
 const SMART_LOCATOR_BASEMAP_KEY = "smart-locator-basemap-id";
 
@@ -200,18 +208,102 @@ function SmartLocatorPointMarker({ point, markerSizePx, onDeletePoint }) {
   );
 }
 
+function PnpEstablishmentMarkersLayer({
+  establishments,
+  markerSizePreset,
+  customSizes,
+  onSelect,
+}) {
+  const mapZoom = useMapZoomLevel();
+  const markerSizePx = getSmartLocatorMarkerSizePx(
+    mapZoom,
+    markerSizePreset,
+    customSizes
+  );
+
+  return (
+    <>
+      {establishments.map((establishment) => (
+        <PnpEstablishmentMarker
+          key={establishment.id}
+          establishment={establishment}
+          markerSizePx={markerSizePx}
+          onSelect={onSelect}
+        />
+      ))}
+    </>
+  );
+}
+
+function PnpEstablishmentMarker({ establishment, markerSizePx, onSelect }) {
+  const markerRef = useRef(null);
+  const icon = useMemo(
+    () =>
+      createSmartLocatorIcon(
+        "pnp_establishments",
+        establishment.typeKey,
+        markerSizePx
+      ),
+    [establishment.typeKey, markerSizePx]
+  );
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+    marker.setIcon(icon);
+  }, [icon]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[establishment.latitude, establishment.longitude]}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelect(establishment),
+      }}
+    />
+  );
+}
+
 function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
   if (!draft) return null;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4">
+    <div
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onMouseDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      role="presentation"
+    >
       <div
         className="w-full max-w-md rounded-xl border border-border/70 bg-card p-5 shadow-xl"
         onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        <h3 className="text-base font-semibold text-foreground">Plot on map</h3>
-        <p className="mt-1 text-sm text-muted">{draft.categoryLabel}</p>
-        <p className="text-sm font-medium text-foreground">{draft.subcategoryLabel}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Plot on map</h3>
+            <p className="mt-1 text-sm text-muted">{draft.categoryLabel}</p>
+            <p className="text-sm font-medium text-foreground">
+              {draft.subcategoryLabel}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close"
+            disabled={saving}
+            onClick={onCancel}
+            className="rounded-md px-2 py-1 text-lg leading-none text-muted transition hover:bg-background/80 hover:text-foreground disabled:opacity-50"
+          >
+            ×
+          </button>
+        </div>
 
         <form
           className="mt-4 space-y-3"
@@ -270,9 +362,14 @@ function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
 }
 
 export default function SmartLocatorMap({
+  user,
   points,
+  establishments = [],
   onCreatePoint,
   onDeletePoint,
+  onCreateEstablishment,
+  onUpdateEstablishment,
+  onDeleteEstablishment,
   canEditMarkerSize = false,
 }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
@@ -283,11 +380,23 @@ export default function SmartLocatorMap({
   const [draft, setDraft] = useState(null);
   const [plotError, setPlotError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmPlot, setConfirmPlot] = useState(false);
   const [mapZoom, setMapZoom] = useState(8);
+  const [pnpDraft, setPnpDraft] = useState(null);
+  const [pnpMode, setPnpMode] = useState("add");
+  const [pnpError, setPnpError] = useState("");
+  const [pnpSaving, setPnpSaving] = useState(false);
+  const [selectedEstablishmentId, setSelectedEstablishmentId] = useState(null);
 
   useEffect(() => {
     setBasemapId(readStoredBasemapId());
   }, []);
+
+  const selectedEstablishment = useMemo(
+    () =>
+      establishments.find((row) => row.id === selectedEstablishmentId) ?? null,
+    [establishments, selectedEstablishmentId]
+  );
 
   function handleBasemapChange(nextId) {
     const resolved = getBasemapById(nextId).id;
@@ -306,6 +415,27 @@ export default function SmartLocatorMap({
 
   function openPlotDialog(selection) {
     if (!menu) return;
+
+    if (isPnpEstablishmentCategory(selection.category)) {
+      const typeMeta = getPnpEstablishmentType(selection.subcategory);
+      if (!typeMeta) return;
+      setPnpMode("add");
+      setPnpDraft({
+        id: null,
+        typeKey: typeMeta.key,
+        typeLabel: typeMeta.typeLabel,
+        unit: user?.unit ?? "",
+        office: user?.office ?? "",
+        stationToc: "",
+        latitude: menu.lat,
+        longitude: menu.lng,
+      });
+      setPnpError("");
+      setMenu(null);
+      setDraft(null);
+      return;
+    }
+
     setDraft({
       category: selection.category,
       subcategory: selection.subcategory,
@@ -318,10 +448,11 @@ export default function SmartLocatorMap({
     });
     setMenu(null);
     setPlotError("");
+    setPnpDraft(null);
   }
 
   async function submitPlot() {
-    if (!draft) return;
+    if (!draft) return false;
     setSaving(true);
     setPlotError("");
     try {
@@ -334,8 +465,11 @@ export default function SmartLocatorMap({
         description: draft.description,
       });
       setDraft(null);
+      setConfirmPlot(false);
+      return true;
     } catch (err) {
       setPlotError(err.message);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -348,6 +482,38 @@ export default function SmartLocatorMap({
       await onDeletePoint(point.id);
     } catch (err) {
       window.alert(err.message);
+    }
+  }
+
+  async function savePnpEstablishment() {
+    if (!pnpDraft) return false;
+    setPnpSaving(true);
+    setPnpError("");
+    try {
+      if (pnpMode === "edit" && pnpDraft.id) {
+        const updated = await onUpdateEstablishment(pnpDraft.id, {
+          typeKey: pnpDraft.typeKey,
+          stationToc: pnpDraft.stationToc,
+          latitude: pnpDraft.latitude,
+          longitude: pnpDraft.longitude,
+        });
+        setSelectedEstablishmentId(updated?.id ?? pnpDraft.id);
+      } else {
+        const created = await onCreateEstablishment({
+          typeKey: pnpDraft.typeKey,
+          stationToc: pnpDraft.stationToc,
+          latitude: pnpDraft.latitude,
+          longitude: pnpDraft.longitude,
+        });
+        setSelectedEstablishmentId(created?.id ?? null);
+      }
+      setPnpDraft(null);
+      return true;
+    } catch (err) {
+      setPnpError(err.message);
+      return false;
+    } finally {
+      setPnpSaving(false);
     }
   }
 
@@ -385,6 +551,16 @@ export default function SmartLocatorMap({
           customSizes={activeCustomSizes}
           onDeletePoint={handleDelete}
         />
+
+        <PnpEstablishmentMarkersLayer
+          establishments={establishments}
+          markerSizePreset={activePresetId}
+          customSizes={activeCustomSizes}
+          onSelect={(establishment) => {
+            setSelectedEstablishmentId(establishment.id);
+            setMenu(null);
+          }}
+        />
       </MapContainer>
 
       <SmartLocatorBasemapToggle
@@ -403,6 +579,33 @@ export default function SmartLocatorMap({
         />
       ) : null}
 
+      {selectedEstablishment ? (
+        <PnpEstablishmentInfoPanel
+          establishment={selectedEstablishment}
+          canManage={canManagePoint(user, selectedEstablishment)}
+          onClose={() => setSelectedEstablishmentId(null)}
+          onEdit={() => {
+            const typeMeta = getPnpEstablishmentType(selectedEstablishment.typeKey);
+            setPnpMode("edit");
+            setPnpDraft({
+              id: selectedEstablishment.id,
+              typeKey: selectedEstablishment.typeKey,
+              typeLabel: typeMeta?.typeLabel ?? selectedEstablishment.type,
+              unit: selectedEstablishment.unit,
+              office: selectedEstablishment.office,
+              stationToc: selectedEstablishment.stationToc,
+              latitude: selectedEstablishment.latitude,
+              longitude: selectedEstablishment.longitude,
+            });
+            setPnpError("");
+          }}
+          onRemove={async () => {
+            await onDeleteEstablishment(selectedEstablishment.id);
+            setSelectedEstablishmentId(null);
+          }}
+        />
+      ) : null}
+
       <SmartLocatorPlotMenu
         menu={menu}
         onClose={() => setMenu(null)}
@@ -417,8 +620,36 @@ export default function SmartLocatorMap({
         onCancel={() => {
           setDraft(null);
           setPlotError("");
+          setConfirmPlot(false);
         }}
-        onSubmit={submitPlot}
+        onSubmit={() => setConfirmPlot(true)}
+      />
+
+      <ConfirmDialog
+        open={Boolean(draft) && confirmPlot}
+        title="Save map point?"
+        description={`Plot ${draft?.subcategoryLabel ?? "this point"} as "${
+          draft?.label?.trim() || "unnamed"
+        }" at the selected location?`}
+        confirmLabel="Save point"
+        cancelLabel="Back"
+        confirming={saving}
+        onCancel={() => setConfirmPlot(false)}
+        onConfirm={submitPlot}
+      />
+
+      <PnpEstablishmentFormModal
+        open={Boolean(pnpDraft)}
+        mode={pnpMode}
+        draft={pnpDraft}
+        saving={pnpSaving}
+        error={pnpError}
+        onChange={(patch) => setPnpDraft((prev) => ({ ...prev, ...patch }))}
+        onCancel={() => {
+          setPnpDraft(null);
+          setPnpError("");
+        }}
+        onRequestSave={savePnpEstablishment}
       />
     </div>
   );

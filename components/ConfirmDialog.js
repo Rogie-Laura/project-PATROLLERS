@@ -71,7 +71,7 @@ export default function ConfirmDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[900] flex touch-none items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[2500] flex touch-none items-center justify-center bg-black/60 p-4"
       aria-hidden={false}
       onClick={(event) => {
         event.preventDefault();

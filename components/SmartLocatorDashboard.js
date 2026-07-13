@@ -16,18 +16,31 @@ const SmartLocatorMap = dynamic(() => import("@/components/SmartLocatorMap"), {
 
 export default function SmartLocatorDashboard({ user, onLogout }) {
   const [points, setPoints] = useState([]);
+  const [establishments, setEstablishments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
   const canEditMarkerSize = isSystemAdministrator(user?.role);
 
-  const loadPoints = useCallback(async () => {
+  const loadMapData = useCallback(async () => {
     setError("");
     try {
-      const res = await fetch("/api/smart-locator/points");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not load map points.");
-      setPoints(data.points ?? []);
+      const [pointsRes, establishmentsRes] = await Promise.all([
+        fetch("/api/smart-locator/points"),
+        fetch("/api/smart-locator/pnp-establishments"),
+      ]);
+      const pointsData = await pointsRes.json();
+      const establishmentsData = await establishmentsRes.json();
+      if (!pointsRes.ok) {
+        throw new Error(pointsData.error || "Could not load map points.");
+      }
+      if (!establishmentsRes.ok) {
+        throw new Error(
+          establishmentsData.error || "Could not load PNP establishments."
+        );
+      }
+      setPoints(pointsData.points ?? []);
+      setEstablishments(establishmentsData.establishments ?? []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -36,8 +49,8 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   }, []);
 
   useEffect(() => {
-    loadPoints();
-  }, [loadPoints]);
+    loadMapData();
+  }, [loadMapData]);
 
   async function handleCreatePoint(payload) {
     const res = await fetch("/api/smart-locator/points", {
@@ -56,6 +69,41 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Could not delete point.");
     setPoints((prev) => prev.filter((point) => point.id !== id));
+  }
+
+  async function handleCreateEstablishment(payload) {
+    const res = await fetch("/api/smart-locator/pnp-establishments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not save establishment.");
+    setEstablishments((prev) => [data.establishment, ...prev]);
+    return data.establishment;
+  }
+
+  async function handleUpdateEstablishment(id, payload) {
+    const res = await fetch(`/api/smart-locator/pnp-establishments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not update establishment.");
+    setEstablishments((prev) =>
+      prev.map((row) => (row.id === id ? data.establishment : row))
+    );
+    return data.establishment;
+  }
+
+  async function handleDeleteEstablishment(id) {
+    const res = await fetch(`/api/smart-locator/pnp-establishments/${id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not delete establishment.");
+    setEstablishments((prev) => prev.filter((row) => row.id !== id));
   }
 
   async function handleSignOut() {
@@ -86,9 +134,14 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
           </div>
         ) : (
           <SmartLocatorMap
+            user={user}
             points={points}
+            establishments={establishments}
             onCreatePoint={handleCreatePoint}
             onDeletePoint={handleDeletePoint}
+            onCreateEstablishment={handleCreateEstablishment}
+            onUpdateEstablishment={handleUpdateEstablishment}
+            onDeleteEstablishment={handleDeleteEstablishment}
             canEditMarkerSize={canEditMarkerSize}
           />
         )}
