@@ -28,7 +28,7 @@ import {
 import { canManagePoint } from "@/lib/smartLocator/scope";
 import { createSmartLocatorIcon } from "@/lib/smartLocator/markers";
 import {
-  DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET,
+  SMART_LOCATOR_CUSTOM_PRESET_ID,
   getSmartLocatorMarkerSizePx,
 } from "@/lib/smartLocator/markerSize";
 import {
@@ -374,8 +374,15 @@ export default function SmartLocatorMap({
 }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
   const basemap = useMemo(() => getBasemapById(basemapId), [basemapId]);
-  const { presetId, setPresetId, customSizes, setCustomSize, resetCustomSizes } =
-    useSmartLocatorMarkerSize();
+  const {
+    presetId,
+    setPresetId,
+    customSizes,
+    setCustomSize,
+    resetCustomSizes,
+    saving: markerSizeSaving,
+    error: markerSizeError,
+  } = useSmartLocatorMarkerSize({ canEdit: canEditMarkerSize });
   const [menu, setMenu] = useState(null);
   const [draft, setDraft] = useState(null);
   const [plotError, setPlotError] = useState("");
@@ -408,10 +415,10 @@ export default function SmartLocatorMap({
     }
   }
 
-  const activePresetId = canEditMarkerSize
-    ? presetId
-    : DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET;
-  const activeCustomSizes = canEditMarkerSize ? customSizes : null;
+  // System-wide setting — same size for every Smart Locator account.
+  const activePresetId = presetId;
+  const activeCustomSizes =
+    presetId === SMART_LOCATOR_CUSTOM_PRESET_ID ? customSizes : null;
 
   function openPlotDialog(selection) {
     if (!menu) return;
@@ -576,6 +583,8 @@ export default function SmartLocatorMap({
           onCustomSizeChange={setCustomSize}
           onResetCustomSizes={resetCustomSizes}
           currentZoom={mapZoom}
+          saving={markerSizeSaving}
+          error={markerSizeError}
         />
       ) : null}
 

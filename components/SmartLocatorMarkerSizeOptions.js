@@ -1,105 +1,192 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createDefaultSmartLocatorCustomSizes,
   DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET,
   getSmartLocatorMarkerSizePreset,
   getSmartLocatorMarkerSizeTable,
   normalizeSmartLocatorCustomSizes,
+  normalizeSmartLocatorMarkerSizeSetting,
   SMART_LOCATOR_CUSTOM_PRESET_ID,
   SMART_LOCATOR_MARKER_SIZE_MAX_PX,
   SMART_LOCATOR_MARKER_SIZE_MIN_PX,
   SMART_LOCATOR_MARKER_SIZE_PRESETS,
 } from "@/lib/smartLocator/markerSize";
 
-const PRESET_STORAGE_KEY = "patrollers.smartLocator.markerSizePreset";
-const CUSTOM_STORAGE_KEY = "patrollers.smartLocator.markerSizeCustom";
+const REFRESH_MS = 20_000;
 
-function readPreset() {
-  if (typeof window === "undefined") return DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET;
-  try {
-    const raw = sessionStorage.getItem(PRESET_STORAGE_KEY);
-    if (
-      SMART_LOCATOR_MARKER_SIZE_PRESETS.some((preset) => preset.id === raw)
-    ) {
-      return raw;
-    }
-  } catch {
-    /* ignore */
+async function fetchMarkerSizeSetting() {
+  const res = await fetch("/api/smart-locator/marker-size");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Could not load marker size.");
   }
-  return DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET;
+  return normalizeSmartLocatorMarkerSizeSetting(data.setting);
 }
 
-function writePreset(presetId) {
-  try {
-    sessionStorage.setItem(PRESET_STORAGE_KEY, presetId);
-  } catch {
-    /* ignore */
+async function saveMarkerSizeSetting(presetId, customSizes) {
+  const res = await fetch("/api/smart-locator/marker-size", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ presetId, customSizes }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Could not save marker size.");
   }
+  return normalizeSmartLocatorMarkerSizeSetting(data.setting);
 }
 
-function readCustomSizes() {
-  if (typeof window === "undefined") return createDefaultSmartLocatorCustomSizes();
-  try {
-    const raw = sessionStorage.getItem(CUSTOM_STORAGE_KEY);
-    if (!raw) return createDefaultSmartLocatorCustomSizes();
-    return normalizeSmartLocatorCustomSizes(JSON.parse(raw));
-  } catch {
-    return createDefaultSmartLocatorCustomSizes();
-  }
-}
-
-function writeCustomSizes(sizes) {
-  try {
-    sessionStorage.setItem(
-      CUSTOM_STORAGE_KEY,
-      JSON.stringify(normalizeSmartLocatorCustomSizes(sizes))
-    );
-  } catch {
-    /* ignore */
-  }
-}
-
-/** Session-persisted marker size preset + custom zoom sizes for Smart Locator. */
-export function useSmartLocatorMarkerSize() {
+/**
+ * System-wide Smart Locator marker size.
+ * All accounts read the same setting; only System Administrator can persist changes.
+ */
+export function useSmartLocatorMarkerSize({ canEdit = false } = {}) {
   const [presetId, setPresetIdState] = useState(
     DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET
   );
   const [customSizes, setCustomSizesState] = useState(
     createDefaultSmartLocatorCustomSizes
   );
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const canEditRef = useRef(canEdit);
+  const skipNextRefreshRef = useRef(false);
+  const saveTimerRef = useRef(null);
+  const latestRef = useRef({
+    presetId: DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET,
+    customSizes: createDefaultSmartLocatorCustomSizes(),
+  });
+
+  canEditRef.current = canEdit;
+
+  const applySetting = useCallback((setting) => {
+    const normalized = normalizeSmartLocatorMarkerSizeSetting(setting);
+    latestRef.current = {
+      presetId: normalized.presetId,
+      customSizes:
+        normalized.customSizes ?? createDefaultSmartLocatorCustomSizes(),
+    };
+    setPresetIdState(normalized.presetId);
+    setCustomSizesState(
+      normalized.customSizes ?? createDefaultSmartLocatorCustomSizes()
+    );
+  }, []);
+
+  const refresh = useCallback(async () => {
+    if (skipNextRefreshRef.current) {
+      skipNextRefreshRef.current = false;
+      return;
+    }
+    try {
+      const setting = await fetchMarkerSizeSetting();
+      applySetting(setting);
+      setError("");
+    } catch (err) {
+      if (!loaded) {
+        setError(err.message);
+      }
+    } finally {
+      setLoaded(true);
+    }
+  }, [applySetting, loaded]);
 
   useEffect(() => {
-    setPresetIdState(readPreset());
-    setCustomSizesState(readCustomSizes());
-  }, []);
+    refresh();
+    const timer = window.setInterval(refresh, REFRESH_MS);
 
-  const setPresetId = useCallback((next) => {
-    setPresetIdState((prev) => {
-      const value = typeof next === "function" ? next(prev) : next;
-      const resolved = getSmartLocatorMarkerSizePreset(value).id;
-      writePreset(resolved);
-      return resolved;
-    });
-  }, []);
+    function onFocus() {
+      refresh();
+    }
+    window.addEventListener("focus", onFocus);
 
-  const setCustomSize = useCallback((zoom, sizePx) => {
-    setCustomSizesState((prev) => {
-      const updated = normalizeSmartLocatorCustomSizes({
-        ...prev,
-        [String(zoom)]: sizePx,
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [refresh]);
+
+  const persistSoon = useCallback(
+    (nextPresetId, nextCustomSizes) => {
+      if (!canEditRef.current) return;
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+
+      saveTimerRef.current = window.setTimeout(async () => {
+        setSaving(true);
+        setError("");
+        try {
+          skipNextRefreshRef.current = true;
+          const setting = await saveMarkerSizeSetting(
+            nextPresetId,
+            nextCustomSizes
+          );
+          applySetting(setting);
+        } catch (err) {
+          setError(err.message);
+          skipNextRefreshRef.current = false;
+        } finally {
+          setSaving(false);
+        }
+      }, 250);
+    },
+    [applySetting]
+  );
+
+  const setPresetId = useCallback(
+    (next) => {
+      if (!canEditRef.current) return;
+      setPresetIdState((prev) => {
+        const value = typeof next === "function" ? next(prev) : next;
+        const resolved = getSmartLocatorMarkerSizePreset(value).id;
+        const custom =
+          resolved === SMART_LOCATOR_CUSTOM_PRESET_ID
+            ? normalizeSmartLocatorCustomSizes(latestRef.current.customSizes)
+            : latestRef.current.customSizes;
+        latestRef.current = { presetId: resolved, customSizes: custom };
+        persistSoon(
+          resolved,
+          resolved === SMART_LOCATOR_CUSTOM_PRESET_ID ? custom : null
+        );
+        return resolved;
       });
-      writeCustomSizes(updated);
-      return updated;
-    });
-  }, []);
+    },
+    [persistSoon]
+  );
+
+  const setCustomSize = useCallback(
+    (zoom, sizePx) => {
+      if (!canEditRef.current) return;
+      setCustomSizesState((prev) => {
+        const updated = normalizeSmartLocatorCustomSizes({
+          ...prev,
+          [String(zoom)]: sizePx,
+        });
+        latestRef.current = {
+          presetId: SMART_LOCATOR_CUSTOM_PRESET_ID,
+          customSizes: updated,
+        };
+        setPresetIdState(SMART_LOCATOR_CUSTOM_PRESET_ID);
+        persistSoon(SMART_LOCATOR_CUSTOM_PRESET_ID, updated);
+        return updated;
+      });
+    },
+    [persistSoon]
+  );
 
   const resetCustomSizes = useCallback(() => {
+    if (!canEditRef.current) return;
     const defaults = createDefaultSmartLocatorCustomSizes();
+    latestRef.current = {
+      presetId: SMART_LOCATOR_CUSTOM_PRESET_ID,
+      customSizes: defaults,
+    };
     setCustomSizesState(defaults);
-    writeCustomSizes(defaults);
-  }, []);
+    setPresetIdState(SMART_LOCATOR_CUSTOM_PRESET_ID);
+    persistSoon(SMART_LOCATOR_CUSTOM_PRESET_ID, defaults);
+  }, [persistSoon]);
 
   return {
     presetId,
@@ -107,6 +194,9 @@ export function useSmartLocatorMarkerSize() {
     customSizes,
     setCustomSize,
     resetCustomSizes,
+    loaded,
+    saving,
+    error,
   };
 }
 
@@ -117,6 +207,8 @@ export default function SmartLocatorMarkerSizeOptions({
   onCustomSizeChange,
   onResetCustomSizes,
   currentZoom = null,
+  saving = false,
+  error = "",
 }) {
   const [open, setOpen] = useState(false);
   const [draftInputs, setDraftInputs] = useState({});
@@ -159,7 +251,7 @@ export default function SmartLocatorMarkerSizeOptions({
                 Marker size
               </p>
               <p className="mt-0.5 text-[11px] text-zinc-500">
-                Size changes with zoom in / zoom out
+                System-wide — applies to all Smart Locator accounts
               </p>
             </header>
 
@@ -213,6 +305,7 @@ export default function SmartLocatorMarkerSizeOptions({
               <div className="flex items-start justify-between gap-2">
                 <p className="text-[11px] leading-snug text-zinc-400">
                   {active.description}
+                  {saving ? " · Saving..." : ""}
                 </p>
                 {isCustom && onResetCustomSizes && (
                   <button
@@ -224,6 +317,12 @@ export default function SmartLocatorMarkerSizeOptions({
                   </button>
                 )}
               </div>
+
+              {error ? (
+                <p className="rounded-md bg-red-500/10 px-2 py-1.5 text-[11px] text-red-300">
+                  {error}
+                </p>
+              ) : null}
 
               <div className="overflow-hidden rounded-lg border border-zinc-600/40">
                 <div className="grid grid-cols-2 border-b border-zinc-600/40 bg-zinc-900/55 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -237,7 +336,9 @@ export default function SmartLocatorMarkerSizeOptions({
                       currentZoomRounded === zoom;
                     const key = String(zoom);
                     const inputValue =
-                      draftInputs[key] != null ? draftInputs[key] : String(sizePx);
+                      draftInputs[key] != null
+                        ? draftInputs[key]
+                        : String(sizePx);
 
                     return (
                       <li
@@ -277,7 +378,9 @@ export default function SmartLocatorMarkerSizeOptions({
                             className="ml-auto w-16 rounded border border-zinc-600/60 bg-zinc-950/70 px-1.5 py-0.5 text-right text-xs font-semibold text-zinc-100 outline-none focus:border-accent"
                           />
                         ) : (
-                          <span className="text-right font-semibold">{sizePx}</span>
+                          <span className="text-right font-semibold">
+                            {sizePx}
+                          </span>
                         )}
                       </li>
                     );
@@ -299,8 +402,10 @@ export default function SmartLocatorMarkerSizeOptions({
           type="button"
           onClick={() => setOpen((prev) => !prev)}
           aria-expanded={open}
-          aria-label={open ? "Close marker size options" : "Open marker size options"}
-          title="Marker size"
+          aria-label={
+            open ? "Close marker size options" : "Open marker size options"
+          }
+          title="Marker size (system-wide)"
           className={`flex h-10 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold shadow-lg shadow-black/25 backdrop-blur-sm transition ${
             open
               ? "border-accent/50 bg-accent/15 text-accent"
