@@ -304,11 +304,11 @@ export default function SmartLocatorMarkerSizeOptions({
                   Marker size
                 </p>
                 <p className="mt-0.5 text-[11px] text-zinc-500">
-                  System-wide — Save to apply for all accounts
+                  System-wide for all Smart Locator accounts
                 </p>
               </header>
 
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3.5 py-3">
+              <div className="shrink-0 space-y-2 border-b border-zinc-600/40 bg-zinc-900/40 px-3.5 py-3">
                 <div className="grid grid-cols-5 gap-1.5">
                   {builtInPresets.map((preset) => {
                     const isActive = preset.id === active.id;
@@ -355,6 +355,30 @@ export default function SmartLocatorMarkerSizeOptions({
                   </button>
                 )}
 
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setConfirmSave(true)}
+                  className="w-full rounded-lg bg-emerald-500 px-3 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-md transition hover:bg-emerald-400 disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save size for all accounts"}
+                </button>
+                <button
+                  type="button"
+                  disabled={!dirty || saving}
+                  onClick={() => onDiscard?.()}
+                  className="w-full rounded-lg border border-zinc-500/60 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700/60 disabled:opacity-40"
+                >
+                  Discard changes
+                </button>
+                {error ? (
+                  <p className="rounded-md bg-red-500/10 px-2 py-1.5 text-[11px] text-red-300">
+                    {error}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3.5 py-3">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-[11px] leading-snug text-zinc-400">
                     {active.description}
@@ -370,12 +394,6 @@ export default function SmartLocatorMarkerSizeOptions({
                     </button>
                   )}
                 </div>
-
-                {error ? (
-                  <p className="rounded-md bg-red-500/10 px-2 py-1.5 text-[11px] text-red-300">
-                    {error}
-                  </p>
-                ) : null}
 
                 <div className="overflow-hidden rounded-lg border border-zinc-600/40">
                   <div className="grid grid-cols-2 border-b border-zinc-600/40 bg-zinc-900/55 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -448,32 +466,6 @@ export default function SmartLocatorMarkerSizeOptions({
                   </p>
                 )}
               </div>
-
-              <div className="shrink-0 border-t border-zinc-600/50 bg-zinc-900/80 px-3.5 py-3">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={!dirty || saving}
-                    onClick={() => onDiscard?.()}
-                    className="flex-1 rounded-lg border border-zinc-500/60 px-3 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-zinc-700/60 disabled:opacity-40"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => setConfirmSave(true)}
-                    className="flex-[1.4] rounded-lg bg-accent px-3 py-2.5 text-sm font-bold text-background transition hover:bg-accent-dark disabled:opacity-50"
-                  >
-                    {saving ? "Saving..." : "Save"}
-                  </button>
-                </div>
-                <p className="mt-2 text-center text-[10px] text-zinc-500">
-                  {dirty
-                    ? "May changes — Save para sa lahat ng accounts"
-                    : "Piliin ang size, then Save"}
-                </p>
-              </div>
             </div>
           )}
 
@@ -501,7 +493,7 @@ export default function SmartLocatorMarkerSizeOptions({
             </svg>
             <span>
               Size {active.shortLabel}
-              {dirty ? "*" : ""}
+              {dirty ? "*" : ""} · Save
             </span>
           </button>
         </div>
