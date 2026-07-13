@@ -9,7 +9,7 @@ import {
 import { canManagePoint } from "@/lib/smartLocator/scope";
 
 const SELECT_FIELDS =
-  "id, type, type_key, unit, office, address_location, estimated_crowd, personnel, latitude, longitude, created_by, created_at, updated_at";
+  "id, type, type_key, unit, office, place_name, address_location, estimated_crowd, personnel, latitude, longitude, created_by, created_at, updated_at";
 
 async function loadMarker(admin, id) {
   const { data, error } = await admin
@@ -91,6 +91,19 @@ export async function PATCH(request, { params }) {
       }
       update.type = typeMeta.typeLabel;
       update.type_key = typeMeta.key;
+    }
+
+    if (body?.placeName != null || body?.place_name != null) {
+      const placeName = String(
+        body?.placeName ?? body?.place_name ?? ""
+      ).trim();
+      if (!placeName) {
+        return NextResponse.json(
+          { error: "Name of Place is required." },
+          { status: 400 }
+        );
+      }
+      update.place_name = placeName;
     }
 
     if (body?.addressLocation != null || body?.address_location != null) {

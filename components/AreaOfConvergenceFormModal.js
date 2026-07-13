@@ -55,6 +55,7 @@ export default function AreaOfConvergenceFormModal({
       String(row?.contactNumber ?? "").trim()
   );
   const canSave =
+    String(draft.placeName ?? "").trim() &&
     String(draft.addressLocation ?? "").trim() &&
     String(draft.estimatedCrowd ?? "").trim() &&
     hasCompletePersonnel;
@@ -67,8 +68,8 @@ export default function AreaOfConvergenceFormModal({
     mode === "edit" ? "Save changes?" : "Save Area of Convergence marker?";
   const confirmDescription =
     mode === "edit"
-      ? `Update ${draft.typeLabel} — ${draft.addressLocation || "this marker"}?`
-      : `Add ${draft.typeLabel} for ${draft.unit || "this unit"} at the selected location?`;
+      ? `Update ${draft.placeName || draft.typeLabel} — ${draft.addressLocation || "this marker"}?`
+      : `Add ${draft.placeName || draft.typeLabel} for ${draft.unit || "this unit"} at the selected location?`;
 
   function updatePersonnel(index, patch) {
     const next = personnel.map((row, i) =>
@@ -164,6 +165,18 @@ export default function AreaOfConvergenceFormModal({
                 readOnly
                 value={draft.office ?? ""}
                 className="mt-1 w-full rounded-lg border border-border/70 bg-background/50 px-3 py-2 text-sm text-foreground"
+              />
+            </label>
+
+            <label className="block text-xs font-medium text-muted">
+              Name of Place <span className="text-accent">*</span>
+              <input
+                value={draft.placeName ?? ""}
+                onChange={(event) =>
+                  onChange({ placeName: event.target.value })
+                }
+                placeholder="Enter name of place"
+                className="mt-1 w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
               />
             </label>
 

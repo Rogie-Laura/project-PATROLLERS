@@ -24,7 +24,7 @@ export default function FriendlyForceInfoPanel({
               Friendly Force
             </p>
             <h2 className="truncate text-sm font-semibold text-foreground">
-              {force.type}
+              {force.officeCampName || force.type}
             </h2>
           </div>
           <button
@@ -41,6 +41,10 @@ export default function FriendlyForceInfoPanel({
           <InfoRow label="Type" value={force.type} />
           <InfoRow label="Unit" value={force.unit || "—"} />
           <InfoRow label="Office" value={force.office || "—"} />
+          <InfoRow
+            label="Name of Office/Camp"
+            value={force.officeCampName || "—"}
+          />
           <InfoRow
             label="Commanding Officer / Chief / Team Leader"
             value={force.commandingOfficer || "—"}
@@ -85,7 +89,7 @@ export default function FriendlyForceInfoPanel({
       <ConfirmDialog
         open={confirmRemove}
         title="Remove friendly force?"
-        description={`Remove ${force.type}${
+        description={`Remove ${force.officeCampName || force.type}${
           force.commandingOfficer ? ` — ${force.commandingOfficer}` : ""
         } from the map? This cannot be undone.`}
         confirmLabel="Remove"

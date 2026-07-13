@@ -8,7 +8,7 @@ import {
 import { filterPointsForUser, scopeFromUser } from "@/lib/smartLocator/scope";
 
 const SELECT_FIELDS =
-  "id, type, type_key, unit, office, commanding_officer, contact_number, address_location, remarks, latitude, longitude, created_by, created_at, updated_at";
+  "id, type, type_key, unit, office, office_camp_name, commanding_officer, contact_number, address_location, remarks, latitude, longitude, created_by, created_at, updated_at";
 
 function parseCoordinates(body) {
   const latitude = Number(body?.latitude);
@@ -71,6 +71,14 @@ export async function POST(request) {
     return NextResponse.json({ error: coords.error }, { status: 400 });
   }
 
+  const officeCampName = parseRequiredText(
+    body?.officeCampName ?? body?.office_camp_name,
+    "Name of Office/Camp"
+  );
+  if (officeCampName.error) {
+    return NextResponse.json({ error: officeCampName.error }, { status: 400 });
+  }
+
   const commandingOfficer = parseRequiredText(
     body?.commandingOfficer ?? body?.commanding_officer,
     "Name of Commanding Officer/Chief/Team Leader"
@@ -109,6 +117,7 @@ export async function POST(request) {
       type_key: typeMeta.key,
       unit: scope.unit,
       office: scope.office,
+      office_camp_name: officeCampName.value,
       commanding_officer: commandingOfficer.value,
       contact_number: contactNumber.value,
       address_location: addressLocation.value,

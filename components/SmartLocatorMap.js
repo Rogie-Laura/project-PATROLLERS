@@ -757,6 +757,7 @@ export default function SmartLocatorMap({
         typeLabel: typeMeta.typeLabel,
         unit: user?.unit ?? "",
         office: user?.office ?? "",
+        officeCampName: "",
         commandingOfficer: "",
         contactNumber: "",
         addressLocation: "",
@@ -809,6 +810,7 @@ export default function SmartLocatorMap({
         typeLabel: typeMeta.typeLabel,
         unit: user?.unit ?? "",
         office: user?.office ?? "",
+        placeName: "",
         addressLocation: "",
         estimatedCrowd: "",
         personnel: [createEmptyPersonnelRow()],
@@ -956,6 +958,7 @@ export default function SmartLocatorMap({
     try {
       const payload = {
         typeKey: friendlyDraft.typeKey,
+        officeCampName: friendlyDraft.officeCampName,
         commandingOfficer: friendlyDraft.commandingOfficer,
         contactNumber: friendlyDraft.contactNumber,
         addressLocation: friendlyDraft.addressLocation,
@@ -1028,6 +1031,7 @@ export default function SmartLocatorMap({
     try {
       const payload = {
         typeKey: aocDraft.typeKey,
+        placeName: aocDraft.placeName,
         addressLocation: aocDraft.addressLocation,
         estimatedCrowd: aocDraft.estimatedCrowd,
         personnel: aocDraft.personnel,
@@ -1265,6 +1269,7 @@ export default function SmartLocatorMap({
               typeLabel: typeMeta?.typeLabel ?? selectedFriendlyForce.type,
               unit: selectedFriendlyForce.unit,
               office: selectedFriendlyForce.office,
+              officeCampName: selectedFriendlyForce.officeCampName ?? "",
               commandingOfficer: selectedFriendlyForce.commandingOfficer,
               contactNumber: selectedFriendlyForce.contactNumber,
               addressLocation: selectedFriendlyForce.addressLocation,
@@ -1323,6 +1328,7 @@ export default function SmartLocatorMap({
               typeLabel: typeMeta?.typeLabel ?? selectedAoc.type,
               unit: selectedAoc.unit,
               office: selectedAoc.office,
+              placeName: selectedAoc.placeName ?? "",
               addressLocation: selectedAoc.addressLocation,
               estimatedCrowd: selectedAoc.estimatedCrowd ?? "",
               personnel:

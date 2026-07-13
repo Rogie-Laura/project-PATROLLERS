@@ -26,7 +26,7 @@ export default function AreaOfConvergenceInfoPanel({
               Area of Convergence
             </p>
             <h2 className="truncate text-sm font-semibold text-foreground">
-              {marker.type}
+              {marker.placeName || marker.type}
             </h2>
           </div>
           <button
@@ -51,6 +51,7 @@ export default function AreaOfConvergenceInfoPanel({
           <InfoRow label="Type" value={marker.type} />
           <InfoRow label="Unit" value={marker.unit || "—"} />
           <InfoRow label="Office" value={marker.office || "—"} />
+          <InfoRow label="Name of Place" value={marker.placeName || "—"} />
           <InfoRow
             label="Address/Location"
             value={marker.addressLocation || "—"}
@@ -124,7 +125,7 @@ export default function AreaOfConvergenceInfoPanel({
       <ConfirmDialog
         open={confirmRemove}
         title="Remove Area of Convergence marker?"
-        description={`Remove ${marker.type}${
+        description={`Remove ${marker.placeName || marker.type}${
           marker.addressLocation ? ` — ${marker.addressLocation}` : ""
         } from the map? This cannot be undone.`}
         confirmLabel="Remove"

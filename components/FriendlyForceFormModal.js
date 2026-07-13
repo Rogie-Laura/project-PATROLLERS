@@ -48,6 +48,7 @@ export default function FriendlyForceFormModal({
   if (!open || !draft) return null;
 
   const canSave =
+    String(draft.officeCampName ?? "").trim() &&
     String(draft.commandingOfficer ?? "").trim() &&
     String(draft.contactNumber ?? "").trim() &&
     String(draft.addressLocation ?? "").trim();
@@ -57,8 +58,8 @@ export default function FriendlyForceFormModal({
     mode === "edit" ? "Save changes?" : "Save Friendly Force?";
   const confirmDescription =
     mode === "edit"
-      ? `Update ${draft.typeLabel} — ${draft.commandingOfficer || "this unit"}?`
-      : `Add ${draft.typeLabel} for ${draft.unit || "this unit"} at the selected location?`;
+      ? `Update ${draft.officeCampName || draft.typeLabel} — ${draft.commandingOfficer || "this unit"}?`
+      : `Add ${draft.officeCampName || draft.typeLabel} for ${draft.unit || "this unit"} at the selected location?`;
 
   return createPortal(
     <>
@@ -135,6 +136,18 @@ export default function FriendlyForceFormModal({
                 readOnly
                 value={draft.office ?? ""}
                 className="mt-1 w-full rounded-lg border border-border/70 bg-background/50 px-3 py-2 text-sm text-foreground"
+              />
+            </label>
+
+            <label className="block text-xs font-medium text-muted">
+              Name of Office/Camp <span className="text-accent">*</span>
+              <input
+                value={draft.officeCampName ?? ""}
+                onChange={(event) =>
+                  onChange({ officeCampName: event.target.value })
+                }
+                placeholder="Enter name of office or camp"
+                className="mt-1 w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
               />
             </label>
 

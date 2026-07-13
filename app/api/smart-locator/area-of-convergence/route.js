@@ -9,7 +9,7 @@ import {
 import { filterPointsForUser, scopeFromUser } from "@/lib/smartLocator/scope";
 
 const SELECT_FIELDS =
-  "id, type, type_key, unit, office, address_location, estimated_crowd, personnel, latitude, longitude, created_by, created_at, updated_at";
+  "id, type, type_key, unit, office, place_name, address_location, estimated_crowd, personnel, latitude, longitude, created_by, created_at, updated_at";
 
 function parseCoordinates(body) {
   const latitude = Number(body?.latitude);
@@ -89,6 +89,14 @@ export async function POST(request) {
     return NextResponse.json({ error: coords.error }, { status: 400 });
   }
 
+  const placeName = String(body?.placeName ?? body?.place_name ?? "").trim();
+  if (!placeName) {
+    return NextResponse.json(
+      { error: "Name of Place is required." },
+      { status: 400 }
+    );
+  }
+
   const addressLocation = String(
     body?.addressLocation ?? body?.address_location ?? ""
   ).trim();
@@ -126,6 +134,7 @@ export async function POST(request) {
       type_key: typeMeta.key,
       unit: scope.unit,
       office: scope.office,
+      place_name: placeName,
       address_location: addressLocation,
       estimated_crowd: estimatedCrowd,
       personnel: personnelParsed.personnel,
