@@ -14,6 +14,10 @@ function getInitials(user) {
 
 export default function AccountCard({ user, onSignOut, signingOut }) {
   const displayName = user?.rank_fullname || user?.full_name || user?.email || "User";
+  const subtitle =
+    user?.accessMode === "token"
+      ? [user?.unit, user?.office].filter(Boolean).join(" · ") || "Token access"
+      : user?.email;
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleSignOutClick() {
@@ -35,7 +39,11 @@ export default function AccountCard({ user, onSignOut, signingOut }) {
       <ConfirmDialog
         open={confirmOpen}
         title="Sign out?"
-        description="You will leave the monitoring center and need to sign in again to continue."
+        description={
+          user?.accessMode === "token"
+            ? "You will leave Smart Locator and need your access token again to continue."
+            : "You will leave the monitoring center and need to sign in again to continue."
+        }
         confirmLabel="Sign Out"
         cancelLabel="Cancel"
         confirmVariant="destructive"
@@ -54,7 +62,7 @@ export default function AccountCard({ user, onSignOut, signingOut }) {
 
         <div className="hidden min-w-0 max-w-[9rem] lg:block lg:max-w-[11rem]">
           <p className="truncate text-xs font-semibold text-foreground">{displayName}</p>
-          <p className="truncate text-[10px] text-muted">{user?.email}</p>
+          <p className="truncate text-[10px] text-muted">{subtitle}</p>
         </div>
 
         <button

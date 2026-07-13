@@ -1,33 +1,12 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isCommandCenterRole } from "@/lib/auth/roles";
 import { normalizeSmartLocatorSelection } from "@/lib/smartLocator/categories";
 import { filterPointsForUser, scopeFromUser } from "@/lib/smartLocator/scope";
 import { pointFromRow } from "@/lib/smartLocator/points";
+import { authorizeSmartLocator } from "@/lib/smartLocator/authorize";
 
 const SELECT_FIELDS =
   "id, category, subcategory, label, description, latitude, longitude, office, unit, created_by, created_at, updated_at";
-
-async function authorizeSmartLocator(request) {
-  const user = await getCurrentUser(request);
-  if (!user) {
-    return {
-      user: null,
-      error: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
-    };
-  }
-  if (!isCommandCenterRole(user.role)) {
-    return {
-      user,
-      error: NextResponse.json(
-        { error: "Forbidden — command center access required." },
-        { status: 403 }
-      ),
-    };
-  }
-  return { user, error: null };
-}
 
 function parseCoordinates(body) {
   const latitude = Number(body?.latitude);
@@ -91,6 +70,8 @@ export async function POST(request) {
 
   const description = String(body?.description ?? "").trim();
   const scope = scopeFromUser(user);
+  const createdBy =
+    user?.accessMode === "token" || !user?.id ? null : user.id;
 
   const admin = createAdminClient();
   const { data, error: dbError } = await admin
@@ -104,7 +85,7 @@ export async function POST(request) {
       longitude: coords.longitude,
       office: scope.office,
       unit: scope.unit,
-      created_by: user.id,
+      created_by: createdBy,
     })
     .select(SELECT_FIELDS)
     .single();

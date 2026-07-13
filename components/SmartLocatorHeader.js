@@ -2,6 +2,8 @@ import Image from "next/image";
 import AccountCard from "@/components/AccountCard";
 
 export default function SmartLocatorHeader({ user, onSignOut, signingOut = false }) {
+  const scopeLabel = [user?.unit, user?.office].filter(Boolean).join(" · ");
+
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:px-4">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -19,6 +21,9 @@ export default function SmartLocatorHeader({ user, onSignOut, signingOut = false
           <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-accent sm:text-[11px]">
             Smart Locator
           </p>
+          {scopeLabel ? (
+            <p className="mt-0.5 truncate text-[10px] text-muted">{scopeLabel}</p>
+          ) : null}
         </div>
       </div>
 

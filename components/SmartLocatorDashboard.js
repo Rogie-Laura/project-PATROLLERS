@@ -58,6 +58,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
 
   async function handleSignOut() {
     setSigningOut(true);
+    await fetch("/api/smart-locator/auth/logout", { method: "POST" }).catch(() => {});
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     onLogout();
   }

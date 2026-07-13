@@ -4,34 +4,31 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import PatrolLoginCard from "@/components/PatrolLoginCard";
 import SmartLocatorDashboard from "@/components/SmartLocatorDashboard";
-import { isCommandCenterRole } from "@/lib/auth/roles";
 
 export default function SmartLocatorPage() {
   const [user, setUser] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [token, setToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [errorKind, setErrorKind] = useState("error");
 
   useEffect(() => {
     let active = true;
 
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
+    fetch("/api/smart-locator/auth/me")
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
         if (!active) return;
-        const sessionUser = data.user ?? null;
-        if (sessionUser && !isCommandCenterRole(sessionUser.role)) {
-          setError("Smart Locator is for command center accounts only.");
-          setUser(null);
+        if (ok && data.user) {
+          setUser(data.user);
           return;
         }
-        setUser(sessionUser);
+        setUser(null);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (active) setUser(null);
+      })
       .finally(() => {
         if (active) setCheckingSession(false);
       });
@@ -45,34 +42,24 @@ export default function SmartLocatorPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    setErrorKind("error");
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/smart-locator/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ token }),
       });
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorKind(res.status === 409 ? "session_active" : "error");
-        setError(data.error || "Login failed.");
-        return;
-      }
-
-      if (!isCommandCenterRole(data.user?.role)) {
-        await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-        setError("Smart Locator is for command center accounts only.");
-        setUser(null);
+        setError(data.error || "Access denied.");
         return;
       }
 
       setUser(data.user);
-      setPassword("");
+      setToken("");
     } catch {
       setError("Network error. Please try again.");
-      setErrorKind("error");
     } finally {
       setSubmitting(false);
     }
@@ -81,7 +68,6 @@ export default function SmartLocatorPage() {
   function handleLogout() {
     setUser(null);
     setError("");
-    setErrorKind("error");
   }
 
   if (checkingSession) {
@@ -100,7 +86,7 @@ export default function SmartLocatorPage() {
   }
 
   const inputClassName =
-    "w-full rounded-lg border border-border/80 bg-background/80 py-2.5 pl-10 pr-4 text-sm text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20 sm:rounded-xl sm:py-3 sm:pl-11 sm:text-base";
+    "w-full rounded-lg border border-border/80 bg-background/80 py-2.5 pl-3 pr-16 text-sm text-foreground outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20 sm:rounded-xl sm:py-3 sm:text-base";
 
   return (
     <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-6">
@@ -112,7 +98,7 @@ export default function SmartLocatorPage() {
       <div className="relative w-full max-w-sm sm:max-w-md">
         <PatrolLoginCard
           title="Patrollers Smart Locator"
-          subtitle="Sign in with your Patrollers monitoring account."
+          subtitle="Enter your station access token. No username or password needed."
         >
           <div className="mb-5 flex items-center justify-center gap-3">
             <Image
@@ -135,53 +121,35 @@ export default function SmartLocatorPage() {
           <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
             <div>
               <label className="mb-0.5 block text-xs font-medium text-foreground/90 sm:mb-1 sm:text-sm">
-                Username
+                Access token
               </label>
               <div className="relative">
                 <input
-                  type="text"
+                  type={showToken ? "text" : "password"}
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className={`${inputClassName} pl-3`}
-                  placeholder="Enter your username"
-                  autoComplete="username"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-0.5 block text-xs font-medium text-foreground/90 sm:mb-1 sm:text-sm">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`${inputClassName} pl-3`}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  className={inputClassName}
+                  placeholder="Enter station token"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((value) => !value)}
+                  onClick={() => setShowToken((value) => !value)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-xs text-muted transition hover:text-foreground"
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showToken ? "Hide" : "Show"}
                 </button>
               </div>
+              <p className="mt-1.5 text-[11px] text-muted">
+                Token is linked to your Office and Unit (example: Rosario MPS · Cavite PPO).
+              </p>
             </div>
 
             {error && (
-              <p
-                className={`rounded-xl px-3 py-2.5 text-sm ring-1 ${
-                  errorKind === "session_active"
-                    ? "bg-amber-500/10 text-amber-300 ring-amber-500/25"
-                    : "bg-red-500/10 text-red-400 ring-red-500/20"
-                }`}
-              >
+              <p className="rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-400 ring-1 ring-red-500/20">
                 {error}
               </p>
             )}
@@ -191,7 +159,7 @@ export default function SmartLocatorPage() {
               disabled={submitting}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-background shadow-lg shadow-accent/20 transition hover:bg-accent-dark disabled:opacity-50 sm:rounded-xl sm:py-3 sm:text-base"
             >
-              {submitting ? "Signing in..." : "Sign In"}
+              {submitting ? "Opening map..." : "Open Smart Locator"}
             </button>
           </form>
         </PatrolLoginCard>
