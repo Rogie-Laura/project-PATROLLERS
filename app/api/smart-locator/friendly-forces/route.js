@@ -8,7 +8,7 @@ import {
 import { filterPointsForUser, scopeFromUser } from "@/lib/smartLocator/scope";
 
 const SELECT_FIELDS =
-  "id, type, type_key, unit, office, commanding_officer, contact_number, address_location, latitude, longitude, created_by, created_at, updated_at";
+  "id, type, type_key, unit, office, commanding_officer, contact_number, address_location, remarks, latitude, longitude, created_by, created_at, updated_at";
 
 function parseCoordinates(body) {
   const latitude = Number(body?.latitude);
@@ -95,6 +95,8 @@ export async function POST(request) {
     return NextResponse.json({ error: addressLocation.error }, { status: 400 });
   }
 
+  const remarks = String(body?.remarks ?? "").trim() || null;
+
   const scope = scopeFromUser(user);
   const createdBy =
     user?.accessMode === "token" || !user?.id ? null : user.id;
@@ -110,6 +112,7 @@ export async function POST(request) {
       commanding_officer: commandingOfficer.value,
       contact_number: contactNumber.value,
       address_location: addressLocation.value,
+      remarks,
       latitude: coords.latitude,
       longitude: coords.longitude,
       created_by: createdBy,

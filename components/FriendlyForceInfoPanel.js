@@ -47,6 +47,7 @@ export default function FriendlyForceInfoPanel({
           />
           <InfoRow label="Contact Number" value={force.contactNumber || "—"} />
           <InfoRow label="Address/Location" value={force.addressLocation || "—"} />
+          <InfoRow label="Remarks" value={force.remarks || "—"} />
           <InfoRow
             label="Lat"
             value={

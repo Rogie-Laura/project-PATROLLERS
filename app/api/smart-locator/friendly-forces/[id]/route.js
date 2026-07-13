@@ -8,7 +8,7 @@ import {
 import { canManagePoint } from "@/lib/smartLocator/scope";
 
 const SELECT_FIELDS =
-  "id, type, type_key, unit, office, commanding_officer, contact_number, address_location, latitude, longitude, created_by, created_at, updated_at";
+  "id, type, type_key, unit, office, commanding_officer, contact_number, address_location, remarks, latitude, longitude, created_by, created_at, updated_at";
 
 async function loadForce(admin, id) {
   const { data, error } = await admin
@@ -111,6 +111,11 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
       update.address_location = parsed.value;
+    }
+
+    if (body?.remarks != null) {
+      const remarks = String(body.remarks).trim();
+      update.remarks = remarks || null;
     }
 
     if (body?.latitude != null || body?.longitude != null) {

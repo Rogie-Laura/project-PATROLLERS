@@ -534,6 +534,7 @@ export default function SmartLocatorMap({
         commandingOfficer: "",
         contactNumber: "",
         addressLocation: "",
+        remarks: "",
         latitude: menu.lat,
         longitude: menu.lng,
       });
@@ -638,6 +639,7 @@ export default function SmartLocatorMap({
         commandingOfficer: friendlyDraft.commandingOfficer,
         contactNumber: friendlyDraft.contactNumber,
         addressLocation: friendlyDraft.addressLocation,
+        remarks: friendlyDraft.remarks,
         latitude: friendlyDraft.latitude,
         longitude: friendlyDraft.longitude,
       };
@@ -783,6 +785,7 @@ export default function SmartLocatorMap({
               commandingOfficer: selectedFriendlyForce.commandingOfficer,
               contactNumber: selectedFriendlyForce.contactNumber,
               addressLocation: selectedFriendlyForce.addressLocation,
+              remarks: selectedFriendlyForce.remarks ?? "",
               latitude: selectedFriendlyForce.latitude,
               longitude: selectedFriendlyForce.longitude,
             });

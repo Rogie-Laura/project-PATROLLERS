@@ -176,6 +176,17 @@ export default function FriendlyForceFormModal({
               />
             </label>
 
+            <label className="block text-xs font-medium text-muted">
+              Remarks <span className="font-normal">(optional)</span>
+              <textarea
+                value={draft.remarks ?? ""}
+                onChange={(event) => onChange({ remarks: event.target.value })}
+                rows={2}
+                placeholder="Additional remarks..."
+                className="mt-1 w-full rounded-lg border border-border/70 bg-background/80 px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
+              />
+            </label>
+
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-xs font-medium text-muted">
                 Lat
