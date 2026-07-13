@@ -87,7 +87,7 @@ export default function SmartLocatorMarkerSizeOptions({
             </header>
 
             <div className="space-y-3 px-3.5 py-3">
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-5 gap-1.5">
                 {SMART_LOCATOR_MARKER_SIZE_PRESETS.map((preset) => {
                   const isActive = preset.id === active.id;
                   return (
