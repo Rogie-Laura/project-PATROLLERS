@@ -13,11 +13,13 @@ function getInitials(user) {
 }
 
 export default function AccountCard({ user, onSignOut, signingOut }) {
-  const displayName = user?.rank_fullname || user?.full_name || user?.email || "User";
-  const subtitle =
-    user?.accessMode === "token"
-      ? [user?.unit, user?.office].filter(Boolean).join(" · ") || "Token access"
-      : user?.email;
+  const isTokenAccess = user?.accessMode === "token";
+  const displayName = isTokenAccess
+    ? user?.unit || user?.full_name || "Station"
+    : user?.rank_fullname || user?.full_name || user?.email || "User";
+  const subtitle = isTokenAccess
+    ? user?.office || ""
+    : user?.email;
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleSignOutClick() {
@@ -40,7 +42,7 @@ export default function AccountCard({ user, onSignOut, signingOut }) {
         open={confirmOpen}
         title="Sign out?"
         description={
-          user?.accessMode === "token"
+          isTokenAccess
             ? "You will leave Smart Locator and need your access token again to continue."
             : "You will leave the monitoring center and need to sign in again to continue."
         }
@@ -60,9 +62,17 @@ export default function AccountCard({ user, onSignOut, signingOut }) {
           {getInitials(user)}
         </div>
 
-        <div className="hidden min-w-0 max-w-[9rem] lg:block lg:max-w-[11rem]">
+        <div
+          className={`min-w-0 ${
+            isTokenAccess
+              ? "block max-w-[10rem] sm:max-w-[14rem]"
+              : "hidden max-w-[9rem] lg:block lg:max-w-[11rem]"
+          }`}
+        >
           <p className="truncate text-xs font-semibold text-foreground">{displayName}</p>
-          <p className="truncate text-[10px] text-muted">{subtitle}</p>
+          {subtitle ? (
+            <p className="truncate text-[10px] text-muted">{subtitle}</p>
+          ) : null}
         </div>
 
         <button
