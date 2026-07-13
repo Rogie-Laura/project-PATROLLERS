@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import SmartLocatorHeader from "@/components/SmartLocatorHeader";
+import { isSystemAdministrator } from "@/lib/auth/roles";
 
 const SmartLocatorMap = dynamic(() => import("@/components/SmartLocatorMap"), {
   ssr: false,
@@ -18,6 +19,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+  const canEditMarkerSize = isSystemAdministrator(user?.role);
 
   const loadPoints = useCallback(async () => {
     setError("");
@@ -87,6 +89,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             points={points}
             onCreatePoint={handleCreatePoint}
             onDeletePoint={handleDeletePoint}
+            canEditMarkerSize={canEditMarkerSize}
           />
         )}
       </div>

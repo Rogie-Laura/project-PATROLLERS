@@ -22,7 +22,10 @@ import {
   PHILIPPINES_BOUNDS,
 } from "@/lib/mapBounds";
 import { createSmartLocatorIcon } from "@/lib/smartLocator/markers";
-import { getSmartLocatorMarkerSizePx } from "@/lib/smartLocator/markerSize";
+import {
+  DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET,
+  getSmartLocatorMarkerSizePx,
+} from "@/lib/smartLocator/markerSize";
 
 function CalabarzonInitialView() {
   const map = useMap();
@@ -253,7 +256,12 @@ function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
   );
 }
 
-export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }) {
+export default function SmartLocatorMap({
+  points,
+  onCreatePoint,
+  onDeletePoint,
+  canEditMarkerSize = false,
+}) {
   const basemap = useMemo(() => getBasemapById(DEFAULT_BASEMAP_ID), []);
   const { presetId, setPresetId, customSizes, setCustomSize, resetCustomSizes } =
     useSmartLocatorMarkerSize();
@@ -262,6 +270,11 @@ export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }
   const [plotError, setPlotError] = useState("");
   const [saving, setSaving] = useState(false);
   const [mapZoom, setMapZoom] = useState(8);
+
+  const activePresetId = canEditMarkerSize
+    ? presetId
+    : DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET;
+  const activeCustomSizes = canEditMarkerSize ? customSizes : null;
 
   function openPlotDialog(selection) {
     if (!menu) return;
@@ -334,20 +347,22 @@ export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }
 
         <SmartLocatorMarkersLayer
           points={points}
-          markerSizePreset={presetId}
-          customSizes={customSizes}
+          markerSizePreset={activePresetId}
+          customSizes={activeCustomSizes}
           onDeletePoint={handleDelete}
         />
       </MapContainer>
 
-      <SmartLocatorMarkerSizeOptions
-        presetId={presetId}
-        onPresetChange={setPresetId}
-        customSizes={customSizes}
-        onCustomSizeChange={setCustomSize}
-        onResetCustomSizes={resetCustomSizes}
-        currentZoom={mapZoom}
-      />
+      {canEditMarkerSize ? (
+        <SmartLocatorMarkerSizeOptions
+          presetId={presetId}
+          onPresetChange={setPresetId}
+          customSizes={customSizes}
+          onCustomSizeChange={setCustomSize}
+          onResetCustomSizes={resetCustomSizes}
+          currentZoom={mapZoom}
+        />
+      ) : null}
 
       <SmartLocatorPlotMenu
         menu={menu}
