@@ -9,6 +9,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
+import SmartLocatorBasemapToggle from "@/components/SmartLocatorBasemapToggle";
 import SmartLocatorPlotMenu from "@/components/SmartLocatorPlotMenu";
 import SmartLocatorMarkerSizeOptions, {
   useSmartLocatorMarkerSize,
@@ -26,6 +27,18 @@ import {
   DEFAULT_SMART_LOCATOR_MARKER_SIZE_PRESET,
   getSmartLocatorMarkerSizePx,
 } from "@/lib/smartLocator/markerSize";
+
+const SMART_LOCATOR_BASEMAP_KEY = "smart-locator-basemap-id";
+
+function readStoredBasemapId() {
+  if (typeof window === "undefined") return DEFAULT_BASEMAP_ID;
+  try {
+    const stored = window.sessionStorage.getItem(SMART_LOCATOR_BASEMAP_KEY);
+    return getBasemapById(stored).id;
+  } catch {
+    return DEFAULT_BASEMAP_ID;
+  }
+}
 
 function CalabarzonInitialView() {
   const map = useMap();
@@ -262,7 +275,8 @@ export default function SmartLocatorMap({
   onDeletePoint,
   canEditMarkerSize = false,
 }) {
-  const basemap = useMemo(() => getBasemapById(DEFAULT_BASEMAP_ID), []);
+  const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
+  const basemap = useMemo(() => getBasemapById(basemapId), [basemapId]);
   const { presetId, setPresetId, customSizes, setCustomSize, resetCustomSizes } =
     useSmartLocatorMarkerSize();
   const [menu, setMenu] = useState(null);
@@ -270,6 +284,20 @@ export default function SmartLocatorMap({
   const [plotError, setPlotError] = useState("");
   const [saving, setSaving] = useState(false);
   const [mapZoom, setMapZoom] = useState(8);
+
+  useEffect(() => {
+    setBasemapId(readStoredBasemapId());
+  }, []);
+
+  function handleBasemapChange(nextId) {
+    const resolved = getBasemapById(nextId).id;
+    setBasemapId(resolved);
+    try {
+      window.sessionStorage.setItem(SMART_LOCATOR_BASEMAP_KEY, resolved);
+    } catch {
+      // ignore storage errors
+    }
+  }
 
   const activePresetId = canEditMarkerSize
     ? presetId
@@ -334,7 +362,13 @@ export default function SmartLocatorMap({
         maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
         scrollWheelZoom
       >
-        <TileLayer url={basemap.url} attribution={basemap.attribution} />
+        <TileLayer
+          key={basemap.id}
+          url={basemap.url}
+          attribution={basemap.attribution}
+          maxZoom={basemap.maxZoom}
+          maxNativeZoom={basemap.maxNativeZoom}
+        />
         <CalabarzonInitialView />
         <InvalidateOnResize />
         <ZoomReporter onZoomChange={setMapZoom} />
@@ -352,6 +386,11 @@ export default function SmartLocatorMap({
           onDeletePoint={handleDelete}
         />
       </MapContainer>
+
+      <SmartLocatorBasemapToggle
+        basemapId={basemapId}
+        onBasemapChange={handleBasemapChange}
+      />
 
       {canEditMarkerSize ? (
         <SmartLocatorMarkerSizeOptions
