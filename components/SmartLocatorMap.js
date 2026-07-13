@@ -22,6 +22,8 @@ import IsoFormModal from "@/components/IsoFormModal";
 import IsoInfoPanel from "@/components/IsoInfoPanel";
 import AreaOfConvergenceFormModal from "@/components/AreaOfConvergenceFormModal";
 import AreaOfConvergenceInfoPanel from "@/components/AreaOfConvergenceInfoPanel";
+import EducationalInstitutionFormModal from "@/components/EducationalInstitutionFormModal";
+import EducationalInstitutionInfoPanel from "@/components/EducationalInstitutionInfoPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
@@ -51,6 +53,11 @@ import {
   getAreaOfConvergenceType,
   isAreaOfConvergenceCategory,
 } from "@/lib/smartLocator/areaOfConvergence";
+import {
+  createEmptyPersonnelRow as createEmptyEduPersonnelRow,
+  getEducationalInstitutionType,
+  isEducationalInstitutionCategory,
+} from "@/lib/smartLocator/educationalInstitutions";
 
 const SMART_LOCATOR_BASEMAP_KEY = "smart-locator-basemap-id";
 
@@ -438,6 +445,63 @@ function AreaOfConvergenceMarker({ marker, markerSizePx, onSelect }) {
   );
 }
 
+function EducationalInstitutionMarkersLayer({
+  markers,
+  markerSizePreset,
+  customSizes,
+  onSelect,
+}) {
+  const mapZoom = useMapZoomLevel();
+  const markerSizePx = getSmartLocatorMarkerSizePx(
+    mapZoom,
+    markerSizePreset,
+    customSizes
+  );
+
+  return (
+    <>
+      {markers.map((marker) => (
+        <EducationalInstitutionMarker
+          key={marker.id}
+          marker={marker}
+          markerSizePx={markerSizePx}
+          onSelect={onSelect}
+        />
+      ))}
+    </>
+  );
+}
+
+function EducationalInstitutionMarker({ marker, markerSizePx, onSelect }) {
+  const markerRef = useRef(null);
+  const icon = useMemo(
+    () =>
+      createSmartLocatorIcon(
+        "educational_institutions",
+        marker.typeKey,
+        markerSizePx
+      ),
+    [marker.typeKey, markerSizePx]
+  );
+
+  useEffect(() => {
+    const leafletMarker = markerRef.current;
+    if (!leafletMarker) return;
+    leafletMarker.setIcon(icon);
+  }, [icon]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[marker.latitude, marker.longitude]}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelect(marker),
+      }}
+    />
+  );
+}
+
 function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
   if (!draft) return null;
 
@@ -541,6 +605,7 @@ export default function SmartLocatorMap({
   friendlyForces = [],
   isoMarkers = [],
   areaOfConvergenceMarkers = [],
+  educationalInstitutionMarkers = [],
   onCreatePoint,
   onDeletePoint,
   onCreateEstablishment,
@@ -555,6 +620,9 @@ export default function SmartLocatorMap({
   onCreateAreaOfConvergence,
   onUpdateAreaOfConvergence,
   onDeleteAreaOfConvergence,
+  onCreateEducationalInstitution,
+  onUpdateEducationalInstitution,
+  onDeleteEducationalInstitution,
   canEditMarkerSize = false,
 }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
@@ -597,6 +665,11 @@ export default function SmartLocatorMap({
   const [aocError, setAocError] = useState("");
   const [aocSaving, setAocSaving] = useState(false);
   const [selectedAocId, setSelectedAocId] = useState(null);
+  const [eduDraft, setEduDraft] = useState(null);
+  const [eduMode, setEduMode] = useState("add");
+  const [eduError, setEduError] = useState("");
+  const [eduSaving, setEduSaving] = useState(false);
+  const [selectedEduId, setSelectedEduId] = useState(null);
 
   useEffect(() => {
     setBasemapId(readStoredBasemapId());
@@ -623,6 +696,13 @@ export default function SmartLocatorMap({
     () =>
       areaOfConvergenceMarkers.find((row) => row.id === selectedAocId) ?? null,
     [areaOfConvergenceMarkers, selectedAocId]
+  );
+
+  const selectedEdu = useMemo(
+    () =>
+      educationalInstitutionMarkers.find((row) => row.id === selectedEduId) ??
+      null,
+    [educationalInstitutionMarkers, selectedEduId]
   );
 
   function handleBasemapChange(nextId) {
@@ -663,6 +743,7 @@ export default function SmartLocatorMap({
       setFriendlyDraft(null);
       setIsoDraft(null);
       setAocDraft(null);
+      setEduDraft(null);
       return;
     }
 
@@ -689,6 +770,7 @@ export default function SmartLocatorMap({
       setPnpDraft(null);
       setIsoDraft(null);
       setAocDraft(null);
+      setEduDraft(null);
       return;
     }
 
@@ -713,6 +795,7 @@ export default function SmartLocatorMap({
       setPnpDraft(null);
       setFriendlyDraft(null);
       setAocDraft(null);
+      setEduDraft(null);
       return;
     }
 
@@ -738,6 +821,37 @@ export default function SmartLocatorMap({
       setPnpDraft(null);
       setFriendlyDraft(null);
       setIsoDraft(null);
+      setEduDraft(null);
+      return;
+    }
+
+    if (isEducationalInstitutionCategory(selection.category)) {
+      const typeMeta = getEducationalInstitutionType(selection.subcategory);
+      if (!typeMeta) return;
+      setEduMode("add");
+      setEduDraft({
+        id: null,
+        typeKey: typeMeta.key,
+        typeLabel: typeMeta.typeLabel,
+        unit: user?.unit ?? "",
+        office: user?.office ?? "",
+        principalSupervisor: "",
+        contactNumber: "",
+        addressLocation: "",
+        estimatedStudents: "",
+        isPollingCenter: false,
+        numberOfVoters: "",
+        personnel: [],
+        latitude: menu.lat,
+        longitude: menu.lng,
+      });
+      setEduError("");
+      setMenu(null);
+      setDraft(null);
+      setPnpDraft(null);
+      setFriendlyDraft(null);
+      setIsoDraft(null);
+      setAocDraft(null);
       return;
     }
 
@@ -757,6 +871,7 @@ export default function SmartLocatorMap({
     setFriendlyDraft(null);
     setIsoDraft(null);
     setAocDraft(null);
+    setEduDraft(null);
   }
 
   async function submitPlot() {
@@ -809,6 +924,7 @@ export default function SmartLocatorMap({
         setSelectedFriendlyForceId(null);
         setSelectedIsoId(null);
         setSelectedAocId(null);
+        setSelectedEduId(null);
       } else {
         const created = await onCreateEstablishment({
           typeKey: pnpDraft.typeKey,
@@ -820,6 +936,7 @@ export default function SmartLocatorMap({
         setSelectedFriendlyForceId(null);
         setSelectedIsoId(null);
         setSelectedAocId(null);
+        setSelectedEduId(null);
       }
       setPnpDraft(null);
       return true;
@@ -851,12 +968,14 @@ export default function SmartLocatorMap({
         setSelectedEstablishmentId(null);
         setSelectedIsoId(null);
         setSelectedAocId(null);
+        setSelectedEduId(null);
       } else {
         const created = await onCreateFriendlyForce(payload);
         setSelectedFriendlyForceId(created?.id ?? null);
         setSelectedEstablishmentId(null);
         setSelectedIsoId(null);
         setSelectedAocId(null);
+        setSelectedEduId(null);
       }
       setFriendlyDraft(null);
       return true;
@@ -890,6 +1009,7 @@ export default function SmartLocatorMap({
       setSelectedEstablishmentId(null);
       setSelectedFriendlyForceId(null);
       setSelectedAocId(null);
+      setSelectedEduId(null);
       setIsoDraft(null);
       return true;
     } catch (err) {
@@ -923,6 +1043,7 @@ export default function SmartLocatorMap({
       setSelectedEstablishmentId(null);
       setSelectedFriendlyForceId(null);
       setSelectedIsoId(null);
+      setSelectedEduId(null);
       setAocDraft(null);
       return true;
     } catch (err) {
@@ -930,6 +1051,47 @@ export default function SmartLocatorMap({
       return false;
     } finally {
       setAocSaving(false);
+    }
+  }
+
+  async function saveEducationalInstitution() {
+    if (!eduDraft) return false;
+    setEduSaving(true);
+    setEduError("");
+    try {
+      const payload = {
+        typeKey: eduDraft.typeKey,
+        principalSupervisor: eduDraft.principalSupervisor,
+        contactNumber: eduDraft.contactNumber,
+        addressLocation: eduDraft.addressLocation,
+        estimatedStudents: eduDraft.estimatedStudents,
+        isPollingCenter: eduDraft.isPollingCenter,
+        numberOfVoters: eduDraft.numberOfVoters,
+        personnel: eduDraft.personnel,
+        latitude: eduDraft.latitude,
+        longitude: eduDraft.longitude,
+      };
+      if (eduMode === "edit" && eduDraft.id) {
+        const updated = await onUpdateEducationalInstitution(
+          eduDraft.id,
+          payload
+        );
+        setSelectedEduId(updated?.id ?? eduDraft.id);
+      } else {
+        const created = await onCreateEducationalInstitution(payload);
+        setSelectedEduId(created?.id ?? null);
+      }
+      setSelectedEstablishmentId(null);
+      setSelectedFriendlyForceId(null);
+      setSelectedIsoId(null);
+      setSelectedAocId(null);
+      setEduDraft(null);
+      return true;
+    } catch (err) {
+      setEduError(err.message);
+      return false;
+    } finally {
+      setEduSaving(false);
     }
   }
 
@@ -977,6 +1139,7 @@ export default function SmartLocatorMap({
             setSelectedFriendlyForceId(null);
             setSelectedIsoId(null);
             setSelectedAocId(null);
+            setSelectedEduId(null);
             setMenu(null);
           }}
         />
@@ -990,6 +1153,7 @@ export default function SmartLocatorMap({
             setSelectedEstablishmentId(null);
             setSelectedIsoId(null);
             setSelectedAocId(null);
+            setSelectedEduId(null);
             setMenu(null);
           }}
         />
@@ -1003,6 +1167,7 @@ export default function SmartLocatorMap({
             setSelectedEstablishmentId(null);
             setSelectedFriendlyForceId(null);
             setSelectedAocId(null);
+            setSelectedEduId(null);
             setMenu(null);
           }}
         />
@@ -1016,6 +1181,21 @@ export default function SmartLocatorMap({
             setSelectedEstablishmentId(null);
             setSelectedFriendlyForceId(null);
             setSelectedIsoId(null);
+            setSelectedEduId(null);
+            setMenu(null);
+          }}
+        />
+
+        <EducationalInstitutionMarkersLayer
+          markers={educationalInstitutionMarkers}
+          markerSizePreset={activePresetId}
+          customSizes={activeCustomSizes}
+          onSelect={(marker) => {
+            setSelectedEduId(marker.id);
+            setSelectedEstablishmentId(null);
+            setSelectedFriendlyForceId(null);
+            setSelectedIsoId(null);
+            setSelectedAocId(null);
             setMenu(null);
           }}
         />
@@ -1162,6 +1342,46 @@ export default function SmartLocatorMap({
         />
       ) : null}
 
+      {selectedEdu ? (
+        <EducationalInstitutionInfoPanel
+          marker={selectedEdu}
+          canManage={canManagePoint(user, selectedEdu)}
+          onClose={() => setSelectedEduId(null)}
+          onEdit={() => {
+            const typeMeta = getEducationalInstitutionType(selectedEdu.typeKey);
+            setEduMode("edit");
+            setEduDraft({
+              id: selectedEdu.id,
+              typeKey: selectedEdu.typeKey,
+              typeLabel: typeMeta?.typeLabel ?? selectedEdu.type,
+              unit: selectedEdu.unit,
+              office: selectedEdu.office,
+              principalSupervisor: selectedEdu.principalSupervisor ?? "",
+              contactNumber: selectedEdu.contactNumber ?? "",
+              addressLocation: selectedEdu.addressLocation ?? "",
+              estimatedStudents: selectedEdu.estimatedStudents ?? "",
+              isPollingCenter: Boolean(selectedEdu.isPollingCenter),
+              numberOfVoters: selectedEdu.numberOfVoters ?? "",
+              personnel: selectedEdu.isPollingCenter
+                ? selectedEdu.personnel?.length > 0
+                  ? selectedEdu.personnel.map((row) => ({
+                      rankName: row.rankName ?? "",
+                      contactNumber: row.contactNumber ?? "",
+                    }))
+                  : [createEmptyEduPersonnelRow()]
+                : [],
+              latitude: selectedEdu.latitude,
+              longitude: selectedEdu.longitude,
+            });
+            setEduError("");
+          }}
+          onRemove={async () => {
+            await onDeleteEducationalInstitution(selectedEdu.id);
+            setSelectedEduId(null);
+          }}
+        />
+      ) : null}
+
       <SmartLocatorPlotMenu
         menu={menu}
         onClose={() => setMenu(null)}
@@ -1248,6 +1468,20 @@ export default function SmartLocatorMap({
           setAocError("");
         }}
         onRequestSave={saveAreaOfConvergence}
+      />
+
+      <EducationalInstitutionFormModal
+        open={Boolean(eduDraft)}
+        mode={eduMode}
+        draft={eduDraft}
+        saving={eduSaving}
+        error={eduError}
+        onChange={(patch) => setEduDraft((prev) => ({ ...prev, ...patch }))}
+        onCancel={() => {
+          setEduDraft(null);
+          setEduError("");
+        }}
+        onRequestSave={saveEducationalInstitution}
       />
     </div>
   );

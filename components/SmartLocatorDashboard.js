@@ -20,6 +20,8 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const [friendlyForces, setFriendlyForces] = useState([]);
   const [isoMarkers, setIsoMarkers] = useState([]);
   const [areaOfConvergenceMarkers, setAreaOfConvergenceMarkers] = useState([]);
+  const [educationalInstitutionMarkers, setEducationalInstitutionMarkers] =
+    useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
@@ -30,19 +32,27 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const loadMapData = useCallback(async () => {
     setError("");
     try {
-      const [pointsRes, establishmentsRes, forcesRes, isoRes, aocRes] =
-        await Promise.all([
-          fetch("/api/smart-locator/points"),
-          fetch("/api/smart-locator/pnp-establishments"),
-          fetch("/api/smart-locator/friendly-forces"),
-          fetch("/api/smart-locator/iso"),
-          fetch("/api/smart-locator/area-of-convergence"),
-        ]);
+      const [
+        pointsRes,
+        establishmentsRes,
+        forcesRes,
+        isoRes,
+        aocRes,
+        eduRes,
+      ] = await Promise.all([
+        fetch("/api/smart-locator/points"),
+        fetch("/api/smart-locator/pnp-establishments"),
+        fetch("/api/smart-locator/friendly-forces"),
+        fetch("/api/smart-locator/iso"),
+        fetch("/api/smart-locator/area-of-convergence"),
+        fetch("/api/smart-locator/educational-institutions"),
+      ]);
       const pointsData = await pointsRes.json();
       const establishmentsData = await establishmentsRes.json();
       const forcesData = await forcesRes.json();
       const isoData = await isoRes.json();
       const aocData = await aocRes.json();
+      const eduData = await eduRes.json();
       if (!pointsRes.ok) {
         throw new Error(pointsData.error || "Could not load map points.");
       }
@@ -62,11 +72,17 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
           aocData.error || "Could not load Area of Convergence markers."
         );
       }
+      if (!eduRes.ok) {
+        throw new Error(
+          eduData.error || "Could not load Educational Institution markers."
+        );
+      }
       setPoints(pointsData.points ?? []);
       setEstablishments(establishmentsData.establishments ?? []);
       setFriendlyForces(forcesData.forces ?? []);
       setIsoMarkers(isoData.markers ?? []);
       setAreaOfConvergenceMarkers(aocData.markers ?? []);
+      setEducationalInstitutionMarkers(eduData.markers ?? []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -247,6 +263,59 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
     setAreaOfConvergenceMarkers((prev) => prev.filter((row) => row.id !== id));
   }
 
+  async function handleCreateEducationalInstitution(payload) {
+    const res = await fetch("/api/smart-locator/educational-institutions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data.error || "Could not save Educational Institution marker."
+      );
+    }
+    setEducationalInstitutionMarkers((prev) => [data.marker, ...prev]);
+    return data.marker;
+  }
+
+  async function handleUpdateEducationalInstitution(id, payload) {
+    const res = await fetch(
+      `/api/smart-locator/educational-institutions/${id}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data.error || "Could not update Educational Institution marker."
+      );
+    }
+    setEducationalInstitutionMarkers((prev) =>
+      prev.map((row) => (row.id === id ? data.marker : row))
+    );
+    return data.marker;
+  }
+
+  async function handleDeleteEducationalInstitution(id) {
+    const res = await fetch(
+      `/api/smart-locator/educational-institutions/${id}`,
+      { method: "DELETE" }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data.error || "Could not delete Educational Institution marker."
+      );
+    }
+    setEducationalInstitutionMarkers((prev) =>
+      prev.filter((row) => row.id !== id)
+    );
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
     await fetch("/api/smart-locator/auth/logout", { method: "POST" }).catch(() => {});
@@ -281,6 +350,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             friendlyForces={friendlyForces}
             isoMarkers={isoMarkers}
             areaOfConvergenceMarkers={areaOfConvergenceMarkers}
+            educationalInstitutionMarkers={educationalInstitutionMarkers}
             onCreatePoint={handleCreatePoint}
             onDeletePoint={handleDeletePoint}
             onCreateEstablishment={handleCreateEstablishment}
@@ -295,6 +365,9 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             onCreateAreaOfConvergence={handleCreateAreaOfConvergence}
             onUpdateAreaOfConvergence={handleUpdateAreaOfConvergence}
             onDeleteAreaOfConvergence={handleDeleteAreaOfConvergence}
+            onCreateEducationalInstitution={handleCreateEducationalInstitution}
+            onUpdateEducationalInstitution={handleUpdateEducationalInstitution}
+            onDeleteEducationalInstitution={handleDeleteEducationalInstitution}
             canEditMarkerSize={canEditMarkerSize}
           />
         )}
