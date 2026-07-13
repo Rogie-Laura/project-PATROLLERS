@@ -20,6 +20,8 @@ import FriendlyForceFormModal from "@/components/FriendlyForceFormModal";
 import FriendlyForceInfoPanel from "@/components/FriendlyForceInfoPanel";
 import IsoFormModal from "@/components/IsoFormModal";
 import IsoInfoPanel from "@/components/IsoInfoPanel";
+import AreaOfConvergenceFormModal from "@/components/AreaOfConvergenceFormModal";
+import AreaOfConvergenceInfoPanel from "@/components/AreaOfConvergenceInfoPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
@@ -44,6 +46,11 @@ import {
   isFriendlyForceCategory,
 } from "@/lib/smartLocator/friendlyForces";
 import { getIsoType, isIsoCategory } from "@/lib/smartLocator/iso";
+import {
+  createEmptyPersonnelRow,
+  getAreaOfConvergenceType,
+  isAreaOfConvergenceCategory,
+} from "@/lib/smartLocator/areaOfConvergence";
 
 const SMART_LOCATOR_BASEMAP_KEY = "smart-locator-basemap-id";
 
@@ -374,6 +381,63 @@ function IsoMarker({ marker, markerSizePx, onSelect }) {
   );
 }
 
+function AreaOfConvergenceMarkersLayer({
+  markers,
+  markerSizePreset,
+  customSizes,
+  onSelect,
+}) {
+  const mapZoom = useMapZoomLevel();
+  const markerSizePx = getSmartLocatorMarkerSizePx(
+    mapZoom,
+    markerSizePreset,
+    customSizes
+  );
+
+  return (
+    <>
+      {markers.map((marker) => (
+        <AreaOfConvergenceMarker
+          key={marker.id}
+          marker={marker}
+          markerSizePx={markerSizePx}
+          onSelect={onSelect}
+        />
+      ))}
+    </>
+  );
+}
+
+function AreaOfConvergenceMarker({ marker, markerSizePx, onSelect }) {
+  const markerRef = useRef(null);
+  const icon = useMemo(
+    () =>
+      createSmartLocatorIcon(
+        "area_of_convergence",
+        marker.typeKey,
+        markerSizePx
+      ),
+    [marker.typeKey, markerSizePx]
+  );
+
+  useEffect(() => {
+    const leafletMarker = markerRef.current;
+    if (!leafletMarker) return;
+    leafletMarker.setIcon(icon);
+  }, [icon]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[marker.latitude, marker.longitude]}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelect(marker),
+      }}
+    />
+  );
+}
+
 function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
   if (!draft) return null;
 
@@ -476,6 +540,7 @@ export default function SmartLocatorMap({
   establishments = [],
   friendlyForces = [],
   isoMarkers = [],
+  areaOfConvergenceMarkers = [],
   onCreatePoint,
   onDeletePoint,
   onCreateEstablishment,
@@ -487,6 +552,9 @@ export default function SmartLocatorMap({
   onCreateIso,
   onUpdateIso,
   onDeleteIso,
+  onCreateAreaOfConvergence,
+  onUpdateAreaOfConvergence,
+  onDeleteAreaOfConvergence,
   canEditMarkerSize = false,
 }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
@@ -524,6 +592,11 @@ export default function SmartLocatorMap({
   const [isoError, setIsoError] = useState("");
   const [isoSaving, setIsoSaving] = useState(false);
   const [selectedIsoId, setSelectedIsoId] = useState(null);
+  const [aocDraft, setAocDraft] = useState(null);
+  const [aocMode, setAocMode] = useState("add");
+  const [aocError, setAocError] = useState("");
+  const [aocSaving, setAocSaving] = useState(false);
+  const [selectedAocId, setSelectedAocId] = useState(null);
 
   useEffect(() => {
     setBasemapId(readStoredBasemapId());
@@ -544,6 +617,12 @@ export default function SmartLocatorMap({
   const selectedIso = useMemo(
     () => isoMarkers.find((row) => row.id === selectedIsoId) ?? null,
     [isoMarkers, selectedIsoId]
+  );
+
+  const selectedAoc = useMemo(
+    () =>
+      areaOfConvergenceMarkers.find((row) => row.id === selectedAocId) ?? null,
+    [areaOfConvergenceMarkers, selectedAocId]
   );
 
   function handleBasemapChange(nextId) {
@@ -583,6 +662,7 @@ export default function SmartLocatorMap({
       setDraft(null);
       setFriendlyDraft(null);
       setIsoDraft(null);
+      setAocDraft(null);
       return;
     }
 
@@ -608,6 +688,7 @@ export default function SmartLocatorMap({
       setDraft(null);
       setPnpDraft(null);
       setIsoDraft(null);
+      setAocDraft(null);
       return;
     }
 
@@ -631,6 +712,32 @@ export default function SmartLocatorMap({
       setDraft(null);
       setPnpDraft(null);
       setFriendlyDraft(null);
+      setAocDraft(null);
+      return;
+    }
+
+    if (isAreaOfConvergenceCategory(selection.category)) {
+      const typeMeta = getAreaOfConvergenceType(selection.subcategory);
+      if (!typeMeta) return;
+      setAocMode("add");
+      setAocDraft({
+        id: null,
+        typeKey: typeMeta.key,
+        typeLabel: typeMeta.typeLabel,
+        unit: user?.unit ?? "",
+        office: user?.office ?? "",
+        addressLocation: "",
+        estimatedCrowd: "",
+        personnel: [createEmptyPersonnelRow()],
+        latitude: menu.lat,
+        longitude: menu.lng,
+      });
+      setAocError("");
+      setMenu(null);
+      setDraft(null);
+      setPnpDraft(null);
+      setFriendlyDraft(null);
+      setIsoDraft(null);
       return;
     }
 
@@ -649,6 +756,7 @@ export default function SmartLocatorMap({
     setPnpDraft(null);
     setFriendlyDraft(null);
     setIsoDraft(null);
+    setAocDraft(null);
   }
 
   async function submitPlot() {
@@ -700,6 +808,7 @@ export default function SmartLocatorMap({
         setSelectedEstablishmentId(updated?.id ?? pnpDraft.id);
         setSelectedFriendlyForceId(null);
         setSelectedIsoId(null);
+        setSelectedAocId(null);
       } else {
         const created = await onCreateEstablishment({
           typeKey: pnpDraft.typeKey,
@@ -710,6 +819,7 @@ export default function SmartLocatorMap({
         setSelectedEstablishmentId(created?.id ?? null);
         setSelectedFriendlyForceId(null);
         setSelectedIsoId(null);
+        setSelectedAocId(null);
       }
       setPnpDraft(null);
       return true;
@@ -740,11 +850,13 @@ export default function SmartLocatorMap({
         setSelectedFriendlyForceId(updated?.id ?? friendlyDraft.id);
         setSelectedEstablishmentId(null);
         setSelectedIsoId(null);
+        setSelectedAocId(null);
       } else {
         const created = await onCreateFriendlyForce(payload);
         setSelectedFriendlyForceId(created?.id ?? null);
         setSelectedEstablishmentId(null);
         setSelectedIsoId(null);
+        setSelectedAocId(null);
       }
       setFriendlyDraft(null);
       return true;
@@ -777,6 +889,7 @@ export default function SmartLocatorMap({
       }
       setSelectedEstablishmentId(null);
       setSelectedFriendlyForceId(null);
+      setSelectedAocId(null);
       setIsoDraft(null);
       return true;
     } catch (err) {
@@ -784,6 +897,39 @@ export default function SmartLocatorMap({
       return false;
     } finally {
       setIsoSaving(false);
+    }
+  }
+
+  async function saveAreaOfConvergence() {
+    if (!aocDraft) return false;
+    setAocSaving(true);
+    setAocError("");
+    try {
+      const payload = {
+        typeKey: aocDraft.typeKey,
+        addressLocation: aocDraft.addressLocation,
+        estimatedCrowd: aocDraft.estimatedCrowd,
+        personnel: aocDraft.personnel,
+        latitude: aocDraft.latitude,
+        longitude: aocDraft.longitude,
+      };
+      if (aocMode === "edit" && aocDraft.id) {
+        const updated = await onUpdateAreaOfConvergence(aocDraft.id, payload);
+        setSelectedAocId(updated?.id ?? aocDraft.id);
+      } else {
+        const created = await onCreateAreaOfConvergence(payload);
+        setSelectedAocId(created?.id ?? null);
+      }
+      setSelectedEstablishmentId(null);
+      setSelectedFriendlyForceId(null);
+      setSelectedIsoId(null);
+      setAocDraft(null);
+      return true;
+    } catch (err) {
+      setAocError(err.message);
+      return false;
+    } finally {
+      setAocSaving(false);
     }
   }
 
@@ -830,6 +976,7 @@ export default function SmartLocatorMap({
             setSelectedEstablishmentId(establishment.id);
             setSelectedFriendlyForceId(null);
             setSelectedIsoId(null);
+            setSelectedAocId(null);
             setMenu(null);
           }}
         />
@@ -842,6 +989,7 @@ export default function SmartLocatorMap({
             setSelectedFriendlyForceId(force.id);
             setSelectedEstablishmentId(null);
             setSelectedIsoId(null);
+            setSelectedAocId(null);
             setMenu(null);
           }}
         />
@@ -854,6 +1002,20 @@ export default function SmartLocatorMap({
             setSelectedIsoId(marker.id);
             setSelectedEstablishmentId(null);
             setSelectedFriendlyForceId(null);
+            setSelectedAocId(null);
+            setMenu(null);
+          }}
+        />
+
+        <AreaOfConvergenceMarkersLayer
+          markers={areaOfConvergenceMarkers}
+          markerSizePreset={activePresetId}
+          customSizes={activeCustomSizes}
+          onSelect={(marker) => {
+            setSelectedAocId(marker.id);
+            setSelectedEstablishmentId(null);
+            setSelectedFriendlyForceId(null);
+            setSelectedIsoId(null);
             setMenu(null);
           }}
         />
@@ -965,6 +1127,41 @@ export default function SmartLocatorMap({
         />
       ) : null}
 
+      {selectedAoc ? (
+        <AreaOfConvergenceInfoPanel
+          marker={selectedAoc}
+          canManage={canManagePoint(user, selectedAoc)}
+          onClose={() => setSelectedAocId(null)}
+          onEdit={() => {
+            const typeMeta = getAreaOfConvergenceType(selectedAoc.typeKey);
+            setAocMode("edit");
+            setAocDraft({
+              id: selectedAoc.id,
+              typeKey: selectedAoc.typeKey,
+              typeLabel: typeMeta?.typeLabel ?? selectedAoc.type,
+              unit: selectedAoc.unit,
+              office: selectedAoc.office,
+              addressLocation: selectedAoc.addressLocation,
+              estimatedCrowd: selectedAoc.estimatedCrowd ?? "",
+              personnel:
+                selectedAoc.personnel?.length > 0
+                  ? selectedAoc.personnel.map((row) => ({
+                      rankName: row.rankName ?? "",
+                      contactNumber: row.contactNumber ?? "",
+                    }))
+                  : [createEmptyPersonnelRow()],
+              latitude: selectedAoc.latitude,
+              longitude: selectedAoc.longitude,
+            });
+            setAocError("");
+          }}
+          onRemove={async () => {
+            await onDeleteAreaOfConvergence(selectedAoc.id);
+            setSelectedAocId(null);
+          }}
+        />
+      ) : null}
+
       <SmartLocatorPlotMenu
         menu={menu}
         onClose={() => setMenu(null)}
@@ -1037,6 +1234,20 @@ export default function SmartLocatorMap({
           setIsoError("");
         }}
         onRequestSave={saveIso}
+      />
+
+      <AreaOfConvergenceFormModal
+        open={Boolean(aocDraft)}
+        mode={aocMode}
+        draft={aocDraft}
+        saving={aocSaving}
+        error={aocError}
+        onChange={(patch) => setAocDraft((prev) => ({ ...prev, ...patch }))}
+        onCancel={() => {
+          setAocDraft(null);
+          setAocError("");
+        }}
+        onRequestSave={saveAreaOfConvergence}
       />
     </div>
   );

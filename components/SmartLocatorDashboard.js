@@ -19,6 +19,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const [establishments, setEstablishments] = useState([]);
   const [friendlyForces, setFriendlyForces] = useState([]);
   const [isoMarkers, setIsoMarkers] = useState([]);
+  const [areaOfConvergenceMarkers, setAreaOfConvergenceMarkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
@@ -29,17 +30,19 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const loadMapData = useCallback(async () => {
     setError("");
     try {
-      const [pointsRes, establishmentsRes, forcesRes, isoRes] =
+      const [pointsRes, establishmentsRes, forcesRes, isoRes, aocRes] =
         await Promise.all([
           fetch("/api/smart-locator/points"),
           fetch("/api/smart-locator/pnp-establishments"),
           fetch("/api/smart-locator/friendly-forces"),
           fetch("/api/smart-locator/iso"),
+          fetch("/api/smart-locator/area-of-convergence"),
         ]);
       const pointsData = await pointsRes.json();
       const establishmentsData = await establishmentsRes.json();
       const forcesData = await forcesRes.json();
       const isoData = await isoRes.json();
+      const aocData = await aocRes.json();
       if (!pointsRes.ok) {
         throw new Error(pointsData.error || "Could not load map points.");
       }
@@ -54,10 +57,16 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
       if (!isoRes.ok) {
         throw new Error(isoData.error || "Could not load ISO markers.");
       }
+      if (!aocRes.ok) {
+        throw new Error(
+          aocData.error || "Could not load Area of Convergence markers."
+        );
+      }
       setPoints(pointsData.points ?? []);
       setEstablishments(establishmentsData.establishments ?? []);
       setFriendlyForces(forcesData.forces ?? []);
       setIsoMarkers(isoData.markers ?? []);
+      setAreaOfConvergenceMarkers(aocData.markers ?? []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -191,6 +200,53 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
     setIsoMarkers((prev) => prev.filter((row) => row.id !== id));
   }
 
+  async function handleCreateAreaOfConvergence(payload) {
+    const res = await fetch("/api/smart-locator/area-of-convergence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data.error || "Could not save Area of Convergence marker."
+      );
+    }
+    setAreaOfConvergenceMarkers((prev) => [data.marker, ...prev]);
+    return data.marker;
+  }
+
+  async function handleUpdateAreaOfConvergence(id, payload) {
+    const res = await fetch(`/api/smart-locator/area-of-convergence/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data.error || "Could not update Area of Convergence marker."
+      );
+    }
+    setAreaOfConvergenceMarkers((prev) =>
+      prev.map((row) => (row.id === id ? data.marker : row))
+    );
+    return data.marker;
+  }
+
+  async function handleDeleteAreaOfConvergence(id) {
+    const res = await fetch(`/api/smart-locator/area-of-convergence/${id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(
+        data.error || "Could not delete Area of Convergence marker."
+      );
+    }
+    setAreaOfConvergenceMarkers((prev) => prev.filter((row) => row.id !== id));
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
     await fetch("/api/smart-locator/auth/logout", { method: "POST" }).catch(() => {});
@@ -224,6 +280,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             establishments={establishments}
             friendlyForces={friendlyForces}
             isoMarkers={isoMarkers}
+            areaOfConvergenceMarkers={areaOfConvergenceMarkers}
             onCreatePoint={handleCreatePoint}
             onDeletePoint={handleDeletePoint}
             onCreateEstablishment={handleCreateEstablishment}
@@ -235,6 +292,9 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             onCreateIso={handleCreateIso}
             onUpdateIso={handleUpdateIso}
             onDeleteIso={handleDeleteIso}
+            onCreateAreaOfConvergence={handleCreateAreaOfConvergence}
+            onUpdateAreaOfConvergence={handleUpdateAreaOfConvergence}
+            onDeleteAreaOfConvergence={handleDeleteAreaOfConvergence}
             canEditMarkerSize={canEditMarkerSize}
           />
         )}
