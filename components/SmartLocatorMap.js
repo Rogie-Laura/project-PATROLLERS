@@ -10,6 +10,9 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import SmartLocatorPlotMenu from "@/components/SmartLocatorPlotMenu";
+import SmartLocatorMarkerSizeOptions, {
+  useSmartLocatorMarkerSize,
+} from "@/components/SmartLocatorMarkerSizeOptions";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
   CALABARZON_BOUNDS,
@@ -19,6 +22,7 @@ import {
   PHILIPPINES_BOUNDS,
 } from "@/lib/mapBounds";
 import { createSmartLocatorIcon } from "@/lib/smartLocator/markers";
+import { getSmartLocatorMarkerSizePx } from "@/lib/smartLocator/markerSize";
 
 function CalabarzonInitialView() {
   const map = useMap();
@@ -81,6 +85,94 @@ function MapRightClickHandler({ onContextMenu }) {
     },
   });
   return null;
+}
+
+/** Keeps plotted icons in sync when the user zooms the map. */
+function useMapZoomLevel() {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  useEffect(() => {
+    const sync = () => setZoom(map.getZoom());
+    map.on("zoom zoomend", sync);
+    return () => {
+      map.off("zoom zoomend", sync);
+    };
+  }, [map]);
+
+  return zoom;
+}
+
+function ZoomReporter({ onZoomChange }) {
+  const zoom = useMapZoomLevel();
+
+  useEffect(() => {
+    onZoomChange?.(zoom);
+  }, [zoom, onZoomChange]);
+
+  return null;
+}
+
+function SmartLocatorMarkersLayer({ points, markerSizePreset, onDeletePoint }) {
+  const mapZoom = useMapZoomLevel();
+  const markerSizePx = getSmartLocatorMarkerSizePx(mapZoom, markerSizePreset);
+
+  return (
+    <>
+      {points.map((point) => (
+        <SmartLocatorPointMarker
+          key={point.id}
+          point={point}
+          markerSizePx={markerSizePx}
+          onDeletePoint={onDeletePoint}
+        />
+      ))}
+    </>
+  );
+}
+
+function SmartLocatorPointMarker({ point, markerSizePx, onDeletePoint }) {
+  const markerRef = useRef(null);
+  const icon = useMemo(
+    () =>
+      createSmartLocatorIcon(point.category, point.subcategory, markerSizePx),
+    [point.category, point.subcategory, markerSizePx]
+  );
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+    marker.setIcon(icon);
+  }, [icon]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[point.latitude, point.longitude]}
+      icon={icon}
+    >
+      <Popup>
+        <div className="min-w-[180px] space-y-2 text-sm">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+              {point.category_label}
+            </p>
+            <p className="font-semibold text-foreground">{point.label}</p>
+          </div>
+          {point.description ? (
+            <p className="text-xs text-muted">{point.description}</p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => onDeletePoint(point)}
+            className="rounded border border-red-500/30 px-2 py-1 text-xs text-red-500 transition hover:bg-red-500/10"
+          >
+            Remove
+          </button>
+        </div>
+      </Popup>
+    </Marker>
+  );
 }
 
 function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
@@ -154,10 +246,12 @@ function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
 
 export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }) {
   const basemap = useMemo(() => getBasemapById(DEFAULT_BASEMAP_ID), []);
+  const { presetId, setPresetId } = useSmartLocatorMarkerSize();
   const [menu, setMenu] = useState(null);
   const [draft, setDraft] = useState(null);
   const [plotError, setPlotError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [mapZoom, setMapZoom] = useState(8);
 
   function openPlotDialog(selection) {
     if (!menu) return;
@@ -220,6 +314,7 @@ export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }
         <TileLayer url={basemap.url} attribution={basemap.attribution} />
         <CalabarzonInitialView />
         <InvalidateOnResize />
+        <ZoomReporter onZoomChange={setMapZoom} />
         <MapRightClickHandler
           onContextMenu={(payload) => {
             setMenu(payload);
@@ -227,35 +322,18 @@ export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }
           }}
         />
 
-        {points.map((point) => (
-          <Marker
-            key={point.id}
-            position={[point.latitude, point.longitude]}
-            icon={createSmartLocatorIcon(point.category, point.subcategory)}
-          >
-            <Popup>
-              <div className="min-w-[180px] space-y-2 text-sm">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-                    {point.category_label}
-                  </p>
-                  <p className="font-semibold text-foreground">{point.label}</p>
-                </div>
-                {point.description ? (
-                  <p className="text-xs text-muted">{point.description}</p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(point)}
-                  className="rounded border border-red-500/30 px-2 py-1 text-xs text-red-500 transition hover:bg-red-500/10"
-                >
-                  Remove
-                </button>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        <SmartLocatorMarkersLayer
+          points={points}
+          markerSizePreset={presetId}
+          onDeletePoint={handleDelete}
+        />
       </MapContainer>
+
+      <SmartLocatorMarkerSizeOptions
+        presetId={presetId}
+        onPresetChange={setPresetId}
+        currentZoom={mapZoom}
+      />
 
       <SmartLocatorPlotMenu
         menu={menu}
