@@ -17,6 +17,7 @@ const SmartLocatorMap = dynamic(() => import("@/components/SmartLocatorMap"), {
 export default function SmartLocatorDashboard({ user, onLogout }) {
   const [points, setPoints] = useState([]);
   const [establishments, setEstablishments] = useState([]);
+  const [friendlyForces, setFriendlyForces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
@@ -27,12 +28,14 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const loadMapData = useCallback(async () => {
     setError("");
     try {
-      const [pointsRes, establishmentsRes] = await Promise.all([
+      const [pointsRes, establishmentsRes, forcesRes] = await Promise.all([
         fetch("/api/smart-locator/points"),
         fetch("/api/smart-locator/pnp-establishments"),
+        fetch("/api/smart-locator/friendly-forces"),
       ]);
       const pointsData = await pointsRes.json();
       const establishmentsData = await establishmentsRes.json();
+      const forcesData = await forcesRes.json();
       if (!pointsRes.ok) {
         throw new Error(pointsData.error || "Could not load map points.");
       }
@@ -41,8 +44,12 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
           establishmentsData.error || "Could not load PNP establishments."
         );
       }
+      if (!forcesRes.ok) {
+        throw new Error(forcesData.error || "Could not load friendly forces.");
+      }
       setPoints(pointsData.points ?? []);
       setEstablishments(establishmentsData.establishments ?? []);
+      setFriendlyForces(forcesData.forces ?? []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -108,6 +115,41 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
     setEstablishments((prev) => prev.filter((row) => row.id !== id));
   }
 
+  async function handleCreateFriendlyForce(payload) {
+    const res = await fetch("/api/smart-locator/friendly-forces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not save friendly force.");
+    setFriendlyForces((prev) => [data.force, ...prev]);
+    return data.force;
+  }
+
+  async function handleUpdateFriendlyForce(id, payload) {
+    const res = await fetch(`/api/smart-locator/friendly-forces/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not update friendly force.");
+    setFriendlyForces((prev) =>
+      prev.map((row) => (row.id === id ? data.force : row))
+    );
+    return data.force;
+  }
+
+  async function handleDeleteFriendlyForce(id) {
+    const res = await fetch(`/api/smart-locator/friendly-forces/${id}`, {
+      method: "DELETE",
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not delete friendly force.");
+    setFriendlyForces((prev) => prev.filter((row) => row.id !== id));
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
     await fetch("/api/smart-locator/auth/logout", { method: "POST" }).catch(() => {});
@@ -139,11 +181,15 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             user={user}
             points={points}
             establishments={establishments}
+            friendlyForces={friendlyForces}
             onCreatePoint={handleCreatePoint}
             onDeletePoint={handleDeletePoint}
             onCreateEstablishment={handleCreateEstablishment}
             onUpdateEstablishment={handleUpdateEstablishment}
             onDeleteEstablishment={handleDeleteEstablishment}
+            onCreateFriendlyForce={handleCreateFriendlyForce}
+            onUpdateFriendlyForce={handleUpdateFriendlyForce}
+            onDeleteFriendlyForce={handleDeleteFriendlyForce}
             canEditMarkerSize={canEditMarkerSize}
           />
         )}

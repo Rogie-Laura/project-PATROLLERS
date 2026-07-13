@@ -16,6 +16,8 @@ import SmartLocatorMarkerSizeOptions, {
 } from "@/components/SmartLocatorMarkerSizeOptions";
 import PnpEstablishmentFormModal from "@/components/PnpEstablishmentFormModal";
 import PnpEstablishmentInfoPanel from "@/components/PnpEstablishmentInfoPanel";
+import FriendlyForceFormModal from "@/components/FriendlyForceFormModal";
+import FriendlyForceInfoPanel from "@/components/FriendlyForceInfoPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
@@ -35,6 +37,10 @@ import {
   getPnpEstablishmentType,
   isPnpEstablishmentCategory,
 } from "@/lib/smartLocator/pnpEstablishments";
+import {
+  getFriendlyForceType,
+  isFriendlyForceCategory,
+} from "@/lib/smartLocator/friendlyForces";
 
 const SMART_LOCATOR_BASEMAP_KEY = "smart-locator-basemap-id";
 
@@ -265,6 +271,59 @@ function PnpEstablishmentMarker({ establishment, markerSizePx, onSelect }) {
   );
 }
 
+function FriendlyForceMarkersLayer({
+  forces,
+  markerSizePreset,
+  customSizes,
+  onSelect,
+}) {
+  const mapZoom = useMapZoomLevel();
+  const markerSizePx = getSmartLocatorMarkerSizePx(
+    mapZoom,
+    markerSizePreset,
+    customSizes
+  );
+
+  return (
+    <>
+      {forces.map((force) => (
+        <FriendlyForceMarker
+          key={force.id}
+          force={force}
+          markerSizePx={markerSizePx}
+          onSelect={onSelect}
+        />
+      ))}
+    </>
+  );
+}
+
+function FriendlyForceMarker({ force, markerSizePx, onSelect }) {
+  const markerRef = useRef(null);
+  const icon = useMemo(
+    () =>
+      createSmartLocatorIcon("friendly_units", force.typeKey, markerSizePx),
+    [force.typeKey, markerSizePx]
+  );
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+    marker.setIcon(icon);
+  }, [icon]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[force.latitude, force.longitude]}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelect(force),
+      }}
+    />
+  );
+}
+
 function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
   if (!draft) return null;
 
@@ -365,11 +424,15 @@ export default function SmartLocatorMap({
   user,
   points,
   establishments = [],
+  friendlyForces = [],
   onCreatePoint,
   onDeletePoint,
   onCreateEstablishment,
   onUpdateEstablishment,
   onDeleteEstablishment,
+  onCreateFriendlyForce,
+  onUpdateFriendlyForce,
+  onDeleteFriendlyForce,
   canEditMarkerSize = false,
 }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
@@ -397,6 +460,11 @@ export default function SmartLocatorMap({
   const [pnpError, setPnpError] = useState("");
   const [pnpSaving, setPnpSaving] = useState(false);
   const [selectedEstablishmentId, setSelectedEstablishmentId] = useState(null);
+  const [friendlyDraft, setFriendlyDraft] = useState(null);
+  const [friendlyMode, setFriendlyMode] = useState("add");
+  const [friendlyError, setFriendlyError] = useState("");
+  const [friendlySaving, setFriendlySaving] = useState(false);
+  const [selectedFriendlyForceId, setSelectedFriendlyForceId] = useState(null);
 
   useEffect(() => {
     setBasemapId(readStoredBasemapId());
@@ -406,6 +474,12 @@ export default function SmartLocatorMap({
     () =>
       establishments.find((row) => row.id === selectedEstablishmentId) ?? null,
     [establishments, selectedEstablishmentId]
+  );
+
+  const selectedFriendlyForce = useMemo(
+    () =>
+      friendlyForces.find((row) => row.id === selectedFriendlyForceId) ?? null,
+    [friendlyForces, selectedFriendlyForceId]
   );
 
   function handleBasemapChange(nextId) {
@@ -443,6 +517,30 @@ export default function SmartLocatorMap({
       setPnpError("");
       setMenu(null);
       setDraft(null);
+      setFriendlyDraft(null);
+      return;
+    }
+
+    if (isFriendlyForceCategory(selection.category)) {
+      const typeMeta = getFriendlyForceType(selection.subcategory);
+      if (!typeMeta) return;
+      setFriendlyMode("add");
+      setFriendlyDraft({
+        id: null,
+        typeKey: typeMeta.key,
+        typeLabel: typeMeta.typeLabel,
+        unit: user?.unit ?? "",
+        office: user?.office ?? "",
+        commandingOfficer: "",
+        contactNumber: "",
+        addressLocation: "",
+        latitude: menu.lat,
+        longitude: menu.lng,
+      });
+      setFriendlyError("");
+      setMenu(null);
+      setDraft(null);
+      setPnpDraft(null);
       return;
     }
 
@@ -459,6 +557,7 @@ export default function SmartLocatorMap({
     setMenu(null);
     setPlotError("");
     setPnpDraft(null);
+    setFriendlyDraft(null);
   }
 
   async function submitPlot() {
@@ -508,6 +607,7 @@ export default function SmartLocatorMap({
           longitude: pnpDraft.longitude,
         });
         setSelectedEstablishmentId(updated?.id ?? pnpDraft.id);
+        setSelectedFriendlyForceId(null);
       } else {
         const created = await onCreateEstablishment({
           typeKey: pnpDraft.typeKey,
@@ -516,6 +616,7 @@ export default function SmartLocatorMap({
           longitude: pnpDraft.longitude,
         });
         setSelectedEstablishmentId(created?.id ?? null);
+        setSelectedFriendlyForceId(null);
       }
       setPnpDraft(null);
       return true;
@@ -524,6 +625,38 @@ export default function SmartLocatorMap({
       return false;
     } finally {
       setPnpSaving(false);
+    }
+  }
+
+  async function saveFriendlyForce() {
+    if (!friendlyDraft) return false;
+    setFriendlySaving(true);
+    setFriendlyError("");
+    try {
+      const payload = {
+        typeKey: friendlyDraft.typeKey,
+        commandingOfficer: friendlyDraft.commandingOfficer,
+        contactNumber: friendlyDraft.contactNumber,
+        addressLocation: friendlyDraft.addressLocation,
+        latitude: friendlyDraft.latitude,
+        longitude: friendlyDraft.longitude,
+      };
+      if (friendlyMode === "edit" && friendlyDraft.id) {
+        const updated = await onUpdateFriendlyForce(friendlyDraft.id, payload);
+        setSelectedFriendlyForceId(updated?.id ?? friendlyDraft.id);
+        setSelectedEstablishmentId(null);
+      } else {
+        const created = await onCreateFriendlyForce(payload);
+        setSelectedFriendlyForceId(created?.id ?? null);
+        setSelectedEstablishmentId(null);
+      }
+      setFriendlyDraft(null);
+      return true;
+    } catch (err) {
+      setFriendlyError(err.message);
+      return false;
+    } finally {
+      setFriendlySaving(false);
     }
   }
 
@@ -568,6 +701,18 @@ export default function SmartLocatorMap({
           customSizes={activeCustomSizes}
           onSelect={(establishment) => {
             setSelectedEstablishmentId(establishment.id);
+            setSelectedFriendlyForceId(null);
+            setMenu(null);
+          }}
+        />
+
+        <FriendlyForceMarkersLayer
+          forces={friendlyForces}
+          markerSizePreset={activePresetId}
+          customSizes={activeCustomSizes}
+          onSelect={(force) => {
+            setSelectedFriendlyForceId(force.id);
+            setSelectedEstablishmentId(null);
             setMenu(null);
           }}
         />
@@ -621,6 +766,35 @@ export default function SmartLocatorMap({
         />
       ) : null}
 
+      {selectedFriendlyForce ? (
+        <FriendlyForceInfoPanel
+          force={selectedFriendlyForce}
+          canManage={canManagePoint(user, selectedFriendlyForce)}
+          onClose={() => setSelectedFriendlyForceId(null)}
+          onEdit={() => {
+            const typeMeta = getFriendlyForceType(selectedFriendlyForce.typeKey);
+            setFriendlyMode("edit");
+            setFriendlyDraft({
+              id: selectedFriendlyForce.id,
+              typeKey: selectedFriendlyForce.typeKey,
+              typeLabel: typeMeta?.typeLabel ?? selectedFriendlyForce.type,
+              unit: selectedFriendlyForce.unit,
+              office: selectedFriendlyForce.office,
+              commandingOfficer: selectedFriendlyForce.commandingOfficer,
+              contactNumber: selectedFriendlyForce.contactNumber,
+              addressLocation: selectedFriendlyForce.addressLocation,
+              latitude: selectedFriendlyForce.latitude,
+              longitude: selectedFriendlyForce.longitude,
+            });
+            setFriendlyError("");
+          }}
+          onRemove={async () => {
+            await onDeleteFriendlyForce(selectedFriendlyForce.id);
+            setSelectedFriendlyForceId(null);
+          }}
+        />
+      ) : null}
+
       <SmartLocatorPlotMenu
         menu={menu}
         onClose={() => setMenu(null)}
@@ -665,6 +839,20 @@ export default function SmartLocatorMap({
           setPnpError("");
         }}
         onRequestSave={savePnpEstablishment}
+      />
+
+      <FriendlyForceFormModal
+        open={Boolean(friendlyDraft)}
+        mode={friendlyMode}
+        draft={friendlyDraft}
+        saving={friendlySaving}
+        error={friendlyError}
+        onChange={(patch) => setFriendlyDraft((prev) => ({ ...prev, ...patch }))}
+        onCancel={() => {
+          setFriendlyDraft(null);
+          setFriendlyError("");
+        }}
+        onRequestSave={saveFriendlyForce}
       />
     </div>
   );
