@@ -291,24 +291,24 @@ export default function SmartLocatorMarkerSizeOptions({
 
   return (
     <>
-      <div className="pointer-events-none absolute bottom-3 right-3 z-[550]">
+      <div className="pointer-events-none absolute bottom-3 right-3 z-[1200]">
         <div className="pointer-events-auto flex flex-col items-end gap-2">
           {open && (
             <div
-              className="w-[min(100vw-1.5rem,300px)] overflow-hidden rounded-xl border border-zinc-600/45 bg-zinc-800/94 shadow-lg shadow-black/30 backdrop-blur-sm"
+              className="flex w-[min(100vw-1.5rem,320px)] max-h-[min(70vh,560px)] flex-col overflow-hidden rounded-xl border border-zinc-600/45 bg-zinc-800/98 shadow-lg shadow-black/30 backdrop-blur-sm"
               role="dialog"
               aria-label="Marker size options"
             >
-              <header className="border-b border-zinc-600/40 bg-zinc-900/50 px-3.5 py-2.5">
+              <header className="shrink-0 border-b border-zinc-600/40 bg-zinc-900/50 px-3.5 py-2.5">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-300">
                   Marker size
                 </p>
                 <p className="mt-0.5 text-[11px] text-zinc-500">
-                  System-wide — press Save to apply for all accounts
+                  System-wide — Save to apply for all accounts
                 </p>
               </header>
 
-              <div className="space-y-3 px-3.5 py-3">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3.5 py-3">
                 <div className="grid grid-cols-5 gap-1.5">
                   {builtInPresets.map((preset) => {
                     const isActive = preset.id === active.id;
@@ -382,7 +382,7 @@ export default function SmartLocatorMarkerSizeOptions({
                     <span>Zoom</span>
                     <span className="text-right">Size (px)</span>
                   </div>
-                  <ul className="max-h-[240px] overflow-y-auto">
+                  <ul>
                     {sizeTable.map(({ zoom, sizePx }) => {
                       const isCurrent =
                         currentZoomRounded != null &&
@@ -447,25 +447,32 @@ export default function SmartLocatorMarkerSizeOptions({
                     {SMART_LOCATOR_MARKER_SIZE_MAX_PX} px
                   </p>
                 )}
+              </div>
 
-                <div className="flex gap-2 border-t border-zinc-600/40 pt-3">
+              <div className="shrink-0 border-t border-zinc-600/50 bg-zinc-900/80 px-3.5 py-3">
+                <div className="flex gap-2">
                   <button
                     type="button"
                     disabled={!dirty || saving}
                     onClick={() => onDiscard?.()}
-                    className="flex-1 rounded-lg border border-zinc-600/50 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700/60 disabled:opacity-40"
+                    className="flex-1 rounded-lg border border-zinc-500/60 px-3 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-zinc-700/60 disabled:opacity-40"
                   >
                     Discard
                   </button>
                   <button
                     type="button"
-                    disabled={!dirty || saving}
+                    disabled={saving}
                     onClick={() => setConfirmSave(true)}
-                    className="flex-1 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-background transition hover:bg-accent-dark disabled:opacity-40"
+                    className="flex-[1.4] rounded-lg bg-accent px-3 py-2.5 text-sm font-bold text-background transition hover:bg-accent-dark disabled:opacity-50"
                   >
                     {saving ? "Saving..." : "Save"}
                   </button>
                 </div>
+                <p className="mt-2 text-center text-[10px] text-zinc-500">
+                  {dirty
+                    ? "May changes — Save para sa lahat ng accounts"
+                    : "Piliin ang size, then Save"}
+                </p>
               </div>
             </div>
           )}
