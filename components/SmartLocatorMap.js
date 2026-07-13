@@ -18,6 +18,8 @@ import PnpEstablishmentFormModal from "@/components/PnpEstablishmentFormModal";
 import PnpEstablishmentInfoPanel from "@/components/PnpEstablishmentInfoPanel";
 import FriendlyForceFormModal from "@/components/FriendlyForceFormModal";
 import FriendlyForceInfoPanel from "@/components/FriendlyForceInfoPanel";
+import IsoFormModal from "@/components/IsoFormModal";
+import IsoInfoPanel from "@/components/IsoInfoPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { DEFAULT_BASEMAP_ID, getBasemapById } from "@/lib/mapBasemaps";
 import {
@@ -41,6 +43,7 @@ import {
   getFriendlyForceType,
   isFriendlyForceCategory,
 } from "@/lib/smartLocator/friendlyForces";
+import { getIsoType, isIsoCategory } from "@/lib/smartLocator/iso";
 
 const SMART_LOCATOR_BASEMAP_KEY = "smart-locator-basemap-id";
 
@@ -324,6 +327,53 @@ function FriendlyForceMarker({ force, markerSizePx, onSelect }) {
   );
 }
 
+function IsoMarkersLayer({ markers, markerSizePreset, customSizes, onSelect }) {
+  const mapZoom = useMapZoomLevel();
+  const markerSizePx = getSmartLocatorMarkerSizePx(
+    mapZoom,
+    markerSizePreset,
+    customSizes
+  );
+
+  return (
+    <>
+      {markers.map((marker) => (
+        <IsoMarker
+          key={marker.id}
+          marker={marker}
+          markerSizePx={markerSizePx}
+          onSelect={onSelect}
+        />
+      ))}
+    </>
+  );
+}
+
+function IsoMarker({ marker, markerSizePx, onSelect }) {
+  const markerRef = useRef(null);
+  const icon = useMemo(
+    () => createSmartLocatorIcon("iso", marker.typeKey, markerSizePx),
+    [marker.typeKey, markerSizePx]
+  );
+
+  useEffect(() => {
+    const leafletMarker = markerRef.current;
+    if (!leafletMarker) return;
+    leafletMarker.setIcon(icon);
+  }, [icon]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[marker.latitude, marker.longitude]}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelect(marker),
+      }}
+    />
+  );
+}
+
 function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
   if (!draft) return null;
 
@@ -425,6 +475,7 @@ export default function SmartLocatorMap({
   points,
   establishments = [],
   friendlyForces = [],
+  isoMarkers = [],
   onCreatePoint,
   onDeletePoint,
   onCreateEstablishment,
@@ -433,6 +484,9 @@ export default function SmartLocatorMap({
   onCreateFriendlyForce,
   onUpdateFriendlyForce,
   onDeleteFriendlyForce,
+  onCreateIso,
+  onUpdateIso,
+  onDeleteIso,
   canEditMarkerSize = false,
 }) {
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP_ID);
@@ -465,6 +519,11 @@ export default function SmartLocatorMap({
   const [friendlyError, setFriendlyError] = useState("");
   const [friendlySaving, setFriendlySaving] = useState(false);
   const [selectedFriendlyForceId, setSelectedFriendlyForceId] = useState(null);
+  const [isoDraft, setIsoDraft] = useState(null);
+  const [isoMode, setIsoMode] = useState("add");
+  const [isoError, setIsoError] = useState("");
+  const [isoSaving, setIsoSaving] = useState(false);
+  const [selectedIsoId, setSelectedIsoId] = useState(null);
 
   useEffect(() => {
     setBasemapId(readStoredBasemapId());
@@ -480,6 +539,11 @@ export default function SmartLocatorMap({
     () =>
       friendlyForces.find((row) => row.id === selectedFriendlyForceId) ?? null,
     [friendlyForces, selectedFriendlyForceId]
+  );
+
+  const selectedIso = useMemo(
+    () => isoMarkers.find((row) => row.id === selectedIsoId) ?? null,
+    [isoMarkers, selectedIsoId]
   );
 
   function handleBasemapChange(nextId) {
@@ -518,6 +582,7 @@ export default function SmartLocatorMap({
       setMenu(null);
       setDraft(null);
       setFriendlyDraft(null);
+      setIsoDraft(null);
       return;
     }
 
@@ -542,6 +607,30 @@ export default function SmartLocatorMap({
       setMenu(null);
       setDraft(null);
       setPnpDraft(null);
+      setIsoDraft(null);
+      return;
+    }
+
+    if (isIsoCategory(selection.category)) {
+      const typeMeta = getIsoType(selection.subcategory);
+      if (!typeMeta) return;
+      setIsoMode("add");
+      setIsoDraft({
+        id: null,
+        typeKey: typeMeta.key,
+        typeLabel: typeMeta.typeLabel,
+        unit: user?.unit ?? "",
+        office: user?.office ?? "",
+        addressLocation: "",
+        remarks: "",
+        latitude: menu.lat,
+        longitude: menu.lng,
+      });
+      setIsoError("");
+      setMenu(null);
+      setDraft(null);
+      setPnpDraft(null);
+      setFriendlyDraft(null);
       return;
     }
 
@@ -559,6 +648,7 @@ export default function SmartLocatorMap({
     setPlotError("");
     setPnpDraft(null);
     setFriendlyDraft(null);
+    setIsoDraft(null);
   }
 
   async function submitPlot() {
@@ -609,6 +699,7 @@ export default function SmartLocatorMap({
         });
         setSelectedEstablishmentId(updated?.id ?? pnpDraft.id);
         setSelectedFriendlyForceId(null);
+        setSelectedIsoId(null);
       } else {
         const created = await onCreateEstablishment({
           typeKey: pnpDraft.typeKey,
@@ -618,6 +709,7 @@ export default function SmartLocatorMap({
         });
         setSelectedEstablishmentId(created?.id ?? null);
         setSelectedFriendlyForceId(null);
+        setSelectedIsoId(null);
       }
       setPnpDraft(null);
       return true;
@@ -647,10 +739,12 @@ export default function SmartLocatorMap({
         const updated = await onUpdateFriendlyForce(friendlyDraft.id, payload);
         setSelectedFriendlyForceId(updated?.id ?? friendlyDraft.id);
         setSelectedEstablishmentId(null);
+        setSelectedIsoId(null);
       } else {
         const created = await onCreateFriendlyForce(payload);
         setSelectedFriendlyForceId(created?.id ?? null);
         setSelectedEstablishmentId(null);
+        setSelectedIsoId(null);
       }
       setFriendlyDraft(null);
       return true;
@@ -659,6 +753,37 @@ export default function SmartLocatorMap({
       return false;
     } finally {
       setFriendlySaving(false);
+    }
+  }
+
+  async function saveIso() {
+    if (!isoDraft) return false;
+    setIsoSaving(true);
+    setIsoError("");
+    try {
+      const payload = {
+        typeKey: isoDraft.typeKey,
+        addressLocation: isoDraft.addressLocation,
+        remarks: isoDraft.remarks,
+        latitude: isoDraft.latitude,
+        longitude: isoDraft.longitude,
+      };
+      if (isoMode === "edit" && isoDraft.id) {
+        const updated = await onUpdateIso(isoDraft.id, payload);
+        setSelectedIsoId(updated?.id ?? isoDraft.id);
+      } else {
+        const created = await onCreateIso(payload);
+        setSelectedIsoId(created?.id ?? null);
+      }
+      setSelectedEstablishmentId(null);
+      setSelectedFriendlyForceId(null);
+      setIsoDraft(null);
+      return true;
+    } catch (err) {
+      setIsoError(err.message);
+      return false;
+    } finally {
+      setIsoSaving(false);
     }
   }
 
@@ -704,6 +829,7 @@ export default function SmartLocatorMap({
           onSelect={(establishment) => {
             setSelectedEstablishmentId(establishment.id);
             setSelectedFriendlyForceId(null);
+            setSelectedIsoId(null);
             setMenu(null);
           }}
         />
@@ -715,6 +841,19 @@ export default function SmartLocatorMap({
           onSelect={(force) => {
             setSelectedFriendlyForceId(force.id);
             setSelectedEstablishmentId(null);
+            setSelectedIsoId(null);
+            setMenu(null);
+          }}
+        />
+
+        <IsoMarkersLayer
+          markers={isoMarkers}
+          markerSizePreset={activePresetId}
+          customSizes={activeCustomSizes}
+          onSelect={(marker) => {
+            setSelectedIsoId(marker.id);
+            setSelectedEstablishmentId(null);
+            setSelectedFriendlyForceId(null);
             setMenu(null);
           }}
         />
@@ -798,6 +937,34 @@ export default function SmartLocatorMap({
         />
       ) : null}
 
+      {selectedIso ? (
+        <IsoInfoPanel
+          marker={selectedIso}
+          canManage={canManagePoint(user, selectedIso)}
+          onClose={() => setSelectedIsoId(null)}
+          onEdit={() => {
+            const typeMeta = getIsoType(selectedIso.typeKey);
+            setIsoMode("edit");
+            setIsoDraft({
+              id: selectedIso.id,
+              typeKey: selectedIso.typeKey,
+              typeLabel: typeMeta?.typeLabel ?? selectedIso.type,
+              unit: selectedIso.unit,
+              office: selectedIso.office,
+              addressLocation: selectedIso.addressLocation,
+              remarks: selectedIso.remarks ?? "",
+              latitude: selectedIso.latitude,
+              longitude: selectedIso.longitude,
+            });
+            setIsoError("");
+          }}
+          onRemove={async () => {
+            await onDeleteIso(selectedIso.id);
+            setSelectedIsoId(null);
+          }}
+        />
+      ) : null}
+
       <SmartLocatorPlotMenu
         menu={menu}
         onClose={() => setMenu(null)}
@@ -856,6 +1023,20 @@ export default function SmartLocatorMap({
           setFriendlyError("");
         }}
         onRequestSave={saveFriendlyForce}
+      />
+
+      <IsoFormModal
+        open={Boolean(isoDraft)}
+        mode={isoMode}
+        draft={isoDraft}
+        saving={isoSaving}
+        error={isoError}
+        onChange={(patch) => setIsoDraft((prev) => ({ ...prev, ...patch }))}
+        onCancel={() => {
+          setIsoDraft(null);
+          setIsoError("");
+        }}
+        onRequestSave={saveIso}
       />
     </div>
   );

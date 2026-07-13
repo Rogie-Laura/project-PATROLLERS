@@ -18,6 +18,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const [points, setPoints] = useState([]);
   const [establishments, setEstablishments] = useState([]);
   const [friendlyForces, setFriendlyForces] = useState([]);
+  const [isoMarkers, setIsoMarkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
@@ -28,14 +29,17 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const loadMapData = useCallback(async () => {
     setError("");
     try {
-      const [pointsRes, establishmentsRes, forcesRes] = await Promise.all([
-        fetch("/api/smart-locator/points"),
-        fetch("/api/smart-locator/pnp-establishments"),
-        fetch("/api/smart-locator/friendly-forces"),
-      ]);
+      const [pointsRes, establishmentsRes, forcesRes, isoRes] =
+        await Promise.all([
+          fetch("/api/smart-locator/points"),
+          fetch("/api/smart-locator/pnp-establishments"),
+          fetch("/api/smart-locator/friendly-forces"),
+          fetch("/api/smart-locator/iso"),
+        ]);
       const pointsData = await pointsRes.json();
       const establishmentsData = await establishmentsRes.json();
       const forcesData = await forcesRes.json();
+      const isoData = await isoRes.json();
       if (!pointsRes.ok) {
         throw new Error(pointsData.error || "Could not load map points.");
       }
@@ -47,9 +51,13 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
       if (!forcesRes.ok) {
         throw new Error(forcesData.error || "Could not load friendly forces.");
       }
+      if (!isoRes.ok) {
+        throw new Error(isoData.error || "Could not load ISO markers.");
+      }
       setPoints(pointsData.points ?? []);
       setEstablishments(establishmentsData.establishments ?? []);
       setFriendlyForces(forcesData.forces ?? []);
+      setIsoMarkers(isoData.markers ?? []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -150,6 +158,39 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
     setFriendlyForces((prev) => prev.filter((row) => row.id !== id));
   }
 
+  async function handleCreateIso(payload) {
+    const res = await fetch("/api/smart-locator/iso", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not save ISO marker.");
+    setIsoMarkers((prev) => [data.marker, ...prev]);
+    return data.marker;
+  }
+
+  async function handleUpdateIso(id, payload) {
+    const res = await fetch(`/api/smart-locator/iso/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not update ISO marker.");
+    setIsoMarkers((prev) =>
+      prev.map((row) => (row.id === id ? data.marker : row))
+    );
+    return data.marker;
+  }
+
+  async function handleDeleteIso(id) {
+    const res = await fetch(`/api/smart-locator/iso/${id}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not delete ISO marker.");
+    setIsoMarkers((prev) => prev.filter((row) => row.id !== id));
+  }
+
   async function handleSignOut() {
     setSigningOut(true);
     await fetch("/api/smart-locator/auth/logout", { method: "POST" }).catch(() => {});
@@ -182,6 +223,7 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             points={points}
             establishments={establishments}
             friendlyForces={friendlyForces}
+            isoMarkers={isoMarkers}
             onCreatePoint={handleCreatePoint}
             onDeletePoint={handleDeletePoint}
             onCreateEstablishment={handleCreateEstablishment}
@@ -190,6 +232,9 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
             onCreateFriendlyForce={handleCreateFriendlyForce}
             onUpdateFriendlyForce={handleUpdateFriendlyForce}
             onDeleteFriendlyForce={handleDeleteFriendlyForce}
+            onCreateIso={handleCreateIso}
+            onUpdateIso={handleUpdateIso}
+            onDeleteIso={handleDeleteIso}
             canEditMarkerSize={canEditMarkerSize}
           />
         )}
