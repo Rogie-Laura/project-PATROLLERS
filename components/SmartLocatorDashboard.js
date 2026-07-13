@@ -20,7 +20,9 @@ export default function SmartLocatorDashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
-  const canEditMarkerSize = isSystemAdministrator(user?.role);
+  const canEditMarkerSize =
+    isSystemAdministrator(user?.role) ||
+    user?.smartLocatorRole === "System Administrator";
 
   const loadMapData = useCallback(async () => {
     setError("");

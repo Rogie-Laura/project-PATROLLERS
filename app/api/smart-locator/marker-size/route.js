@@ -43,7 +43,10 @@ export async function PUT(request) {
   const { user, error } = await authorizeSmartLocator(request);
   if (error) return error;
 
-  if (!isSystemAdministrator(user?.role)) {
+  if (
+    !isSystemAdministrator(user?.role) &&
+    user?.smartLocatorRole !== "System Administrator"
+  ) {
     return NextResponse.json(
       { error: "Only System Administrator can change marker size." },
       { status: 403 }

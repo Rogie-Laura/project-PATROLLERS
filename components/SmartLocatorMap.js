@@ -380,6 +380,9 @@ export default function SmartLocatorMap({
     customSizes,
     setCustomSize,
     resetCustomSizes,
+    discardChanges,
+    saveChanges,
+    dirty: markerSizeDirty,
     saving: markerSizeSaving,
     error: markerSizeError,
   } = useSmartLocatorMarkerSize({ canEdit: canEditMarkerSize });
@@ -582,6 +585,9 @@ export default function SmartLocatorMap({
           customSizes={customSizes}
           onCustomSizeChange={setCustomSize}
           onResetCustomSizes={resetCustomSizes}
+          onSave={saveChanges}
+          onDiscard={discardChanges}
+          dirty={markerSizeDirty}
           currentZoom={mapZoom}
           saving={markerSizeSaving}
           error={markerSizeError}
