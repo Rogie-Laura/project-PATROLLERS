@@ -113,9 +113,18 @@ function ZoomReporter({ onZoomChange }) {
   return null;
 }
 
-function SmartLocatorMarkersLayer({ points, markerSizePreset, onDeletePoint }) {
+function SmartLocatorMarkersLayer({
+  points,
+  markerSizePreset,
+  customSizes,
+  onDeletePoint,
+}) {
   const mapZoom = useMapZoomLevel();
-  const markerSizePx = getSmartLocatorMarkerSizePx(mapZoom, markerSizePreset);
+  const markerSizePx = getSmartLocatorMarkerSizePx(
+    mapZoom,
+    markerSizePreset,
+    customSizes
+  );
 
   return (
     <>
@@ -246,7 +255,8 @@ function PlotDialog({ draft, saving, error, onChange, onCancel, onSubmit }) {
 
 export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }) {
   const basemap = useMemo(() => getBasemapById(DEFAULT_BASEMAP_ID), []);
-  const { presetId, setPresetId } = useSmartLocatorMarkerSize();
+  const { presetId, setPresetId, customSizes, setCustomSize, resetCustomSizes } =
+    useSmartLocatorMarkerSize();
   const [menu, setMenu] = useState(null);
   const [draft, setDraft] = useState(null);
   const [plotError, setPlotError] = useState("");
@@ -325,6 +335,7 @@ export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }
         <SmartLocatorMarkersLayer
           points={points}
           markerSizePreset={presetId}
+          customSizes={customSizes}
           onDeletePoint={handleDelete}
         />
       </MapContainer>
@@ -332,6 +343,9 @@ export default function SmartLocatorMap({ points, onCreatePoint, onDeletePoint }
       <SmartLocatorMarkerSizeOptions
         presetId={presetId}
         onPresetChange={setPresetId}
+        customSizes={customSizes}
+        onCustomSizeChange={setCustomSize}
+        onResetCustomSizes={resetCustomSizes}
         currentZoom={mapZoom}
       />
 
