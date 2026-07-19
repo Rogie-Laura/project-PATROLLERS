@@ -10,6 +10,7 @@ import {
   downloadCsv,
   printPatrollersDeployedReport,
   rowsToCsv,
+  sortOffices,
 } from "@/lib/reports/patrollersDeployed";
 
 export default function GenerateReportPanel({ locations = [], onClose }) {
@@ -27,9 +28,7 @@ export default function GenerateReportPanel({ locations = [], onClose }) {
       const office = String(loc?.office ?? "").trim();
       if (office) set.add(office);
     }
-    return [...set].sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
+    return sortOffices([...set]);
   }, [locations]);
 
   const units = useMemo(() => {
