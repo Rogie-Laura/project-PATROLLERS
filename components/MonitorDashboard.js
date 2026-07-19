@@ -871,7 +871,10 @@ export default function MonitorDashboard({ user, onLogout }) {
           )}
 
           {generateReportOpen && (
-            <GenerateReportPanel onClose={() => setGenerateReportOpen(false)} />
+            <GenerateReportPanel
+              locations={latestLocations}
+              onClose={() => setGenerateReportOpen(false)}
+            />
           )}
 
           {showOverview && showAllIncidents && (
