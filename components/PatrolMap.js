@@ -47,6 +47,33 @@ function toNumber(value) {
   return typeof value === "number" ? value : parseFloat(value);
 }
 
+function MapViewportReporter({ onChange }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!onChange) return undefined;
+
+    function report() {
+      const center = map.getCenter();
+      onChange({
+        lat: center.lat,
+        lng: center.lng,
+        zoom: map.getZoom(),
+      });
+    }
+
+    report();
+    map.on("moveend", report);
+    map.on("zoomend", report);
+    return () => {
+      map.off("moveend", report);
+      map.off("zoomend", report);
+    };
+  }, [map, onChange]);
+
+  return null;
+}
+
 function CalabarzonInitialView() {
   const map = useMap();
   const initializedRef = useRef(false);
@@ -370,6 +397,7 @@ export default function PatrolMap({
   nowMs = Date.now(),
   locationIntervalSeconds = 180,
   weatherOverlay = MAP_WEATHER_OVERLAY_NONE,
+  onMapViewportChange = null,
   showEstablishments = false,
   establishments = [],
   showTaalDangerZones = false,
@@ -424,6 +452,7 @@ export default function PatrolMap({
         <CalabarzonInitialView />
         <SyncBasemapZoom maxZoom={basemap.maxZoom} />
         <InvalidateOnResize />
+        <MapViewportReporter onChange={onMapViewportChange} />
         <FlyToCallResponse callResponse={flyToCall} />
         <FlyToPatrol target={flyToPatrol} />
         <FlyToUnit location={highlightedUnitLocation} />

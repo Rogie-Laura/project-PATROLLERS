@@ -46,8 +46,19 @@ import { dispatchFromRow } from "@/lib/callResponseDispatches";
 import { SESSION_ENDED_MESSAGE } from "@/lib/auth/sessionPolicy";
 import ForceLocationPanel from "@/components/ForceLocationPanel";
 import GenerateReportPanel from "@/components/GenerateReportPanel";
+import WindyEmbedPanel from "@/components/WindyEmbedPanel";
 import CommandBillingUnavailable from "@/components/CommandBillingUnavailable";
 import { useCommandBillingGate } from "@/lib/useCommandBillingGate";
+import {
+  MAP_WEATHER_OVERLAY_NONE,
+  MAP_WEATHER_OVERLAY_WINDY,
+} from "@/lib/mapWeatherOverlay";
+
+const DEFAULT_MAP_VIEWPORT = {
+  lat: 14.2,
+  lng: 121.1,
+  zoom: 9,
+};
 
 /** Full map refresh interval (backup if a Realtime message is missed). */
 const MONITOR_LOCATIONS_REFRESH_MS = 90_000;
@@ -76,6 +87,11 @@ export default function MonitorDashboard({ user, onLogout }) {
   const { visibility: patrolTypeVisibility, setVisibility: setPatrolTypeVisibility } =
     usePatrolTypeVisibility();
   const { weatherOverlay, setWeatherOverlay } = useMapWeatherOverlay();
+  const [mapViewport, setMapViewport] = useState(DEFAULT_MAP_VIEWPORT);
+  const handleMapViewportChange = useCallback((next) => {
+    setMapViewport(next);
+  }, []);
+  const windyPanelOpen = weatherOverlay === MAP_WEATHER_OVERLAY_WINDY;
   const [showEstablishments, setShowEstablishments] = useEstablishmentOverlay();
   const [showTaalDangerZones, setShowTaalDangerZones] = useTaalDangerZoneOverlay();
   const { showStormSurge, setShowStormSurge } = useHydrometOverlay();
@@ -843,6 +859,7 @@ export default function MonitorDashboard({ user, onLogout }) {
             nowMs={nowMs}
             locationIntervalSeconds={intervalSeconds}
             weatherOverlay={weatherOverlay}
+            onMapViewportChange={handleMapViewportChange}
             showEstablishments={showEstablishments}
             establishments={establishments}
             showTaalDangerZones={showTaalDangerZones}
@@ -874,6 +891,13 @@ export default function MonitorDashboard({ user, onLogout }) {
             <GenerateReportPanel
               locations={latestLocations}
               onClose={() => setGenerateReportOpen(false)}
+            />
+          )}
+
+          {windyPanelOpen && (
+            <WindyEmbedPanel
+              mapViewport={mapViewport}
+              onClose={() => setWeatherOverlay(MAP_WEATHER_OVERLAY_NONE)}
             />
           )}
 
