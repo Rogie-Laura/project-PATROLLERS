@@ -7,9 +7,7 @@ import {
   PATROLLERS_DEPLOYED_REPORT_ID,
   REPORT_TYPES,
   buildPatrollersDeployedRows,
-  downloadCsv,
   printPatrollersDeployedReport,
-  rowsToCsv,
   sortOffices,
 } from "@/lib/reports/patrollersDeployed";
 
