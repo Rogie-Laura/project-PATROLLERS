@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   formatEtaMinutes,
-  rankNearbyUnits,
+  rankNearestUnits,
+  DISPATCH_NEAREST_LIMIT,
 } from "@/lib/dispatchUnits";
 import { formatDistanceKm } from "@/lib/geo";
 import {
@@ -63,7 +64,10 @@ export default function CallResponsePanel({
     const units = latestLocations.filter(
       (loc) => loc.access_token_id && loc.live_tracking_active !== false
     );
-    return rankNearbyUnits(selectedCall, units, Number.MAX_SAFE_INTEGER);
+    return rankNearestUnits(selectedCall, units, {
+      maxRadiusM: Number.MAX_SAFE_INTEGER,
+      limit: DISPATCH_NEAREST_LIMIT,
+    });
   }, [selectedCall, latestLocations]);
 
   const [routeByUnit, setRouteByUnit] = useState({});
@@ -95,7 +99,7 @@ export default function CallResponsePanel({
   useEffect(() => {
     if (!selectedCall) return;
 
-    const topUnits = availableUnits.slice(0, 8);
+    const topUnits = availableUnits.slice(0, DISPATCH_NEAREST_LIMIT);
     if (topUnits.length === 0) return;
 
     let cancelled = false;
@@ -228,7 +232,8 @@ export default function CallResponsePanel({
           Active incidents ({callResponses.length})
         </h2>
         <p className="mt-1 text-[10px] text-muted">
-          Available mobile units — send respond or dragnet alert per unit.
+          Nearest {DISPATCH_NEAREST_LIMIT} mobile units — send respond or
+          dragnet alert per unit.
         </p>
       </div>
 
